@@ -1,0 +1,24 @@
+{
+  "name": "nouns-protocol",
+  "version": "0.0.1",
+  "repository": "https://github.com/ourzora/nouns-protocol.git",
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.6.0",
+    "@openzeppelin/contracts-upgradeable": "^4.6.0"
+  },
+  "devDependencies": {
+    "@typechain/ethers-v5": "^10.0.0",
+    "husky": "^8.0.1",
+    "lint-staged": "^13.0.1",
+    "prettier": "^2.6.1",
+    "prettier-plugin-solidity": "^1.0.0-beta.19",
+    "solhint": "^3.3.7",
+    "solhint-plugin-prettier": "^0.0.5",
+    "typechain": "^8.0.0",
+    "typescript": "^4.7.3"
+  },
+  "lint-staged": {
+    "*.{ts,js,css,md,sol}": "prettier --write",
+    "*.sol": "solhint"
+  }
+}
