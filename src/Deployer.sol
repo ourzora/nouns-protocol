@@ -85,14 +85,27 @@ contract Deployer {
 
     Deployed deployed;
 
-    function deploy(
-        TokenParams calldata _tokenParams /** auctionParams, */
-    ) public {
+    function deploy(TokenParams calldata _tokenParams, AuctionParams calldata _auctionParams) public {
         deployed.governor = address(new Proxy(governorImpl, ""));
         deployed.treasury = address(new Proxy(treasuryImpl, ""));
         deployed.token = address(new Proxy(tokenImpl, ""));
         deployed.auction = address(new Proxy(auctionImpl, ""));
 
-        // init token, auction, gov, treasury
+        // IToken(token).initialize(_name, _symbol, _foundersDAO, _foundersMaxAllocation, _foundersAllocationFrequency, _treasury, _minter)
+
+        // ITreasury(_treasury).initialize(_governor);
+
+        // IGovernor(_governor).initialize(_treasury, _token, foundersDAO)
+
+        /**
+        IAuctionHouse(_auction).initialize(
+            _token,
+            _treasury,
+            _auctionParams.timeBuffer,
+            _auctionParams.reservePrice,
+            _auctionParams.minBidIncrementPercentage,
+            _auctionParams.duration
+        );
+         */
     }
 }
