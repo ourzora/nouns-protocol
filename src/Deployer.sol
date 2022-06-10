@@ -8,6 +8,7 @@ import {IGovernor, Governor} from "./governance/governor/Governor.sol";
 import {Proxy} from "./upgrades/proxy/Proxy.sol";
 
 import {IUpgradeManager} from "./upgrades/IUpgradeManager.sol";
+import {IDeployer} from "./IDeployer.sol";
 
 contract Deployer {
     ///                                                          ///
@@ -43,69 +44,33 @@ contract Deployer {
     ///                             DEPLOY                       ///
     ///                                                          ///
 
-    struct TokenParams {
-        string name;
-        string symbol;
-        address foundersDAO;
-        uint256 foundersMaxAllocation;
-        uint256 foundersAllocationFrequency;
-    }
+    function deploy(IDeployer.TokenParams calldata _tokenParams, IDeployer.AuctionParams calldata _auctionParams) public {
+        address governor = address(new Proxy(governorImpl, ""));
+        address treasury = address(new Proxy(treasuryImpl, ""));
+        address token = address(new Proxy(tokenImpl, ""));
+        address auction = address(new Proxy(auctionImpl, ""));
 
-    TokenParams token;
+        IToken(token).initialize(
+            _tokenParams.name,
+            _tokenParams.symbol,
+            _tokenParams.foundersDAO,
+            _tokenParams.foundersMaxAllocation,
+            _tokenParams.foundersAllocationFrequency,
+            treasury,
+            auction
+        );
 
-    struct AuctionParams {
-        uint256 timeBuffer;
-        uint256 reservePrice;
-        uint256 minBidIncrementPercentage;
-        uint256 duration;
-    }
-
-    AuctionParams auctionParams;
-
-    struct GovernorParams {
-        address treasury;
-        address token;
-        address vetoer;
-    }
-
-    GovernorParams governorParams;
-
-    struct TreasuryParams {
-        address governor;
-    }
-
-    TreasuryParams treasuryParams;
-
-    struct Deployed {
-        address governor;
-        address treasury;
-        address token;
-        address auction;
-    }
-
-    Deployed deployed;
-
-    function deploy(TokenParams calldata _tokenParams, AuctionParams calldata _auctionParams) public {
-        deployed.governor = address(new Proxy(governorImpl, ""));
-        deployed.treasury = address(new Proxy(treasuryImpl, ""));
-        deployed.token = address(new Proxy(tokenImpl, ""));
-        deployed.auction = address(new Proxy(auctionImpl, ""));
-
-        // IToken(token).initialize(_name, _symbol, _foundersDAO, _foundersMaxAllocation, _foundersAllocationFrequency, _treasury, _minter)
-
-        // ITreasury(_treasury).initialize(_governor);
-
-        // IGovernor(_governor).initialize(_treasury, _token, foundersDAO)
-
-        /**
-        IAuctionHouse(_auction).initialize(
-            _token,
-            _treasury,
+        IAuctionHouse(auction).initialize(
+            token,
+            treasury,
             _auctionParams.timeBuffer,
             _auctionParams.reservePrice,
             _auctionParams.minBidIncrementPercentage,
             _auctionParams.duration
         );
-         */
+
+        ITreasury(treasury).initialize(governor);
+
+        IGovernor(governor).initialize(treasury, token, _tokenParams.foundersDAO);
     }
 }
