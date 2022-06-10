@@ -5,6 +5,7 @@ import {ERC721VotesUpgradeable} from "@openzeppelin/contracts-upgradeable/token/
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {IMetadataRenderer} from "./metadata/IMetadataRenderer.sol";
 
 import {IUpgradeManager} from "../UpgradeManager.sol";
 
@@ -56,8 +57,7 @@ contract Token is ERC721VotesUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgrad
     function initialize(
         string memory _name,
         string memory _symbol,
-        address _metadataRenderer,
-        bytes memory _metadataRendererData,
+        IMetadataRenderer _metadataRenderer,
         address _foundersDAO,
         uint256 _foundersMaxAllocation,
         uint256 _foundersAllocationFrequency,
@@ -76,9 +76,7 @@ contract Token is ERC721VotesUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgrad
         transferOwnership(_foundersDAO);
 
         // Initialize the metadata renderer
-        // metadataRenderer = IMetadataRenderer(_metadataRenderer);
-        //
-        // metadataRenderer.initialize(_metadataRendererInit);
+        metadataRenderer = _metadataRenderer;
 
         // Store the founders metadata
         founders.DAO = _foundersDAO;
@@ -180,11 +178,17 @@ contract Token is ERC721VotesUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgrad
         return currentTokenId;
     }
 
+    function _mint(address receiver, uint256 tokenUri) internal override {
+        _mint(receiver, tokenUri);
+        metadataRenderer.minted(tokenUri);
+    }
+
     ///                                                          ///
     ///                             BURN                         ///
     ///                                                          ///
 
     function burn(uint256 tokenId) public {
+        // wouldn't this need to be the owner?
         require(msg.sender == minter, "ONLY_MINTER");
 
         _burn(tokenId);
@@ -215,5 +219,13 @@ contract Token is ERC721VotesUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgrad
 
         // Ensure the implementation is valid
         // require(UpgradeManager.isValidUpgrade(_newImpl, _getImplementation()), "INVALID_IMPLEMENTATION");
+    }
+
+    function contractURI() public view returns (string memory) {
+        metadataRenderer.contractURI();
+    }
+
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        metadataRenderer.tokenURI(tokenId);
     }
 }
