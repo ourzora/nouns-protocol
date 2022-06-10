@@ -7,6 +7,7 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 
 import {IUpgradeManager} from "../../upgrades/IUpgradeManager.sol";
 import {GovernorStorageV1, ITreasury, IToken} from "./storage/GovernorStorageV1.sol";
+import {IGovernor} from "./IGovernor.sol";
 
 /// @notice PLACEHOLDER FOR OpenZeppelin's `GovernorUpgradeable`
 /// @notice Modified version of NounsDAOLogicV1.sol (commit 2cbe6c7) that NounsDAO licensed under the GPL-3.0 license
@@ -68,21 +69,10 @@ contract Governor is GovernorStorageV1, UUPSUpgradeable, OwnableUpgradeable {
     function initialize(
         address _treasury,
         address _token,
-        address _vetoer,
-        uint256 _votingPeriod,
-        uint256 _votingDelay,
-        uint256 _proposalThresholdBPS,
-        uint256 _quorumVotesBPS
+        address _vetoer
     ) public initializer {
         require(_treasury != address(0), "INVALID_TREASURY");
         require(_token != address(0), "INVALID_TOKEN");
-        require(_votingPeriod >= MIN_VOTING_PERIOD && _votingPeriod <= MAX_VOTING_PERIOD, "INVALID_VOTING_PERIOD");
-        require(_votingDelay >= MIN_VOTING_DELAY && _votingDelay <= MAX_VOTING_DELAY, "INVALID_VOTING_DELAY");
-        require(
-            _proposalThresholdBPS >= MIN_PROPOSAL_THRESHOLD_BPS && _proposalThresholdBPS <= MAX_PROPOSAL_THRESHOLD_BPS,
-            "INVALID_PROPOSAL_THRESHOLD"
-        );
-        require(_quorumVotesBPS >= MIN_QUORUM_VOTES_BPS && _quorumVotesBPS <= MAX_QUORUM_VOTES_BPS, "INVALID_QUORUM_THRESHOLD");
 
         __UUPSUpgradeable_init();
 
@@ -93,10 +83,6 @@ contract Governor is GovernorStorageV1, UUPSUpgradeable, OwnableUpgradeable {
         treasury = ITreasury(_treasury);
         token = IToken(_token);
         vetoer = _vetoer;
-        votingPeriod = _votingPeriod;
-        votingDelay = _votingDelay;
-        proposalThresholdBPS = _proposalThresholdBPS;
-        quorumVotesBPS = _quorumVotesBPS;
     }
 
     ///                                                          ///

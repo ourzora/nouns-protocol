@@ -4,6 +4,8 @@ pragma solidity ^0.8.10;
 interface ITreasury {
     function initialize(address admin) external;
 
+    function owner() external returns (address);
+
     function delay() external view returns (uint256);
 
     function GRACE_PERIOD() external view returns (uint256);
