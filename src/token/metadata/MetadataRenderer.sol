@@ -4,7 +4,7 @@ pragma solidity ^0.8.10;
 import {IMetadataRenderer} from "./IMetadataRenderer.sol";
 import {EntropyUser} from "./EntropyUser.sol";
 
-contract OnChainMetadataRenderer is UUPSUpgradeable {
+contract OnChainMetadataRendererStorage {
     struct Item {
         string name;
         uint32 chunkId;
@@ -12,9 +12,14 @@ contract OnChainMetadataRenderer is UUPSUpgradeable {
         uint32 endOffset;
     }
 
+    struct ItemWithPropertyId {
+      Item item;
+      uint16 propertyId; 
+    }
+
     struct Property {
-        string name;
-        Item[] items;
+      string name;
+      Item[] items;
     }
 
     struct MediaChunk {
@@ -25,12 +30,29 @@ contract OnChainMetadataRenderer is UUPSUpgradeable {
     uint32 size;
     string name;
     string description;
+    string imageBase;
     mapping(uint256 => uint16[11]) chosenAttributes;
+    mapping(uint16 => Item[]) items;
 }
 
-contract OnChainMetadataRenderer is UUPSUpgradeable, OffchainMetadataStorage, EntropyUser {
-    function setup(Property[] memory _properties) {
-        properties = _properties;
+// TODO: make UUPSUpgradable
+contract OnChainMetadataRenderer is OnChainMetadataRendererStorage, EntropyUser {
+    event NewImageBaseURI(string indexed);
+
+    function setup(string[] memory _properties, ItemWithPropertyId[] memory _items) public {
+      for (uint256 i = 0; i < _properties.length; i++) {
+        properties.push();
+        properties[i].name = _properties[i];
+      }
+      for (uint256 i = 0; i < _items.length; i++) {
+        properties[_items[i].propertyId].items.push();
+        properties[_items[i].propertyId].items[i].name = _items[i].item.name;
+      }
+    }
+
+    function setImageBase(string memory newImageBase) external {
+      imageBase = newImageBase;
+      emit NewImageBaseURI(newImageBase);
     }
 
     function contractURI() external view returns (string memory) {
@@ -49,7 +71,7 @@ contract OnChainMetadataRenderer is UUPSUpgradeable, OffchainMetadataStorage, En
     }
 
     function tokenURI(uint256 tokenId) external view returns (string memory) {
-        (bytes memory propertiesAry, bytes memory propertiesQuery) = _getProperties();
+        (bytes memory propertiesAry, bytes memory propertiesQuery) = _getProperties(tokenId);
         return
             string(
                 abi.encodePacked(
@@ -61,20 +83,20 @@ contract OnChainMetadataRenderer is UUPSUpgradeable, OffchainMetadataStorage, En
                     description,
                     '", "image": "',
                     imageBase,
-                    _getPropertiesImage(tokenId),
-                    '", "properties": {',
-                    _getPropertiesAttributes(tokenId),
+                    propertiesQuery,
+                    '", "properties": {', 
+                    propertiesAry,
                     "}}"
                 )
             );
     }
 
     function minted(uint256 tokenId) external {
-        uint256 entropy = _getEntropy();
+        uint256 entropy = _getEntropy(tokenId);
         uint16[11] storage atAttributes = chosenAttributes[tokenId];
-        atAttributes[0] = properties.length;
+        atAttributes[0] = uint16(properties.length);
         for (uint256 i = 0; i < properties.length; i++) {
-            uint256 size = properties[i].items.length;
+            uint16 size = uint16(properties[i].items.length);
             atAttributes[i + 1] = uint16(entropy) % size;
             entropy >>= 16;
         }
