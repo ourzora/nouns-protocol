@@ -5,6 +5,7 @@ import {ERC721VotesUpgradeable} from "@openzeppelin/contracts-upgradeable/token/
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {IMetadataRenderer} from "./metadata/IMetadataRenderer.sol";
 
 import {IUpgradeManager} from "../upgrades/IUpgradeManager.sol";
 import {TokenStorageV1} from "./storage/TokenStorageV1.sol";
@@ -19,6 +20,8 @@ contract Token is TokenStorageV1, ERC721VotesUpgradeable, UUPSUpgradeable, Reent
 
     /// @notice The contract upgrade manager
     IUpgradeManager private immutable UpgradeManager;
+    
+    IMetadataRenderer private metadataRenderer;
 
     /// @notice The Nouns Builder DAO
     address private immutable DAO;
@@ -51,7 +54,6 @@ contract Token is TokenStorageV1, ERC721VotesUpgradeable, UUPSUpgradeable, Reent
     /// @param _name The token name
     /// @param _symbol The token $SYMBOL
     /// @param _metadataRenderer TBD
-    /// @param _metadataRendererInitData TBD
     /// @param _foundersDAO The address of the founders DAO
     /// @param _foundersMaxAllocation The maximum number of tokens the founders will vest (eg. 183 nouns to nounders)
     /// @param _foundersAllocationFrequency The allocation frequency (eg. every 10 nouns)
@@ -60,8 +62,7 @@ contract Token is TokenStorageV1, ERC721VotesUpgradeable, UUPSUpgradeable, Reent
     function initialize(
         string memory _name,
         string memory _symbol,
-        address _metadataRenderer,
-        bytes memory _metadataRendererInitData,
+        IMetadataRenderer _metadataRenderer,
         address _foundersDAO,
         uint256 _foundersMaxAllocation,
         uint256 _foundersAllocationFrequency,
@@ -82,6 +83,9 @@ contract Token is TokenStorageV1, ERC721VotesUpgradeable, UUPSUpgradeable, Reent
 
         // Transfer ownership to the DAO treasury
         transferOwnership(_treasury);
+
+        // Set metadata renderer
+        metadataRenderer = _metadataRenderer;
 
         // Store the founders metadata
         founders.DAO = _foundersDAO;
@@ -207,5 +211,13 @@ contract Token is TokenStorageV1, ERC721VotesUpgradeable, UUPSUpgradeable, Reent
     function _authorizeUpgrade(address _newImpl) internal override onlyOwner {
         // Ensure the implementation is valid
         require(UpgradeManager.isValidUpgrade(_getImplementation(), _newImpl), "INVALID_UPGRADE");
+    }
+
+    function tokenURI(uint256 tokenId) public override view returns (string memory) {
+        return metadataRenderer.tokenURI(tokenId);
+    }
+
+    function contractURI() public view returns (string memory) {
+        return metadataRenderer.contractURI();
     }
 }
