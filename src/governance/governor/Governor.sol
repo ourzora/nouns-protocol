@@ -73,8 +73,7 @@ contract Governor is GovernorStorageV1, UUPSUpgradeable, OwnableUpgradeable {
         uint256 _votingDelay,
         uint256 _proposalThresholdBPS,
         uint256 _quorumVotesBPS
-    ) public virtual {
-        require(address(treasury) == address(0), "ALREADY_INITIALIZED");
+    ) public initializer {
         require(msg.sender == admin, "ONLY_ADMIN");
         require(_treasury != address(0), "INVALID_TREASURY");
         require(_token != address(0), "INVALID_TOKEN");
