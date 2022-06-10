@@ -74,7 +74,6 @@ contract Governor is GovernorStorageV1, UUPSUpgradeable, OwnableUpgradeable {
         uint256 _proposalThresholdBPS,
         uint256 _quorumVotesBPS
     ) public initializer {
-        require(msg.sender == admin, "ONLY_ADMIN");
         require(_treasury != address(0), "INVALID_TREASURY");
         require(_token != address(0), "INVALID_TOKEN");
         require(_votingPeriod >= MIN_VOTING_PERIOD && _votingPeriod <= MAX_VOTING_PERIOD, "INVALID_VOTING_PERIOD");
@@ -392,11 +391,10 @@ contract Governor is GovernorStorageV1, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     ///                                                          ///
-    ///                             ADMIN                        ///
+    ///                             OWNER                        ///
     ///                                                          ///
 
-    function _setVotingDelay(uint256 newVotingDelay) external {
-        require(msg.sender == admin, "ONLY_ADMIN");
+    function _setVotingDelay(uint256 newVotingDelay) external onlyOwner {
         require(newVotingDelay >= MIN_VOTING_DELAY && newVotingDelay <= MAX_VOTING_DELAY, "INVALID_VOTING_DELAY");
         uint256 oldVotingDelay = votingDelay;
         votingDelay = newVotingDelay;
@@ -404,8 +402,7 @@ contract Governor is GovernorStorageV1, UUPSUpgradeable, OwnableUpgradeable {
         emit VotingDelaySet(oldVotingDelay, votingDelay);
     }
 
-    function _setVotingPeriod(uint256 newVotingPeriod) external {
-        require(msg.sender == admin, "ONLY_ADMIN");
+    function _setVotingPeriod(uint256 newVotingPeriod) external onlyOwner {
         require(newVotingPeriod >= MIN_VOTING_PERIOD && newVotingPeriod <= MAX_VOTING_PERIOD, "INVALID_VOTING_PERIOD");
         uint256 oldVotingPeriod = votingPeriod;
         votingPeriod = newVotingPeriod;
@@ -413,8 +410,7 @@ contract Governor is GovernorStorageV1, UUPSUpgradeable, OwnableUpgradeable {
         emit VotingPeriodSet(oldVotingPeriod, votingPeriod);
     }
 
-    function _setProposalThresholdBPS(uint256 newProposalThresholdBPS) external {
-        require(msg.sender == admin, "ONLY_ADMIN");
+    function _setProposalThresholdBPS(uint256 newProposalThresholdBPS) external onlyOwner {
         require(
             newProposalThresholdBPS >= MIN_PROPOSAL_THRESHOLD_BPS && newProposalThresholdBPS <= MAX_PROPOSAL_THRESHOLD_BPS,
             "INVALID_PROPOSAL_THRESHOLD"
@@ -425,8 +421,7 @@ contract Governor is GovernorStorageV1, UUPSUpgradeable, OwnableUpgradeable {
         emit ProposalThresholdBPSSet(oldProposalThresholdBPS, proposalThresholdBPS);
     }
 
-    function _setQuorumVotesBPS(uint256 newQuorumVotesBPS) external {
-        require(msg.sender == admin, "ONLY_ADMIN");
+    function _setQuorumVotesBPS(uint256 newQuorumVotesBPS) external onlyOwner {
         require(newQuorumVotesBPS >= MIN_QUORUM_VOTES_BPS && newQuorumVotesBPS <= MAX_QUORUM_VOTES_BPS, "INVALID_PROPOSAL_THRESHOLD");
 
         uint256 oldQuorumVotesBPS = quorumVotesBPS;
@@ -436,9 +431,7 @@ contract Governor is GovernorStorageV1, UUPSUpgradeable, OwnableUpgradeable {
         emit QuorumVotesBPSSet(oldQuorumVotesBPS, quorumVotesBPS);
     }
 
-    function _setPendingAdmin(address newPendingAdmin) external {
-        require(msg.sender == admin, "ONLY_ADMIN");
-
+    function _setPendingAdmin(address newPendingAdmin) external onlyOwner {
         address oldPendingAdmin = pendingAdmin;
 
         pendingAdmin = newPendingAdmin;
