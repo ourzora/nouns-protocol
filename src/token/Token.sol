@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.10;
 
 import {ERC721VotesUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/draft-ERC721VotesUpgradeable.sol";
@@ -6,79 +6,82 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
-import {IUpgradeManager} from "../UpgradeManager.sol";
+import {IUpgradeManager} from "../upgrades/IUpgradeManager.sol";
+import {TokenStorageV1} from "./storage/TokenStorageV1.sol";
 
-// import {IToken} from "./IToken.sol";
-
-/**
-    TODO
-    - Metadata Rendering
-    - Ownership / Upgrade Manager
-    - Vesting
-        - handle dynamic number of recipients
-        - handle overlapping vests and priority of recipients
-    
- */
-contract Token is ERC721VotesUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
+/// @title Nounish ERC-721 Token
+/// @author Rohan Kulkarni
+/// @notice Modified version of NounsToken.sol (commit 2cbe6c7) that NounsDAO licensed under the GPL-3.0 license
+contract Token is TokenStorageV1, ERC721VotesUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
-    /// @notice
+    /// @notice The contract upgrade manager
     IUpgradeManager private immutable UpgradeManager;
 
-    /// @notice
-    uint256 private immutable DAOFee;
+    /// @notice The Nouns Builder DAO
+    address private immutable DAO;
 
-    /// @notice
-    address private immutable DAOFeeRecipient;
+    /// @notice The Nouns Builder DAO Fee
+    uint256 private immutable DAOFee;
 
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
+    /// @param _upgradeManager The address of the contract upgrade manager
+    /// @param _dao The address of the Nouns Builder DAO
+    /// @param _daoFee The allocation frequency of tokens
     constructor(
         address _upgradeManager,
-        uint256 _daoFee,
-        address _daoFeeRecipient
+        address _dao,
+        uint256 _daoFee
     ) payable initializer {
         UpgradeManager = IUpgradeManager(_upgradeManager);
-
+        DAO = _dao;
         DAOFee = _daoFee;
-
-        DAOFeeRecipient = _daoFeeRecipient;
     }
 
     ///                                                          ///
     ///                          INITIALIZER                     ///
     ///                                                          ///
 
+    /// @notice Called by the proxy to initialize the contract
+    /// @param _name The token name
+    /// @param _symbol The token $SYMBOL
+    /// @param _metadataRenderer TBD
+    /// @param _metadataRendererInitData TBD
+    /// @param _foundersDAO The address of the founders DAO
+    /// @param _foundersMaxAllocation The maximum number of tokens the founders will vest (eg. 183 nouns to nounders)
+    /// @param _foundersAllocationFrequency The allocation frequency (eg. every 10 nouns)
+    /// @param _treasury The address of the treasury to own the contract
+    /// @param _minter The address of the auction house to mint tokens
     function initialize(
         string memory _name,
         string memory _symbol,
         address _metadataRenderer,
-        bytes memory _metadataRendererData,
+        bytes memory _metadataRendererInitData,
         address _foundersDAO,
         uint256 _foundersMaxAllocation,
         uint256 _foundersAllocationFrequency,
+        address _treasury,
         address _minter
     ) public initializer {
+        // Initialize the proxy
+        __UUPSUpgradeable_init();
+
         // Initialize the ERC-721 token
         __ERC721_init(_name, _symbol);
 
-        // Initialize the reentracy guard
+        // Initialize the reentrancy guard
         __ReentrancyGuard_init();
 
-        // Initialize ownership of the contract
+        // Initialize contract ownership
         __Ownable_init();
 
-        // Transfer ownership to the founders
-        transferOwnership(_foundersDAO);
-
-        // Initialize the metadata renderer
-        // metadataRenderer = IMetadataRenderer(_metadataRenderer);
-        //
-        // metadataRenderer.initialize(_metadataRendererInit);
+        // Transfer ownership to the DAO treasury
+        transferOwnership(_treasury);
 
         // Store the founders metadata
         founders.DAO = _foundersDAO;
@@ -88,25 +91,6 @@ contract Token is ERC721VotesUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgrad
         // Store the address allowed to mint tokens
         minter = _minter;
     }
-
-    ///                                                          ///
-    ///                        FOUNDERS STORAGE                  ///
-    ///                                                          ///
-
-    /// @notice The metadata of the founders
-    /// @param DAO The founders DAO address
-    /// @param maxAllocation The maximum number of tokens that will be vested
-    /// @param currentAllocation The current number of tokens vested
-    /// @param allocationFrequency The interval between tokens to vest to the founders
-    struct Founders {
-        address DAO;
-        uint32 maxAllocation;
-        uint32 currentAllocation;
-        uint32 allocationFrequency;
-    }
-
-    /// @notice
-    Founders public founders;
 
     ///                                                          ///
     ///                        UPDATE FOUNDERS                   ///
@@ -122,7 +106,7 @@ contract Token is ERC721VotesUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgrad
         // Ensure the caller is the founders
         require(msg.sender == founders.DAO, "ONLY_FOUNDERS");
 
-        // Store the updated DAO address
+        // Update the founders DAO address
         founders.DAO = _foundersDAO;
 
         emit FoundersDAOUpdated(_foundersDAO);
@@ -132,11 +116,14 @@ contract Token is ERC721VotesUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgrad
     ///                         UPDATE MINTER                    ///
     ///                                                          ///
 
-    address public minter;
-
+    /// @notice Emitted when the minter is updated
+    /// @param minter The address of the new minter
     event MinterUpdated(address minter);
 
+    /// @notice Updates the address of the minter
+    /// @param _minter The address of the minter to set
     function setMinter(address _minter) external onlyOwner {
+        // Update the minter address
         minter = _minter;
 
         emit MinterUpdated(_minter);
@@ -146,74 +133,79 @@ contract Token is ERC721VotesUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgrad
     ///                              MINT                        ///
     ///                                                          ///
 
-    /// @notice The token id tracker
-    uint256 public tokenCount;
-
-    // TODO handle vesting overlaps and other recipients
-    function mint() public returns (uint256) {
+    /// @notice Mints a token to the minter and handles vesting allocations
+    function mint() public nonReentrant returns (uint256) {
         // Ensure the caller is the minter
         require(msg.sender == minter, "ONLY_MINTER");
 
-        // Used to store the current token id
-        uint256 currentTokenId;
-
-        // Get the current token id and increment the total count
         unchecked {
-            currentTokenId = ++tokenCount;
-        }
+            // If the token is valid to vest for both the founders and Nouns Builder DAO:
+            if (_isFoundersVest(tokenCount) && _isDAOVest(tokenCount)) {
+                // Send the first token to the founders
+                _mint(founders.DAO, ++tokenCount);
 
-        // If the founders are still vesting and this is a valid token to vest:
-        if (founders.currentAllocation < founders.maxAllocation && currentTokenId % founders.allocationFrequency == 0) {
-            // Send the founders DAO the token
-            _mint(founders.DAO, currentTokenId);
-
-            // Increment the founders DAO allocation
-            unchecked {
+                // Update the founders allocation
                 ++founders.currentAllocation;
+
+                // Send the next token to the DAO
+                _mint(DAO, ++tokenCount);
+
+                // Else if the token is just for the founders:
+            } else if (_isFoundersVest(tokenCount)) {
+                // Send the token to the founders
+                _mint(founders.DAO, ++tokenCount);
+
+                // Update the founders allocation
+                ++founders.currentAllocation;
+
+                // Else if the token is just for the DAO:
+            } else if (_isDAOVest(tokenCount)) {
+                // Send the token to the DAO
+                _mint(DAO, ++tokenCount);
             }
 
-            // Otherwise send the token to the auction house for bidding
-        } else {
-            _mint(minter, currentTokenId);
-        }
+            // Send the next token to the minter
+            _mint(minter, ++tokenCount);
 
-        return currentTokenId;
+            return tokenCount;
+        }
+    }
+
+    /// @notice If the founders are still vesting AND the given token fits their vesting criteria
+    /// @param _tokenId The ERC-721 token id
+    function _isFoundersVest(uint256 _tokenId) private view returns (bool) {
+        return founders.currentAllocation < founders.maxAllocation && _tokenId % founders.allocationFrequency == 0;
+    }
+
+    /// @notice If the given token fits the DAO vesting criteria
+    /// @param _tokenId The ERC-721 token id
+    function _isDAOVest(uint256 _tokenId) private view returns (bool) {
+        return _tokenId % DAOFee == 0;
     }
 
     ///                                                          ///
     ///                             BURN                         ///
     ///                                                          ///
 
-    function burn(uint256 tokenId) public {
+    /// @notice Burns a token that did not have any bids
+    /// @param _tokenId The token id to burn
+    function burn(uint256 _tokenId) public {
+        // Ensure the caller is the minter
         require(msg.sender == minter, "ONLY_MINTER");
 
-        _burn(tokenId);
+        // Burn the token
+        _burn(_tokenId);
     }
-
-    ///                                                          ///
-    ///                       METADATA RENDERER                  ///
-    ///                                                          ///
-
-    ///                                                          ///
-    ///                          TOKEN URI                       ///
-    ///                                                          ///
-
-    ///                                                          ///
-    ///                         CONTRACT URI                     ///
-    ///                                                          ///
 
     ///                                                          ///
     ///                         PROXY UPGRADE                    ///
     ///                                                          ///
 
-    /// @notice Ensures the caller is authorized to upgrade the contract
+    /// @notice Ensures the caller is authorized to upgrade the contract to a valid implementation
     /// @dev This function is called in UUPS `upgradeTo` & `upgradeToAndCall`
     /// @param _newImpl The address of the new implementation
-    function _authorizeUpgrade(address _newImpl) internal view override {
-        // Ensure the caller is the upgrade manager
-        require(msg.sender == address(UpgradeManager), "ONLY_UPGRADE_MANAGER");
-
+    function _authorizeUpgrade(address _newImpl) internal override onlyOwner {
         // Ensure the implementation is valid
-        // require(UpgradeManager.isValidUpgrade(_newImpl, _getImplementation()), "INVALID_IMPLEMENTATION");
+        require(UpgradeManager.isValidUpgrade(_getImplementation(), _newImpl), "INVALID_UPGRADE");
     }
 }

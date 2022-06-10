@@ -13,7 +13,7 @@ interface IToken is IERC721Upgradeable, IVotesUpgradeable, IMetadataRenderer {
 
     function setMinter(address minter) external;
 
-    function lockMinter() external;
-
     function setFoundersDAO(address foundersDAO) external;
+
+    function totalCount() external view returns (uint256);
 }
