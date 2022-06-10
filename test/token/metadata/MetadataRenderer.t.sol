@@ -4,7 +4,8 @@ pragma solidity ^0.8.10;
 import {DSTest} from "ds-test/test.sol";
 import {Vm} from "forge-std/Vm.sol";
 
-import {OnChainMetadataRenderer, OnChainMetadataRendererStorage} from "../../../src/token/metadata/MetadataRenderer.sol";
+import {OnChainMetadataRenderer} from "../../../src/token/metadata/OnChainMetadataRenderer.sol";
+import {OnChainMetadataRendererStorage} from "../../../src/token/metadata/OnChainMetadataRendererStorage.sol";
 
 contract MetadataRendererTest is DSTest {
     function test_SetupRenderer() public {
@@ -17,7 +18,9 @@ contract MetadataRendererTest is DSTest {
         string[] memory names = new string[](2);
         names[0] = "Sky";
         names[1] = "Floor";
-        renderer.initialize(abi.encode("Words DAO", "Words from NYT Archive", "https://jmrlf3.csb.app/"));
+        renderer.initialize(
+            abi.encode("Weather Slides", "Landscapes Combinations. One a day.", "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j/")
+        );
         renderer.addProperties(names, items);
         renderer.minted(1);
         assertEq("asdf", renderer.tokenURI(1));

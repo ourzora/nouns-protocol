@@ -5,55 +5,23 @@ import {IMetadataRenderer} from "./IMetadataRenderer.sol";
 import {EntropyUser} from "./EntropyUser.sol";
 import {IToken} from "../IToken.sol";
 import {LibUintToString} from "sol2string/LibUintToString.sol";
+import {OnChainMetadataRendererStorage} from "./OnChainMetadataRendererStorage.sol";
 
-contract OnChainMetadataRendererStorage {
-    struct Item {
-        string name;
-        // uint32 chunkId;
-        // uint32 startOffset;
-        // uint32 endOffset;
-    }
-
-    struct ItemWithPropertyId {
-        Item item;
-        uint16 propertyId;
-    }
-
-    struct Property {
-        string name;
-        Item[] items;
-    }
-
-    struct MediaChunk {
-        address data;
-    }
-
-    Property[] properties;
-
-    string name;
-    string description;
-    string imageBase;
-
-    IToken token;
-
-    mapping(uint256 => uint16[11]) chosenAttributes;
-    mapping(uint16 => Item[]) items;
-}
 
 // TODO: make UUPSUpgradable
 contract OnChainMetadataRenderer is OnChainMetadataRendererStorage, EntropyUser {
     event NewImageBaseURI(string indexed);
 
     function initialize(bytes memory data) public {
-      (string memory _name, string memory _description, string memory _imageBase) = abi.decode(data, (string, string, string));
-      name = _name;
-      description = _description;
-      imageBase = _imageBase;
-      token = IToken(msg.sender);
+        (string memory _name, string memory _description, string memory _imageBase) = abi.decode(data, (string, string, string));
+        name = _name;
+        description = _description;
+        imageBase = _imageBase;
+        token = IToken(msg.sender);
     }
 
     function addProperties(string[] memory _properties, ItemWithPropertyId[] memory _items) public {
-      uint256 propertiesBaseLength = properties.length;
+        uint256 propertiesBaseLength = properties.length;
         for (uint256 i = 0; i < _properties.length; i++) {
             properties.push();
             properties[propertiesBaseLength + i].name = _properties[i];
@@ -76,12 +44,11 @@ contract OnChainMetadataRenderer is OnChainMetadataRendererStorage, EntropyUser 
 
     function _getProperties(uint256 tokenId) internal view returns (bytes memory aryAttributes, bytes memory queryString) {
         uint16[11] storage atAttributes = chosenAttributes[tokenId];
-        queryString = "?";
         for (uint256 i = 0; i < atAttributes[0]; i++) {
             bool isLast = i == atAttributes[0] - 1;
             string memory valueName = properties[i].items[atAttributes[i + 1]].name;
             aryAttributes = abi.encodePacked(aryAttributes, '"', properties[i].name, '": "', valueName, '"', isLast ? "" : ",");
-            queryString = abi.encodePacked(queryString, properties[i].name, "=", valueName, isLast ? "" : "&");
+            queryString = abi.encodePacked(queryString, properties[i].name, "", valueName);
         }
     }
 
