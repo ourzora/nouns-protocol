@@ -25,13 +25,18 @@ contract AuctionHouse is AuctionHouseStorageV1, UUPSUpgradeable, PausableUpgrade
     /// @notice The contract upgrade manager
     IUpgradeManager private immutable UpgradeManager;
 
+    /// @notice The WETH token address
+    address public immutable weth;
+
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
     /// @param _upgradeManager The address of the contract upgrade manager
-    constructor(address _upgradeManager) payable initializer {
+    /// @param _weth The WETH token address
+    constructor(address _upgradeManager, address _weth) payable initializer {
         UpgradeManager = IUpgradeManager(_upgradeManager);
+        weth = _weth;
     }
 
     ///                                                          ///
@@ -40,12 +45,11 @@ contract AuctionHouse is AuctionHouseStorageV1, UUPSUpgradeable, PausableUpgrade
 
     function initialize(
         address _token,
-        address _weth,
+        address _treasury,
         uint256 _timeBuffer,
         uint256 _reservePrice,
         uint256 _minBidIncrementPercentage,
-        uint256 _duration,
-        address _treasury
+        uint256 _duration
     ) external initializer {
         // Initialize the proxy
         __UUPSUpgradeable_init();
@@ -67,9 +71,6 @@ contract AuctionHouse is AuctionHouseStorageV1, UUPSUpgradeable, PausableUpgrade
 
         // Store the address of the token to mint
         token = IToken(_token);
-
-        // Store the address of WETH
-        weth = _weth;
 
         // Initialize the auction house metadata
         timeBuffer = _timeBuffer;
@@ -270,9 +271,6 @@ contract AuctionHouse is AuctionHouseStorageV1, UUPSUpgradeable, PausableUpgrade
     ///                                                          ///
     ///                          ETH TRANSFER                    ///
     ///                                                          ///
-
-    /// @notice The WETH token address
-    address public weth;
 
     /// @notice Transfer ETH/WETH outbound from this contract
     function _handleOutgoingTransfer(address _dest, uint256 _amount) internal {

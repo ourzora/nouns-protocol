@@ -34,7 +34,7 @@ interface IAuctionHouse {
 
     function initialize(
         address _token,
-        address _weth,
+        address _treasury,
         uint256 _timeBuffer,
         uint256 _reservePrice,
         uint256 _minBidIncrementPercentage,
