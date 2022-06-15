@@ -6,6 +6,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {IMetadataRenderer} from "./metadata/IMetadataRenderer.sol";
+import {ITokenSpec} from "./ITokenSpec.sol";
 
 import {IUpgradeManager} from "../upgrades/IUpgradeManager.sol";
 import {TokenStorageV1} from "./storage/TokenStorageV1.sol";
@@ -13,14 +14,14 @@ import {TokenStorageV1} from "./storage/TokenStorageV1.sol";
 /// @title Nounish ERC-721 Token
 /// @author Rohan Kulkarni
 /// @notice Modified version of NounsToken.sol (commit 2cbe6c7) that NounsDAO licensed under the GPL-3.0 license
-contract Token is TokenStorageV1, ERC721VotesUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
+contract Token is TokenStorageV1, ITokenSpec, ERC721VotesUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
     /// @notice The contract upgrade manager
-    IUpgradeManager private immutable UpgradeManager;
-    
+    IUpgradeManager public immutable UpgradeManager;
+
     IMetadataRenderer private metadataRenderer;
 
     /// @notice The Nouns Builder DAO
@@ -68,7 +69,7 @@ contract Token is TokenStorageV1, ERC721VotesUpgradeable, UUPSUpgradeable, Reent
         uint256 _foundersAllocationFrequency,
         address _treasury,
         address _minter
-    ) public initializer {
+    ) public override initializer {
         // Initialize the proxy
         __UUPSUpgradeable_init();
 
@@ -94,6 +95,15 @@ contract Token is TokenStorageV1, ERC721VotesUpgradeable, UUPSUpgradeable, Reent
 
         // Store the address allowed to mint tokens
         minter = _minter;
+    }
+
+    // TODO(rohan): impl total count
+    function totalCount() external view override returns (uint256) {
+        return 0;
+    }
+
+    function foundersDAO() external view returns (address) {
+        return founders.DAO;
     }
 
     ///                                                          ///
@@ -213,7 +223,7 @@ contract Token is TokenStorageV1, ERC721VotesUpgradeable, UUPSUpgradeable, Reent
         require(UpgradeManager.isValidUpgrade(_getImplementation(), _newImpl), "INVALID_UPGRADE");
     }
 
-    function tokenURI(uint256 tokenId) public override view returns (string memory) {
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
         return metadataRenderer.tokenURI(tokenId);
     }
 

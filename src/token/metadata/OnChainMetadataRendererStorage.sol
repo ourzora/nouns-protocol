@@ -4,19 +4,22 @@ pragma solidity ^0.8.10;
 import {IToken} from "../IToken.sol";
 
 contract OnChainMetadataRendererStorage {
-    uint8 constant internal DATA_TYPE_IPFS = 1;
-    uint8 constant internal DATA_TYPE_CENTRALIZED = 2;
-    uint8 constant internal DATA_TYPE_ONCHAIN_RLE = 3;
+    uint8 constant internal DATA_TYPE_IPFS_SINGULAR = 1;
+    uint8 constant internal DATA_TYPE_IPFS_GROUP = 2;
+    uint8 constant internal DATA_TYPE_CENTRALIZED = 3;
 
     struct Item {
-        string name;
         uint8 dataType;
-        bytes data;
+        uint16 referenceSlot;
+        string name;
+        bytes info;
     }
 
-    struct ItemWithPropertyId {
-        Item item;
-        uint16 propertyId;
+    struct ItemInfoStorage {
+        uint256 propertyId;
+        uint8 dataType;
+        string name;
+        bytes info;
     }
 
     struct Property {
@@ -25,11 +28,12 @@ contract OnChainMetadataRendererStorage {
     }
 
     Property[] properties;
-    address[] chunks;
+    bytes[] data;
 
     string name;
     string description;
-    string imageBase;
+    string contractImage;
+    string rendererBase;
 
     IToken token;
 

@@ -7,4 +7,6 @@ interface IMetadataRenderer {
     function tokenURI(uint256 tokenId) external view returns (string memory);
 
     function minted(uint256 tokenId) external;
+
+    function initialize(bytes memory data) external;
 }

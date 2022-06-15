@@ -6,22 +6,35 @@ import {Vm} from "forge-std/Vm.sol";
 
 import {OnChainMetadataRenderer} from "../../../src/token/metadata/OnChainMetadataRenderer.sol";
 import {OnChainMetadataRendererStorage} from "../../../src/token/metadata/OnChainMetadataRendererStorage.sol";
+import {Proxy} from "../../../src/upgrades/proxy/Proxy.sol";
 
 contract MetadataRendererTest is DSTest {
     function test_SetupRenderer() public {
-        OnChainMetadataRenderer renderer = new OnChainMetadataRenderer();
-        OnChainMetadataRendererStorage.ItemWithPropertyId[] memory items = new OnChainMetadataRendererStorage.ItemWithPropertyId[](4);
-        items[0] = OnChainMetadataRendererStorage.ItemWithPropertyId({propertyId: 0, item: OnChainMetadataRendererStorage.Item({name: "Blue"})});
-        items[1] = OnChainMetadataRendererStorage.ItemWithPropertyId({propertyId: 0, item: OnChainMetadataRendererStorage.Item({name: "Stormy"})});
-        items[2] = OnChainMetadataRendererStorage.ItemWithPropertyId({propertyId: 1, item: OnChainMetadataRendererStorage.Item({name: "Grass"})});
-        items[3] = OnChainMetadataRendererStorage.ItemWithPropertyId({propertyId: 1, item: OnChainMetadataRendererStorage.Item({name: "Lava"})});
+        OnChainMetadataRenderer impl = new OnChainMetadataRenderer();
+        OnChainMetadataRendererStorage.ItemInfoStorage[] memory items = new OnChainMetadataRendererStorage.ItemInfoStorage[](7);
+        // 100 prefix is for properties that are new
+        items[0] = OnChainMetadataRendererStorage.ItemInfoStorage({propertyId: 100, dataType: 2, name: "Cloud", info: ""});
+        items[1] = OnChainMetadataRendererStorage.ItemInfoStorage({propertyId: 100, dataType: 2, name: "CloudGray", info: ""});
+        items[2] = OnChainMetadataRendererStorage.ItemInfoStorage({propertyId: 100, dataType: 2, name: "CloudLight", info: ""});
+        items[3] = OnChainMetadataRendererStorage.ItemInfoStorage({propertyId: 100, dataType: 2, name: "Sun", info: ""});
+        items[4] = OnChainMetadataRendererStorage.ItemInfoStorage({propertyId: 101, dataType: 2, name: "Grass", info: ""});
+        items[5] = OnChainMetadataRendererStorage.ItemInfoStorage({propertyId: 101, dataType: 2, name: "Lava", info: ""});
+        items[6] = OnChainMetadataRendererStorage.ItemInfoStorage({propertyId: 101, dataType: 2, name: "Water", info: ""});
         string[] memory names = new string[](2);
         names[0] = "Sky";
         names[1] = "Floor";
-        renderer.initialize(
-            abi.encode("Weather Slides", "Landscapes Combinations. One a day.", "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j/")
+        bytes memory encoded = abi.encodeWithSelector(
+            OnChainMetadataRenderer.initialize.selector,
+            abi.encode(
+                "Weather Slides",
+                "Landscapes Combinations. One a day.",
+                "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
+                "http://localhost:5000/render?"
+            )
         );
-        renderer.addProperties(names, items);
+        OnChainMetadataRenderer renderer = OnChainMetadataRenderer(address(new Proxy(address(impl), encoded)));
+        // renderer.addProperties(names, items, abi.encode("QmQBJL2GS1SvpeXMhLHeCwenF9ZsdrTkJrtPxzczW3LXNT", ".png"));
+        renderer.addProperties(names, items, abi.encode("Qmds9a4KdAyKqrBRMPyvDtoJc8QGMH45rgPnAGueSaCTYb", ".svg"));
         renderer.minted(1);
         assertEq("asdf", renderer.tokenURI(1));
     }
