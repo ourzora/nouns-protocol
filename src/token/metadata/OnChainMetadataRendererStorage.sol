@@ -4,11 +4,14 @@ pragma solidity ^0.8.10;
 import {IToken} from "../IToken.sol";
 
 contract OnChainMetadataRendererStorage {
+    uint8 constant internal DATA_TYPE_IPFS = 1;
+    uint8 constant internal DATA_TYPE_CENTRALIZED = 2;
+    uint8 constant internal DATA_TYPE_ONCHAIN_RLE = 3;
+
     struct Item {
         string name;
-        // uint32 chunkId;
-        // uint32 startOffset;
-        // uint32 endOffset;
+        uint8 dataType;
+        bytes data;
     }
 
     struct ItemWithPropertyId {
@@ -21,11 +24,8 @@ contract OnChainMetadataRendererStorage {
         Item[] items;
     }
 
-    struct MediaChunk {
-        address data;
-    }
-
     Property[] properties;
+    address[] chunks;
 
     string name;
     string description;

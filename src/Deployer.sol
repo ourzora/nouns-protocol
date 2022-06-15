@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
-import {IToken, Token} from "./token/Token.sol";
+import {Token} from "./token/Token.sol";
+import {IToken} from "./token/IToken.sol";
 import {IAuctionHouse, AuctionHouse} from "./auction/AuctionHouse.sol";
 import {ITreasury, Treasury} from "./governance/treasury/Treasury.sol";
 import {IGovernor, Governor} from "./governance/governor/Governor.sol";
@@ -53,6 +54,7 @@ contract Deployer {
         IToken(token).initialize(
             _tokenParams.name,
             _tokenParams.symbol,
+            _tokenParams.metadataRenderer,
             _tokenParams.foundersDAO,
             _tokenParams.foundersMaxAllocation,
             _tokenParams.foundersAllocationFrequency,
