@@ -10,13 +10,12 @@ def handlePNG(images):
   image = None
   for image_path_ipfs in images:
     image_path = image_path_ipfs.replace('ipfs://', 'https://zora-prod.mypinata.cloud/ipfs/')
-    print(image_path)
     response = requests.get(image_path)
-    print(response)
     new_image = Image.open(BytesIO(response.content))
     if not image:
       image = new_image
     else:
+      # sets alpha layer from png itself
       image.paste(new_image, (0, 0), new_image)
     
   img_byte_arr = BytesIO()
@@ -35,7 +34,7 @@ def handleSVG(images):
     print(images_out)
     # width = int(svg_xml.documentElement.getAttribute('width'))
     # height = int(svg_xml.documentElement.getAttribute('height'))
-  return Response(f'<svg xmlns="http://www.w3.org/2000/svg" >{images_out}</svg>', status=200, mimetype='image/svg+xml')
+  return Response(f'<svg xmlns="http://www.w3.org/2000/svg">{images_out}</svg>', status=200, mimetype='image/svg+xml')
 
 @app.route("/render")
 def render():
