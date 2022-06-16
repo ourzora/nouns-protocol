@@ -4,9 +4,9 @@ pragma solidity ^0.8.10;
 import {IToken} from "../IToken.sol";
 
 contract OnChainMetadataRendererStorage {
-    uint8 constant internal DATA_TYPE_IPFS_SINGULAR = 1;
-    uint8 constant internal DATA_TYPE_IPFS_GROUP = 2;
-    uint8 constant internal DATA_TYPE_CENTRALIZED = 3;
+    uint8 constant internal DATA_TYPE_IPFS_SINGULAR = 0;
+    uint8 constant internal DATA_TYPE_IPFS_GROUP = 1;
+    uint8 constant internal DATA_TYPE_CENTRALIZED = 2;
 
     struct Item {
         uint8 dataType;

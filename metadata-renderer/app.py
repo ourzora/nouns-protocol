@@ -13,7 +13,7 @@ def try_read_int(input_str):
   except ValueError:
     return None
 
-def handle_png(images):
+def handle_image(images, format, mimetype):
   image = None
   for image_path_ipfs in images:
     image_path = image_path_ipfs.replace('ipfs://', 'https://zora-prod.mypinata.cloud/ipfs/')
@@ -26,13 +26,13 @@ def handle_png(images):
       image.paste(new_image, (0, 0), new_image)
 
   img_byte_arr = BytesIO()
-  image.save(img_byte_arr, format='png')
+  image.save(img_byte_arr, format=format)
 
   # Rewind buffer to get image data
   img_byte_arr.seek(0)
 
   # TODO: Cache response (can just hash the images array)
-  return Response(img_byte_arr, status=200, mimetype='image/png')
+  return Response(img_byte_arr, status=200, mimetype=mimetype)
 
 def handle_svg(images):
   for image_path_ipfs in images:
@@ -53,7 +53,14 @@ def render():
   images = flask_request.args.getlist('images[]')
 
   if images[0].endswith('.png'):
-    return handle_png(images)
+    return handle_image(images, 'png', 'image/png')
+
+  if images[0].endswith('.webp'):
+    return handle_image(images, 'jpeg', 'image/jpeg')
+
+  # No transparency support
+  if images[0].endswith('.jpeg') or images[0].endswith('.jpg'):
+    return handle_image(images, 'jpeg', 'image/jpeg')
   
   if images[0].endswith('.svg'):
     return handle_svg(images)

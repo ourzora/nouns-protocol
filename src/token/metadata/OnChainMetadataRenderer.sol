@@ -5,6 +5,7 @@ import {IMetadataRenderer} from "./IMetadataRenderer.sol";
 import {EntropyUser} from "./EntropyUser.sol";
 import {IToken} from "../IToken.sol";
 import {LibUintToString} from "sol2string/LibUintToString.sol";
+import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import {OnChainMetadataRendererStorage} from "./OnChainMetadataRendererStorage.sol";
 import {IMetadataRenderer} from "./IMetadataRenderer.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -48,8 +49,6 @@ contract OnChainMetadataRenderer is UUPSUpgradeable, OnChainMetadataRendererStor
         token = IToken(msg.sender);
     }
 
-    event AtId(uint256 id);
-
     function addProperties(
         string[] memory _newProperties,
         ItemInfoStorage[] memory _items,
@@ -70,7 +69,6 @@ contract OnChainMetadataRenderer is UUPSUpgradeable, OnChainMetadataRendererStor
             // 100 - x = uses only new properties x >= 100
             // x = uses current properties where x < 100
             uint256 id = _items[i].propertyId >= 100 ? _items[i].propertyId + propertiesBaseLength - 100 : _items[i].propertyId;
-            emit AtId(id);
             properties[id].items.push();
             uint256 newLength = properties[id].items.length;
             Item storage item = properties[id].items[newLength - 1];
@@ -100,8 +98,8 @@ contract OnChainMetadataRenderer is UUPSUpgradeable, OnChainMetadataRendererStor
             return string(abi.encodePacked("ipfs://", base, "/", propertyName, "/", item.name, postfix));
         }
         if (item.dataType == DATA_TYPE_CENTRALIZED) {
-            string memory imageBase = string(data[item.referenceSlot]);
-            return imageBase;
+            // ignore image paths for centralized, pass in specific data if needed.
+            return string(abi.encodePacked("data:", item.info));
         }
         return "";
     }
@@ -112,14 +110,21 @@ contract OnChainMetadataRenderer is UUPSUpgradeable, OnChainMetadataRendererStor
         }
     }
 
-    function _getProperties(uint256 tokenId) internal view returns (bytes memory aryAttributes, bytes memory queryString) {
+    function getProperties(uint256 tokenId) public view returns (bytes memory aryAttributes, bytes memory queryString) {
         uint16[11] storage atAttributes = chosenAttributes[tokenId];
+        queryString = abi.encodePacked(
+            "contractAddress=",
+            StringsUpgradeable.toHexString(uint256(uint160(address(this))), 20),
+            "&tokenId=",
+            StringsUpgradeable.toString(tokenId)
+        );
+
         for (uint256 i = 0; i < atAttributes[0]; i++) {
             bool isLast = i == atAttributes[0] - 1;
             Item storage item = properties[i].items[atAttributes[i + 1]];
             string memory propertyName = properties[i].name;
             aryAttributes = abi.encodePacked(aryAttributes, '"', propertyName, '": "', item.name, '"', isLast ? "" : ",");
-            queryString = abi.encodePacked(queryString, propertyName, "=", item.name, "&images[]=", _getImageForItem(item, propertyName), "&");
+            queryString = abi.encodePacked(queryString, "&", propertyName, "=", item.name, "&images[]=", _getImageForItem(item, propertyName), "&");
         }
     }
 
@@ -128,7 +133,7 @@ contract OnChainMetadataRenderer is UUPSUpgradeable, OnChainMetadataRendererStor
     }
 
     function tokenURI(uint256 tokenId) external view returns (string memory) {
-        (bytes memory propertiesAry, bytes memory propertiesQuery) = _getProperties(tokenId);
+        (bytes memory propertiesAry, bytes memory propertiesQuery) = getProperties(tokenId);
         return
             string(
                 abi.encodePacked(
