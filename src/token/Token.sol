@@ -5,16 +5,16 @@ import {ERC721VotesUpgradeable} from "@openzeppelin/contracts-upgradeable/token/
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {IMetadataRenderer} from "./metadata/IMetadataRenderer.sol";
-import {ITokenSpec} from "./ITokenSpec.sol";
 
-import {IUpgradeManager} from "../upgrades/IUpgradeManager.sol";
 import {TokenStorageV1} from "./storage/TokenStorageV1.sol";
+import {IMetadataRenderer} from "./metadata/IMetadataRenderer.sol";
+import {IUpgradeManager} from "../upgrades/IUpgradeManager.sol";
+import {IToken} from "./IToken.sol";
 
 /// @title Nounish ERC-721 Token
 /// @author Rohan Kulkarni
 /// @notice Modified version of NounsToken.sol (commit 2cbe6c7) that NounsDAO licensed under the GPL-3.0 license
-contract Token is TokenStorageV1, ITokenSpec, ERC721VotesUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
+contract Token is TokenStorageV1, ERC721VotesUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -22,57 +22,38 @@ contract Token is TokenStorageV1, ITokenSpec, ERC721VotesUpgradeable, UUPSUpgrad
     /// @notice The contract upgrade manager
     IUpgradeManager public immutable UpgradeManager;
 
-    IMetadataRenderer private metadataRenderer;
-
-    /// @notice The Nouns Builder DAO
-    address private immutable DAO;
-
-    /// @notice The Nouns Builder DAO Fee
-    uint256 private immutable DAOFee;
-
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
     /// @param _upgradeManager The address of the contract upgrade manager
-    /// @param _dao The address of the Nouns Builder DAO
-    /// @param _daoFee The allocation frequency of tokens
-    constructor(
-        address _upgradeManager,
-        address _dao,
-        uint256 _daoFee
-    ) payable initializer {
+    constructor(address _upgradeManager) payable initializer {
         UpgradeManager = IUpgradeManager(_upgradeManager);
-        DAO = _dao;
-        DAOFee = _daoFee;
     }
 
     ///                                                          ///
     ///                          INITIALIZER                     ///
     ///                                                          ///
 
-    /// @notice Called by the proxy to initialize the contract
+    /// @notice Called by the deployer to initialize the token proxy
     /// @param _name The token name
     /// @param _symbol The token $SYMBOL
-    /// @param _metadataRenderer TBD
+    /// @param _metadataRenderer The address of the metadata renderer
     /// @param _foundersDAO The address of the founders DAO
     /// @param _foundersMaxAllocation The maximum number of tokens the founders will vest (eg. 183 nouns to nounders)
     /// @param _foundersAllocationFrequency The allocation frequency (eg. every 10 nouns)
     /// @param _treasury The address of the treasury to own the contract
-    /// @param _minter The address of the auction house to mint tokens
+    /// @param _auction The address of the auction house that will mint tokens
     function initialize(
         string memory _name,
         string memory _symbol,
-        IMetadataRenderer _metadataRenderer,
+        address _metadataRenderer,
         address _foundersDAO,
         uint256 _foundersMaxAllocation,
         uint256 _foundersAllocationFrequency,
         address _treasury,
-        address _minter
-    ) public override initializer {
-        // Initialize the proxy
-        __UUPSUpgradeable_init();
-
+        address _auction
+    ) public initializer {
         // Initialize the ERC-721 token
         __ERC721_init(_name, _symbol);
 
@@ -86,7 +67,7 @@ contract Token is TokenStorageV1, ITokenSpec, ERC721VotesUpgradeable, UUPSUpgrad
         transferOwnership(_treasury);
 
         // Set metadata renderer
-        metadataRenderer = _metadataRenderer;
+        metadataRenderer = IMetadataRenderer(_metadataRenderer);
 
         // Store the founders metadata
         founders.DAO = _foundersDAO;
@@ -94,16 +75,85 @@ contract Token is TokenStorageV1, ITokenSpec, ERC721VotesUpgradeable, UUPSUpgrad
         founders.allocationFrequency = uint32(_foundersAllocationFrequency);
 
         // Store the address allowed to mint tokens
-        minter = _minter;
+        auction = _auction;
     }
 
-    // TODO(rohan): impl total count
-    function totalCount() external view override returns (uint256) {
-        return 0;
+    ///                                                          ///
+    ///                              MINT                        ///
+    ///                                                          ///
+
+    /// @notice Mints tokens to the auction house for bidding and the founders DAO for vesting
+    function mint() public nonReentrant returns (uint256) {
+        // Ensure the caller is the auction house
+        require(msg.sender == auction, "ONLY_AUCTION");
+
+        // TODO start with token id 0 or 1?
+        unchecked {
+            // If the token belongs to the founders:
+            if (founders.currentAllocation < founders.maxAllocation && totalSupply % founders.allocationFrequency == 0) {
+                // Send the token to the founders
+                _mint(founders.DAO, ++totalSupply);
+
+                // Update their vested allocation
+                ++founders.currentAllocation;
+            }
+
+            // Mint the next token for bidding
+            _mint(auction, ++totalSupply);
+
+            return totalSupply;
+        }
     }
 
-    function foundersDAO() external view returns (address) {
+    ///                                                          ///
+    ///                             BURN                         ///
+    ///                                                          ///
+
+    /// @notice Burns a token that did not have any bids
+    /// @param _tokenId The token id to burn
+    function burn(uint256 _tokenId) public {
+        // Ensure the caller is the auction house
+        require(msg.sender == auction, "ONLY_AUCTION");
+
+        // Burn the token
+        _burn(_tokenId);
+    }
+
+    ///                                                          ///
+    ///                              META                        ///
+    ///                                                          ///
+
+    ///
+    ///
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        return metadataRenderer.tokenURI(tokenId);
+    }
+
+    ///
+    function contractURI() public view returns (string memory) {
+        return metadataRenderer.contractURI();
+    }
+
+    ///
+    function foundersDAO() public view returns (address) {
         return founders.DAO;
+    }
+
+    ///                                                          ///
+    ///                         UPDATE AUCTION                   ///
+    ///                                                          ///
+
+    /// @notice Emitted when the auction is updated
+    /// @param auction The address of the new auction
+    event AuctionUpdated(address auction);
+
+    /// @notice Updates the address of the auction
+    /// @param _auction The address of the auction to set
+    function setAuction(address _auction) external onlyOwner {
+        // Update the auction address
+        auction = _auction;
+
+        emit AuctionUpdated(_auction);
     }
 
     ///                                                          ///
@@ -127,91 +177,6 @@ contract Token is TokenStorageV1, ITokenSpec, ERC721VotesUpgradeable, UUPSUpgrad
     }
 
     ///                                                          ///
-    ///                         UPDATE MINTER                    ///
-    ///                                                          ///
-
-    /// @notice Emitted when the minter is updated
-    /// @param minter The address of the new minter
-    event MinterUpdated(address minter);
-
-    /// @notice Updates the address of the minter
-    /// @param _minter The address of the minter to set
-    function setMinter(address _minter) external onlyOwner {
-        // Update the minter address
-        minter = _minter;
-
-        emit MinterUpdated(_minter);
-    }
-
-    ///                                                          ///
-    ///                              MINT                        ///
-    ///                                                          ///
-
-    /// @notice Mints a token to the minter and handles vesting allocations
-    function mint() public nonReentrant returns (uint256) {
-        // Ensure the caller is the minter
-        require(msg.sender == minter, "ONLY_MINTER");
-
-        unchecked {
-            // If the token is valid to vest for both the founders and Nouns Builder DAO:
-            if (_isFoundersVest(tokenCount) && _isDAOVest(tokenCount)) {
-                // Send the first token to the founders
-                _mint(founders.DAO, ++tokenCount);
-
-                // Update the founders allocation
-                ++founders.currentAllocation;
-
-                // Send the next token to the DAO
-                _mint(DAO, ++tokenCount);
-
-                // Else if the token is just for the founders:
-            } else if (_isFoundersVest(tokenCount)) {
-                // Send the token to the founders
-                _mint(founders.DAO, ++tokenCount);
-
-                // Update the founders allocation
-                ++founders.currentAllocation;
-
-                // Else if the token is just for the DAO:
-            } else if (_isDAOVest(tokenCount)) {
-                // Send the token to the DAO
-                _mint(DAO, ++tokenCount);
-            }
-
-            // Send the next token to the minter
-            _mint(minter, ++tokenCount);
-
-            return tokenCount;
-        }
-    }
-
-    /// @notice If the founders are still vesting AND the given token fits their vesting criteria
-    /// @param _tokenId The ERC-721 token id
-    function _isFoundersVest(uint256 _tokenId) private view returns (bool) {
-        return founders.currentAllocation < founders.maxAllocation && _tokenId % founders.allocationFrequency == 0;
-    }
-
-    /// @notice If the given token fits the DAO vesting criteria
-    /// @param _tokenId The ERC-721 token id
-    function _isDAOVest(uint256 _tokenId) private view returns (bool) {
-        return _tokenId % DAOFee == 0;
-    }
-
-    ///                                                          ///
-    ///                             BURN                         ///
-    ///                                                          ///
-
-    /// @notice Burns a token that did not have any bids
-    /// @param _tokenId The token id to burn
-    function burn(uint256 _tokenId) public {
-        // Ensure the caller is the minter
-        require(msg.sender == minter, "ONLY_MINTER");
-
-        // Burn the token
-        _burn(_tokenId);
-    }
-
-    ///                                                          ///
     ///                         PROXY UPGRADE                    ///
     ///                                                          ///
 
@@ -221,13 +186,5 @@ contract Token is TokenStorageV1, ITokenSpec, ERC721VotesUpgradeable, UUPSUpgrad
     function _authorizeUpgrade(address _newImpl) internal override onlyOwner {
         // Ensure the implementation is valid
         require(UpgradeManager.isValidUpgrade(_getImplementation(), _newImpl), "INVALID_UPGRADE");
-    }
-
-    function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        return metadataRenderer.tokenURI(tokenId);
-    }
-
-    function contractURI() public view returns (string memory) {
-        return metadataRenderer.contractURI();
     }
 }
