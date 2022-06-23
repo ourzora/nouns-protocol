@@ -4,7 +4,8 @@
   "repository": "https://github.com/ourzora/nouns-protocol.git",
   "dependencies": {
     "@openzeppelin/contracts": "^4.6.0",
-    "@openzeppelin/contracts-upgradeable": "^4.6.0"
+    "@openzeppelin/contracts-upgradeable": "^4.6.0",
+    "sol2string": "https://github.com/mzhu25/sol2string.git#13f566f7dc61c820c24a673da72d0114183a17c8"
   },
   "devDependencies": {
     "@typechain/ethers-v5": "^10.1.0",
