@@ -1,55 +1,48 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.10;
 
-import {Token} from "./token/Token.sol";
-import {IToken} from "./token/IToken.sol";
-import {IAuctionHouse, AuctionHouse} from "./auction/AuctionHouse.sol";
-import {ITreasury, Treasury} from "./governance/treasury/Treasury.sol";
-import {IGovernor, Governor} from "./governance/governor/Governor.sol";
-import {Proxy} from "./upgrades/proxy/Proxy.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
-import {IUpgradeManager} from "./upgrades/IUpgradeManager.sol";
+import {IToken} from "./token/Token.sol";
+import {IAuction} from "./auction/Auction.sol";
+import {ITreasury} from "./governance/treasury/Treasury.sol";
+import {IGovernor} from "./governance/governor/Governor.sol";
 import {IDeployer} from "./IDeployer.sol";
 
 /// @title Nounish DAO Deployer
 /// @author Rohan Kulkarni
-/// @notice This contract deploys Nounish DAOs from generalized token, auction, and governance parameters
-contract Deployer {
+/// @notice This contract deploys Nounish DAOs with custom token, auction, and governance settings
+contract Deployer is IDeployer {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
-    /// @notice The contract upgrade manager
-    IUpgradeManager private immutable UpgradeManager;
-
-    /// @notice The token v1 implementation
+    /// @notice The default token implementation
     address public immutable tokenImpl;
 
-    /// @notice The auction house v1 implementation
+    /// @notice The default auction house implementation
     address public immutable auctionImpl;
 
-    /// @notice The governor v1 implementation
-    address public immutable governorImpl;
-
-    /// @notice The treasury v1 implementation
+    /// @notice The default treasury implementation
     address public immutable treasuryImpl;
+
+    /// @notice The default governor implementation
+    address public immutable governorImpl;
 
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
     constructor(
-        address _upgradeManager,
         address _tokenImpl,
         address _auctionImpl,
-        address _governorImpl,
-        address _treasuryImpl
+        address _treasuryImpl,
+        address _governorImpl
     ) {
-        UpgradeManager = IUpgradeManager(_upgradeManager);
         tokenImpl = _tokenImpl;
         auctionImpl = _auctionImpl;
-        governorImpl = _governorImpl;
         treasuryImpl = _treasuryImpl;
+        governorImpl = _governorImpl;
     }
 
     ///                                                          ///
@@ -59,19 +52,32 @@ contract Deployer {
     /// @notice Emitted when a DAO has been deployed an ownership has been transferred to the treasury
     /// @param token The address of the token
     /// @param auction The address of the auction
-    /// @param governor The address of the governor
     /// @param treasury The address of the treasury
-    event DAODeployed(address token, address auction, address governor, address treasury);
+    /// @param governor The address of the governor
+    event DAODeployed(address token, address auction, address treasury, address governor);
 
-    /// @notice Deploys a Nounish DAO from the given
-    /// @param _tokenParams The specified token parameters
-    /// @param _auctionParams The specified auction parameters
-    function deploy(IDeployer.TokenParams calldata _tokenParams, IDeployer.AuctionParams calldata _auctionParams) public {
+    /// @notice Deploys a Nounish DAO with the provided
+    /// @param _tokenParams The initial token config
+    /// @param _auctionParams The initial auction config
+    /// @param _govParams The initial governance config
+    function deploy(
+        TokenParams calldata _tokenParams,
+        AuctionParams calldata _auctionParams,
+        GovParams calldata _govParams
+    )
+        public
+        returns (
+            address token,
+            address auction,
+            address treasury,
+            address governor
+        )
+    {
         // Deploy proxy instances of all implementations
-        address token = address(new Proxy(tokenImpl, ""));
-        address auction = address(new Proxy(auctionImpl, ""));
-        address governor = address(new Proxy(governorImpl, ""));
-        address treasury = address(new Proxy(treasuryImpl, ""));
+        token = address(new ERC1967Proxy(tokenImpl, ""));
+        auction = address(new ERC1967Proxy(auctionImpl, ""));
+        treasury = address(new ERC1967Proxy(treasuryImpl, ""));
+        governor = address(new ERC1967Proxy(governorImpl, ""));
 
         // Initialize the token
         IToken(token).initialize(
@@ -86,9 +92,9 @@ contract Deployer {
         );
 
         // Initialize the auction house
-        IAuctionHouse(auction).initialize(
+        IAuction(auction).initialize(
             token,
-            treasury,
+            _tokenParams.foundersDAO,
             _auctionParams.timeBuffer,
             _auctionParams.reservePrice,
             _auctionParams.minBidIncrementPercentage,
@@ -96,11 +102,18 @@ contract Deployer {
         );
 
         // Initialize the treasury
-        ITreasury(treasury).initialize(governor);
+        ITreasury(treasury).initialize(governor, _govParams.timelockDelay);
 
         // Initialize the governor
-        IGovernor(governor).initialize(treasury, token, _tokenParams.foundersDAO);
+        IGovernor(governor).initialize(
+            treasury,
+            token,
+            _govParams.votingDelay,
+            _govParams.votingPeriod,
+            _govParams.proposalThresholdBPS,
+            _govParams.quorumVotesBPS
+        );
 
-        emit DAODeployed(token, auction, governor, treasury);
+        emit DAODeployed(token, auction, treasury, governor);
     }
 }

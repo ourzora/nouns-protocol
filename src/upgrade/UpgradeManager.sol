@@ -1,17 +1,17 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.10;
 
 import {IUpgradeManager} from "./IUpgradeManager.sol";
 
-/// @title Upgrade Manager
+/// @title UpgradeManager
 /// @author Rohan Kulkarni
-/// @notice This contract manager allows DAOs to opt-into implementation upgrades that have been registered by the Nouns Builder DAO
+/// @notice This contract allows DAOs to opt-in to implementation upgrades registered by the Nouns Builder DAO
 contract UpgradeManager is IUpgradeManager {
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
-    /// @param _registrar The address of the upgrade registrar
+    /// @param _registrar The address of the Nouns Builder DAO registrar
     constructor(address _registrar) {
         registrar = _registrar;
     }
@@ -20,8 +20,8 @@ contract UpgradeManager is IUpgradeManager {
     ///                            STORAGE                       ///
     ///                                                          ///
 
-    /// @notice The registered upgrades per contract type
-    /// @dev Original implementation address => Upgrade implementation address
+    /// @notice If a contract is a registered upgrade for an original implementation
+    /// @dev Original address => Upgrade address
     mapping(address => mapping(address => bool)) private upgrades;
 
     /// @notice If an upgraded implementation has been registered for its original implementation
