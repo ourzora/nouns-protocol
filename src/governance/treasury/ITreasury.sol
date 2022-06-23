@@ -1,40 +1,105 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.10;
 
 interface ITreasury {
-    function initialize(address admin) external;
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
 
-    function owner() external returns (address);
+    function initialize(address governor, uint256 minDelay) external;
 
-    function delay() external view returns (uint256);
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+    function getMinDelay() external view returns (uint256);
 
-    function GRACE_PERIOD() external view returns (uint256);
+    function isOperation(bytes32 id) external view returns (bool);
 
-    function acceptAdmin() external;
+    function isOperationPending(bytes32 id) external view returns (bool);
 
-    function queuedTransactions(bytes32 hash) external view returns (bool);
+    function isOperationReady(bytes32 id) external view returns (bool);
 
-    function queueTransaction(
+    function isOperationDone(bytes32 id) external view returns (bool);
+
+    function getTimestamp(bytes32 id) external view returns (uint256);
+
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
+    function updateDelay(uint256 newDelay) external;
+
+    function hashOperation(
         address target,
         uint256 value,
-        string calldata signature,
         bytes calldata data,
-        uint256 eta
-    ) external returns (bytes32);
+        bytes32 predecessor,
+        bytes32 salt
+    ) external pure returns (bytes32 hash);
 
-    function cancelTransaction(
+    function hashOperationBatch(
+        address[] calldata targets,
+        uint256[] calldata values,
+        bytes[] calldata payloads,
+        bytes32 predecessor,
+        bytes32 salt
+    ) external pure returns (bytes32 hash);
+
+    function schedule(
         address target,
         uint256 value,
-        string calldata signature,
         bytes calldata data,
-        uint256 eta
+        bytes32 predecessor,
+        bytes32 salt,
+        uint256 delay
     ) external;
 
-    function executeTransaction(
+    function scheduleBatch(
+        address[] calldata targets,
+        uint256[] calldata values,
+        bytes[] calldata payloads,
+        bytes32 predecessor,
+        bytes32 salt,
+        uint256 delay
+    ) external;
+
+    function cancel(bytes32 id) external;
+
+    function execute(
         address target,
         uint256 value,
-        string calldata signature,
         bytes calldata data,
-        uint256 eta
-    ) external payable returns (bytes memory);
+        bytes32 predecessor,
+        bytes32 salt
+    ) external payable;
+
+    function executeBatch(
+        address[] calldata targets,
+        uint256[] calldata values,
+        bytes[] calldata payloads,
+        bytes32 predecessor,
+        bytes32 salt
+    ) external payable;
+
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
+    function TIMELOCK_ADMIN_ROLE() external pure returns (bytes32);
+
+    function PROPOSER_ROLE() external pure returns (bytes32);
+
+    function EXECUTOR_ROLE() external pure returns (bytes32);
+
+    function CANCELLER_ROLE() external pure returns (bytes32);
+
+    function hasRole(bytes32 role, address account) external view returns (bool);
+
+    function getRoleAdmin(bytes32 role) external view returns (bytes32);
+
+    function grantRole(bytes32 role, address account) external;
+
+    function revokeRole(bytes32 role, address account) external;
+
+    function renounceRole(bytes32 role, address account) external;
 }
