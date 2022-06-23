@@ -3,9 +3,10 @@ pragma solidity ^0.8.10;
 
 import "forge-std/test.sol";
 
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
 import {OnChainMetadataRenderer} from "../../../src/token/metadata/OnChainMetadataRenderer.sol";
 import {OnChainMetadataRendererStorage} from "../../../src/token/metadata/OnChainMetadataRendererStorage.sol";
-import {Proxy} from "../../../src/upgrades/proxy/Proxy.sol";
 
 contract MetadataRendererTest is Test {
     function test_SetupRenderer() public {
@@ -35,7 +36,7 @@ contract MetadataRendererTest is Test {
             )
         );
 
-        OnChainMetadataRenderer renderer = OnChainMetadataRenderer(address(new Proxy(address(impl), encoded)));
+        OnChainMetadataRenderer renderer = OnChainMetadataRenderer(address(new ERC1967Proxy(address(impl), encoded)));
 
         // renderer.addProperties(names, items, abi.encode("QmQBJL2GS1SvpeXMhLHeCwenF9ZsdrTkJrtPxzczW3LXNT", ".png"));
         renderer.addProperties(names, items, abi.encode("Qmds9a4KdAyKqrBRMPyvDtoJc8QGMH45rgPnAGueSaCTYb", ".svg"));
@@ -88,7 +89,7 @@ contract MetadataRendererTest is Test {
             )
         );
 
-        OnChainMetadataRenderer renderer = OnChainMetadataRenderer(address(new Proxy(address(impl), encoded)));
+        OnChainMetadataRenderer renderer = OnChainMetadataRenderer(address(new ERC1967Proxy(address(impl), encoded)));
 
         // renderer.addProperties(names, items, abi.encode("QmQBJL2GS1SvpeXMhLHeCwenF9ZsdrTkJrtPxzczW3LXNT", ".png"));
         renderer.addProperties(names, items, abi.encode("Qmds9a4KdAyKqrBRMPyvDtoJc8QGMH45rgPnAGueSaCTYb", ".svg"));

@@ -64,13 +64,9 @@ contract Governor is GovernorStorageV1, GovernorTimelockControlUpgradeable, Gove
         return bps2Uint(token.totalSupply(), PROPOSAL_THRESHOLD_BPS);
     }
 
-<<<<<<< HEAD
-        temp.totalSupply = token.totalSupply();
-=======
     function quorum(uint256 blockNumber) public view override returns (uint256) {
         return bps2Uint(token.getPastTotalSupply(blockNumber), QUORUM_VOTES_BPS);
     }
->>>>>>> main
 
     function votingDelay() public view override(IGovernorUpgradeable) returns (uint256) {
         return VOTING_DELAY;

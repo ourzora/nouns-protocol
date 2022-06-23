@@ -8,7 +8,7 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 
 import {TokenStorageV1} from "./storage/TokenStorageV1.sol";
 import {IMetadataRenderer} from "./metadata/IMetadataRenderer.sol";
-import {IUpgradeManager} from "../upgrades/IUpgradeManager.sol";
+import {IUpgradeManager} from "../upgrade/IUpgradeManager.sol";
 import {IToken} from "./IToken.sol";
 
 /// @title Nounish ERC-721 Token

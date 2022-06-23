@@ -10,7 +10,7 @@ import {EntropyUser} from "./EntropyUser.sol";
 
 import {IToken} from "../IToken.sol";
 import {IMetadataRenderer} from "./IMetadataRenderer.sol";
-import {IUpgradeManager} from "../../upgrades/IUpgradeManager.sol";
+import {IUpgradeManager} from "../../upgrade/IUpgradeManager.sol";
 
 contract OnChainMetadataRenderer is UUPSUpgradeable, OnChainMetadataRendererStorage, EntropyUser, IMetadataRenderer {
     ///                                                          ///

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.10;
 
 import {IMetadataRenderer} from "./metadata/IMetadataRenderer.sol";
-import {IUpgradeManager} from "../upgrades/IUpgradeManager.sol";
+import {IUpgradeManager} from "../upgrade/IUpgradeManager.sol";
 
 interface IToken {
     ///                                                          ///
