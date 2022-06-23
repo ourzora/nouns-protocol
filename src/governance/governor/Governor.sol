@@ -98,7 +98,7 @@ contract Governor is GovernorStorageV1, UUPSUpgradeable, OwnableUpgradeable {
     ) public returns (uint256) {
         ProposalTemp memory temp;
 
-        temp.totalSupply = token.totalCount();
+        temp.totalSupply = token.totalSupply();
 
         temp.proposalThreshold = bps2Uint(proposalThresholdBPS, temp.totalSupply);
 
@@ -350,11 +350,11 @@ contract Governor is GovernorStorageV1, UUPSUpgradeable, OwnableUpgradeable {
     }
 
     function proposalThreshold() public view returns (uint256) {
-        return bps2Uint(proposalThresholdBPS, token.totalCount());
+        return bps2Uint(proposalThresholdBPS, token.totalSupply());
     }
 
     function quorumVotes() public view returns (uint256) {
-        return bps2Uint(quorumVotesBPS, token.totalCount());
+        return bps2Uint(quorumVotesBPS, token.totalSupply());
     }
 
     ///                                                          ///
