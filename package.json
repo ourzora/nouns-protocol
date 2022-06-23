@@ -7,15 +7,15 @@
     "@openzeppelin/contracts-upgradeable": "^4.6.0"
   },
   "devDependencies": {
-    "@typechain/ethers-v5": "^10.0.0",
+    "@typechain/ethers-v5": "^10.1.0",
     "husky": "^8.0.1",
-    "lint-staged": "^13.0.1",
-    "prettier": "^2.6.1",
+    "lint-staged": "^13.0.2",
+    "prettier": "^2.7.1",
     "prettier-plugin-solidity": "^1.0.0-beta.19",
     "solhint": "^3.3.7",
     "solhint-plugin-prettier": "^0.0.5",
-    "typechain": "^8.0.0",
-    "typescript": "^4.7.3"
+    "typechain": "^8.1.0",
+    "typescript": "^4.7.4"
   },
   "lint-staged": {
     "*.{ts,js,css,md,sol}": "prettier --write",
