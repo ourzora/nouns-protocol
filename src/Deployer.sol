@@ -17,16 +17,16 @@ contract Deployer is IDeployer {
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
-    /// @notice The default token implementation
+    /// @notice The token implementation
     address public immutable tokenImpl;
 
-    /// @notice The default auction house implementation
+    /// @notice The auction house implementation
     address public immutable auctionImpl;
 
-    /// @notice The default treasury implementation
+    /// @notice The treasury implementation
     address public immutable treasuryImpl;
 
-    /// @notice The default governor implementation
+    /// @notice The governor implementation
     address public immutable governorImpl;
 
     ///                                                          ///
@@ -56,7 +56,7 @@ contract Deployer is IDeployer {
     /// @param governor The address of the governor
     event DAODeployed(address token, address auction, address treasury, address governor);
 
-    /// @notice Deploys a Nounish DAO with the provided
+    /// @notice Deploys a Nounish DAO
     /// @param _tokenParams The initial token config
     /// @param _auctionParams The initial auction config
     /// @param _govParams The initial governance config
@@ -83,7 +83,6 @@ contract Deployer is IDeployer {
         IToken(token).initialize(
             _tokenParams.name,
             _tokenParams.symbol,
-            _tokenParams.metadataRenderer,
             _tokenParams.foundersDAO,
             _tokenParams.foundersMaxAllocation,
             _tokenParams.foundersAllocationFrequency,

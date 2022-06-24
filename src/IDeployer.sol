@@ -5,7 +5,6 @@ interface IDeployer {
     struct TokenParams {
         string name;
         string symbol;
-        address metadataRenderer;
         address foundersDAO;
         uint256 foundersMaxAllocation;
         uint256 foundersAllocationFrequency;
