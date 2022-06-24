@@ -2,22 +2,21 @@
 pragma solidity ^0.8.10;
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import {AuctionStorageV1} from "./storage/AuctionStorageV1.sol";
 import {IAuction} from "./IAuction.sol";
 import {IToken} from "../token/IToken.sol";
 import {IWETH} from "../token/external/IWETH.sol";
-
 import {IUpgradeManager} from "../upgrade/IUpgradeManager.sol";
-import {AuctionStorageV1} from "./storage/AuctionStorageV1.sol";
 
 /// @title Nounish Auction
 /// @author Rohan Kulkarni
 /// @notice Modified version of NounsAuctionHouse.sol (commit 2cbe6c7) that Nouns licensed under the GPL-3.0 license
-contract Auction is AuctionStorageV1, UUPSUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
+contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable, PausableUpgradeable, AuctionStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -25,11 +24,11 @@ contract Auction is AuctionStorageV1, UUPSUpgradeable, PausableUpgradeable, Reen
     /// @notice The contract upgrade manager
     IUpgradeManager private immutable UpgradeManager;
 
-    /// @notice The Nouns DAO Treasury
-    address private immutable Nouns;
+    /// @notice The Nouns DAO address
+    address private immutable NounsDAO;
 
-    /// @notice The Nouns Builder DAO
-    address private immutable NounsBuilder;
+    /// @notice The Nouns Builder DAO address
+    address private immutable NounsBuilderDAO;
 
     /// @notice The WETH token address
     address private immutable WETH;
@@ -49,8 +48,8 @@ contract Auction is AuctionStorageV1, UUPSUpgradeable, PausableUpgradeable, Reen
         address _weth
     ) payable initializer {
         UpgradeManager = IUpgradeManager(_upgradeManager);
-        Nouns = _nouns;
-        NounsBuilder = _nounsBuilder;
+        NounsDAO = _nouns;
+        NounsBuilderDAO = _nounsBuilder;
         WETH = _weth;
     }
 
@@ -67,19 +66,19 @@ contract Auction is AuctionStorageV1, UUPSUpgradeable, PausableUpgradeable, Reen
         uint256 _minBidIncrementPercentage,
         uint256 _duration
     ) external initializer {
-        // Initialize contract ownership
+        // Initialize the reentrancy guard
+        __ReentrancyGuard_init();
+
+        // Initialize ownership of the contract
         __Ownable_init();
 
         // Transfer ownership to the treasury
         transferOwnership(_foundersDAO);
 
-        // Initialize the reentrancy guard
-        __ReentrancyGuard_init();
-
         // Pause the contract
         _pause();
 
-        // Store the address of the token to mint
+        // Store the address of the token
         token = IToken(_token);
 
         // Store the auction house config
@@ -94,11 +93,6 @@ contract Auction is AuctionStorageV1, UUPSUpgradeable, PausableUpgradeable, Reen
     ///                                                          ///
 
     /// @notice Emitted when a bid is placed
-    ///
-    ///
-    ///
-    ///
-    ///
     event AuctionBid(uint256 tokenId, address sender, uint256 value, bool extended, uint256 endTime);
 
     /// @notice Creates a bid for the current token
@@ -150,7 +144,7 @@ contract Auction is AuctionStorageV1, UUPSUpgradeable, PausableUpgradeable, Reen
     }
 
     ///                                                          ///
-    ///                          CREATE AUCTION                  ///
+    ///                         CREATE AUCTION                   ///
     ///                                                          ///
 
     /// @notice Emitted when an auction is created
@@ -182,54 +176,60 @@ contract Auction is AuctionStorageV1, UUPSUpgradeable, PausableUpgradeable, Reen
     ///                                                          ///
 
     /// @notice Emitted when an auction is settled
-    event AuctionSettled(uint256 indexed nounId, address winner, uint256 amount);
+    event AuctionSettled(uint256 tokenId, address winner, uint256 amount);
+
+    /// @notice Settle the auction when the contract is paused
+    function settleAuction() external nonReentrant whenPaused {
+        _settleAuction();
+    }
 
     /// @notice Settles the current auction
     function _settleAuction() internal {
+        // Get the current auction in memory
         IAuction.Auction memory _auction = auction;
 
-        require(_auction.startTime != 0, "NOT_STARTED");
+        // Ensure the auction had started
+        require(_auction.startTime != 0, "AUCTION_NOT_STARTED");
 
-        require(!_auction.settled, "ALREADY_SETTLED");
+        // Ensure the auction has ended
+        require(block.timestamp >= _auction.endTime, "AUCTION_STILL_ACTIVE");
 
-        require(block.timestamp >= _auction.endTime, "NOT_COMPLETED");
+        // Ensure the auction was not settled
+        require(!_auction.settled, "AUCTION_ALREADY_SETTLED");
 
         // Mark the auction as settled
         auction.settled = true;
 
-        // If there were no bids:
-        if (_auction.highestBidder == address(0)) {
+        // If there was a winning bidder:
+        if (_auction.highestBidder != address(0)) {
+            // Transfer them the token
+            token.transferFrom(address(this), _auction.highestBidder, _auction.tokenId);
+
+            // If their bid included ETH:
+            if (_auction.highestBid > 0) {
+                // Calculate 100 BPS of the winning bid
+                uint256 fee = (_auction.highestBid * 100) / 10_000;
+
+                // Calculate the remaining profit to the treasury
+                uint256 remainingProfit = _auction.highestBid - (2 * fee);
+
+                // Transfer 100 bps to Nouns DAO
+                _handleOutgoingTransfer(NounsDAO, fee);
+
+                // Transfer 100 bps to Nouns Builder DAO
+                _handleOutgoingTransfer(NounsBuilderDAO, fee);
+
+                // Transfer the remaining profit to the treasury
+                _handleOutgoingTransfer(owner(), remainingProfit);
+            }
+
+            // Otherwise, nobody placed a bid:
+        } else {
             // Burn the token
             token.burn(_auction.tokenId);
-
-            // Else: transfer the the token to the winning bidder
-        } else {
-            token.transferFrom(address(this), _auction.highestBidder, _auction.tokenId);
-        }
-
-        if (_auction.highestBid > 0) {
-            // Calculate 100 BPS of the highest bid to send to Nouns DAO and Nouns Builder DAO
-            uint256 fee = (_auction.highestBid * 100) / 10_000;
-
-            // Calculate the remaining profit
-            uint256 remainingProfit = _auction.highestBid - (2 * fee);
-
-            // Transfer to Nouns DAO
-            _handleOutgoingTransfer(Nouns, fee);
-
-            // Transfer to Nouns Builder DAO
-            _handleOutgoingTransfer(NounsBuilder, fee);
-
-            // Transfer the remaining profit to the treasury
-            _handleOutgoingTransfer(owner(), remainingProfit);
         }
 
         emit AuctionSettled(_auction.tokenId, _auction.highestBidder, _auction.highestBid);
-    }
-
-    /// @notice Settle the auction when the contract is paused
-    function settleAuction() external whenPaused nonReentrant {
-        _settleAuction();
     }
 
     ///                                                          ///
@@ -243,6 +243,54 @@ contract Auction is AuctionStorageV1, UUPSUpgradeable, PausableUpgradeable, Reen
     }
 
     ///                                                          ///
+    ///                        UPDATE DURATION                   ///
+    ///                                                          ///
+
+    event DurationUpdated(uint256 duration);
+
+    function setDuration(uint256 _duration) external onlyOwner {
+        duration = _duration;
+
+        emit DurationUpdated(_duration);
+    }
+
+    ///                                                          ///
+    ///                     UPDATE RESERVE PRICE                 ///
+    ///                                                          ///
+
+    event ReservePriceUpdated(uint256 reservePrice);
+
+    function setReservePrice(uint256 _reservePrice) external onlyOwner {
+        reservePrice = _reservePrice;
+
+        emit ReservePriceUpdated(_reservePrice);
+    }
+
+    ///                                                          ///
+    ///                      UPDATE BID INCREMENT                ///
+    ///                                                          ///
+
+    event MinBidIncrementPercentageUpdated(uint256 minBidIncrementPercentage);
+
+    function setMinBidIncrementPercentage(uint256 _minBidIncrementPercentage) external onlyOwner {
+        minBidIncrementPercentage = _minBidIncrementPercentage;
+
+        emit MinBidIncrementPercentageUpdated(_minBidIncrementPercentage);
+    }
+
+    ///                                                          ///
+    ///                       UPDATE TIME BUFFER                 ///
+    ///                                                          ///
+
+    event TimeBufferUpdated(uint256 timeBuffer);
+
+    function setTimeBuffer(uint256 _timeBuffer) external onlyOwner {
+        timeBuffer = _timeBuffer;
+
+        emit TimeBufferUpdated(_timeBuffer);
+    }
+
+    ///                                                          ///
     ///                             PAUSE                        ///
     ///                                                          ///
 
@@ -251,11 +299,11 @@ contract Auction is AuctionStorageV1, UUPSUpgradeable, PausableUpgradeable, Reen
         _pause();
     }
 
-    /// @notice Unpauses the auction house and starts the next auction
+    /// @notice Unpause the auction house
     function unpause() external onlyOwner {
         _unpause();
 
-        // If either this is the first auction or the previous auction was settled:
+        // If this is the first auction OR the previous auction was settled:
         if (auction.startTime == 0 || auction.settled) {
             // Create a new auction
             _createAuction();
@@ -263,24 +311,25 @@ contract Auction is AuctionStorageV1, UUPSUpgradeable, PausableUpgradeable, Reen
     }
 
     ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
-    ///                                                          ///
     ///                          ETH TRANSFER                    ///
     ///                                                          ///
 
     /// @notice Transfer ETH/WETH outbound from this contract
+    /// @param _dest The address of the destination
+    /// @param _amount The amount of ETH to transfer
     function _handleOutgoingTransfer(address _dest, uint256 _amount) internal {
-        // Ensure the address has
+        // Ensure the contract holds more ETH than sending
         require(address(this).balance >= _amount, "INSOLVENT");
 
-        // Attempt the ETH transfer
+        // Transfer ETH to the destination
         (bool success, ) = _dest.call{value: _amount, gas: 50_000}("");
 
-        // If fails, wrap and send as WETH
+        // If the transfer fails:
         if (!success) {
+            // Wrap the ETH as WETH
             IWETH(WETH).deposit{value: _amount}();
+
+            // Transfer WETH to the destination
             IERC20(WETH).transfer(_dest, _amount);
         }
     }
