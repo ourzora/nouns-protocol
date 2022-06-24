@@ -10,9 +10,8 @@ interface IToken {
     ///                                                          ///
 
     function initialize(
-        string memory _name,
-        string memory _symbol,
-        address _metadataRenderer,
+        string calldata _name,
+        string calldata _symbol,
         address _foundersDAO,
         uint256 _foundersMaxAllocation,
         uint256 _foundersAllocationFrequency,
@@ -39,8 +38,6 @@ interface IToken {
     ///                                                          ///
     ///                                                          ///
 
-    function UpgradeManager() external view returns (IUpgradeManager);
-
     function totalSupply() external view returns (uint256);
 
     function auction() external view returns (address);
@@ -56,6 +53,8 @@ interface IToken {
     ///                                                          ///
     ///                                                          ///
     ///                                                          ///
+
+    function metadataRenderer() external view returns (IMetadataRenderer);
 
     function name() external view returns (string memory);
 
@@ -136,6 +135,8 @@ interface IToken {
     ///                                                          ///
     ///                                                          ///
     ///                                                          ///
+
+    function UpgradeManager() external view returns (IUpgradeManager);
 
     function upgradeTo(address newImplementation) external;
 
