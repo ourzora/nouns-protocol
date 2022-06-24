@@ -1,18 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
-import {LibUintToString} from "sol2string/LibUintToString.sol";
-import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
+import {LibUintToString} from "sol2string/LibUintToString.sol";
 
-import {OnChainMetadataRendererStorage} from "./OnChainMetadataRendererStorage.sol";
-import {EntropyUser} from "./EntropyUser.sol";
+import {MetadataRendererStorageV1} from "./storage/MetadataRendererStorageV1.sol";
+import {Entropy} from "./Entropy.sol";
 
 import {IToken} from "../IToken.sol";
 import {IMetadataRenderer} from "./IMetadataRenderer.sol";
 import {IUpgradeManager} from "../../upgrade/IUpgradeManager.sol";
 
-contract OnChainMetadataRenderer is UUPSUpgradeable, OnChainMetadataRendererStorage, EntropyUser, IMetadataRenderer {
+contract MetadataRenderer is UUPSUpgradeable, OwnableUpgradeable, Entropy, MetadataRendererStorageV1, IMetadataRenderer {
     ///                                                          ///
     ///                                                          ///
     ///                                                          ///
@@ -25,7 +26,48 @@ contract OnChainMetadataRenderer is UUPSUpgradeable, OnChainMetadataRendererStor
     ///                                                          ///
     ///                                                          ///
 
-    function initialize(bytes memory data) external initializer {
+    function initialize(address _foundersDAO) external initializer {
+        token = IToken(msg.sender);
+
+        __Ownable_init();
+
+        transferOwnership(_foundersDAO);
+    }
+
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
+    function contractURI() external view returns (string memory) {
+        return string(abi.encodePacked('{"name": "', name, '", "description": "', description, '", "image": "', contractImage, '"}'));
+    }
+
+    function tokenURI(uint256 tokenId) external view returns (string memory) {
+        (bytes memory propertiesAry, bytes memory propertiesQuery) = getProperties(tokenId);
+        return
+            string(
+                abi.encodePacked(
+                    '{"name": "',
+                    name,
+                    " #",
+                    LibUintToString.toString(tokenId),
+                    '", "description": "',
+                    description,
+                    '", "image": "',
+                    rendererBase,
+                    propertiesQuery,
+                    '", "properties": {',
+                    propertiesAry,
+                    "}}"
+                )
+            );
+    }
+
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
+    function setAllMetadata(bytes memory data) external onlyOwner {
         (string memory _name, string memory _description, string memory _contractImage, string memory _rendererBase) = abi.decode(
             data,
             (string, string, string, string)
@@ -33,22 +75,43 @@ contract OnChainMetadataRenderer is UUPSUpgradeable, OnChainMetadataRendererStor
 
         name = _name;
         description = _description;
-        rendererBase = _rendererBase;
         contractImage = _contractImage;
-
-        token = IToken(msg.sender);
+        rendererBase = _rendererBase;
     }
 
     ///                                                          ///
     ///                                                          ///
     ///                                                          ///
 
-    // TODO access controls?
+    event NewContractImage(string indexed);
+
+    function setContractImage(string memory newContractImage) public onlyOwner {
+        contractImage = newContractImage;
+
+        emit NewContractImage(contractImage);
+    }
+
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
+    event NewBaseRenderer(string indexed);
+
+    function setBaseRenderer(string memory newRenderer) public onlyOwner {
+        rendererBase = newRenderer;
+
+        emit NewBaseRenderer(newRenderer);
+    }
+
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
     function addProperties(
         string[] memory _newProperties,
         ItemInfoStorage[] memory _items,
         bytes memory _data
-    ) public {
+    ) external onlyOwner {
         uint256 propertiesBaseLength = properties.length;
         uint256 dataBaseLength = data.length;
 
@@ -73,34 +136,6 @@ contract OnChainMetadataRenderer is UUPSUpgradeable, OnChainMetadataRendererStor
             item.info = _items[i].info;
             item.name = _items[i].name;
         }
-    }
-
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
-    event NewContractImage(string indexed);
-
-    function setContractImage(string memory newContractImage) public {
-        require(msg.sender == token.foundersDAO(), "ONLY_FOUNDERS");
-
-        contractImage = newContractImage;
-
-        emit NewContractImage(contractImage);
-    }
-
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
-    event NewBaseRenderer(string indexed);
-
-    function setBaseRenderer(string memory newRenderer) public {
-        require(msg.sender == token.foundersDAO(), "ONLY_FOUNDERS");
-
-        rendererBase = newRenderer;
-
-        emit NewBaseRenderer(newRenderer);
     }
 
     ///                                                          ///
@@ -144,41 +179,15 @@ contract OnChainMetadataRenderer is UUPSUpgradeable, OnChainMetadataRendererStor
     ///                                                          ///
     ///                                                          ///
 
-    function contractURI() external view returns (string memory) {
-        return string(abi.encodePacked('{"name": "', name, '", "description": "', description, '", "image": "', contractImage, '"}'));
-    }
-
-    function tokenURI(uint256 tokenId) external view returns (string memory) {
-        (bytes memory propertiesAry, bytes memory propertiesQuery) = getProperties(tokenId);
-        return
-            string(
-                abi.encodePacked(
-                    '{"name": "',
-                    name,
-                    " #",
-                    LibUintToString.toString(tokenId),
-                    '", "description": "',
-                    description,
-                    '", "image": "',
-                    rendererBase,
-                    propertiesQuery,
-                    '", "properties": {',
-                    propertiesAry,
-                    "}}"
-                )
-            );
-    }
-
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
     function minted(uint256 tokenId) external {
         require(msg.sender == address(token), "ONLY_TOKEN");
 
         uint256 entropy = _getEntropy(tokenId);
+
         uint16[11] storage atAttributes = chosenAttributes[tokenId];
+
         atAttributes[0] = uint16(properties.length);
+
         for (uint256 i = 0; i < properties.length; i++) {
             uint16 size = uint16(properties[i].items.length);
             atAttributes[i + 1] = uint16(entropy) % size;
@@ -190,8 +199,19 @@ contract OnChainMetadataRenderer is UUPSUpgradeable, OnChainMetadataRendererStor
     ///                                                          ///
     ///                                                          ///
 
-    // TODO access controls?
-    function _authorizeUpgrade(address newImplementation) internal override {
+    function owner() public view override(IMetadataRenderer, OwnableUpgradeable) returns (address) {
+        return super.owner();
+    }
+
+    function transferOwnership(address _newOwner) public override(IMetadataRenderer, OwnableUpgradeable) {
+        return super.transferOwnership(_newOwner);
+    }
+
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
         require(token.UpgradeManager().isValidUpgrade(_getImplementation(), newImplementation), "INVALID_UPGRADE");
     }
 }
