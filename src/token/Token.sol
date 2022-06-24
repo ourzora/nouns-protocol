@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.10;
 
-import {ERC721VotesUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/draft-ERC721VotesUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {ERC721VotesUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/draft-ERC721VotesUpgradeable.sol";
 
 import {TokenStorageV1} from "./storage/TokenStorageV1.sol";
 import {IMetadataRenderer} from "./metadata/IMetadataRenderer.sol";
@@ -14,7 +15,7 @@ import {IToken} from "./IToken.sol";
 /// @title Nounish ERC-721 Token
 /// @author Rohan Kulkarni
 /// @notice Modified version of NounsToken.sol (commit 2cbe6c7) that NounsDAO licensed under the GPL-3.0 license
-contract Token is TokenStorageV1, ERC721VotesUpgradeable, UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable {
+contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable, TokenStorageV1, ERC721VotesUpgradeable {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -22,13 +23,17 @@ contract Token is TokenStorageV1, ERC721VotesUpgradeable, UUPSUpgradeable, Reent
     /// @notice The contract upgrade manager
     IUpgradeManager public immutable UpgradeManager;
 
+    /// @notice The metadata renderer implementation
+    address public immutable metadataImpl;
+
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
     /// @param _upgradeManager The address of the contract upgrade manager
-    constructor(address _upgradeManager) payable initializer {
+    constructor(address _upgradeManager, address _metadataImpl) payable initializer {
         UpgradeManager = IUpgradeManager(_upgradeManager);
+        metadataImpl = _metadataImpl;
     }
 
     ///                                                          ///
@@ -38,25 +43,20 @@ contract Token is TokenStorageV1, ERC721VotesUpgradeable, UUPSUpgradeable, Reent
     /// @notice Called by the deployer to initialize the token proxy
     /// @param _name The token name
     /// @param _symbol The token $SYMBOL
-    /// @param _metadataRenderer The address of the metadata renderer
     /// @param _foundersDAO The address of the founders DAO
     /// @param _foundersMaxAllocation The maximum number of tokens the founders will vest (eg. 183 nouns to nounders)
     /// @param _foundersAllocationFrequency The allocation frequency (eg. every 10 nouns)
     /// @param _treasury The address of the treasury to own the contract
     /// @param _auction The address of the auction house that will mint tokens
     function initialize(
-        string memory _name,
-        string memory _symbol,
-        address _metadataRenderer,
+        string calldata _name,
+        string calldata _symbol,
         address _foundersDAO,
         uint256 _foundersMaxAllocation,
         uint256 _foundersAllocationFrequency,
         address _treasury,
         address _auction
     ) public initializer {
-        // Initialize the ERC-721 token
-        __ERC721_init(_name, _symbol);
-
         // Initialize the reentrancy guard
         __ReentrancyGuard_init();
 
@@ -66,8 +66,8 @@ contract Token is TokenStorageV1, ERC721VotesUpgradeable, UUPSUpgradeable, Reent
         // Transfer ownership to the DAO treasury
         transferOwnership(_treasury);
 
-        // Set metadata renderer
-        metadataRenderer = IMetadataRenderer(_metadataRenderer);
+        // Initialize the ERC-721 token
+        __ERC721_init(_name, _symbol);
 
         // Store the founders metadata
         founders.DAO = _foundersDAO;
@@ -76,6 +76,9 @@ contract Token is TokenStorageV1, ERC721VotesUpgradeable, UUPSUpgradeable, Reent
 
         // Store the address allowed to mint tokens
         auction = _auction;
+
+        // Deploy and store the metadata renderer
+        metadataRenderer = IMetadataRenderer(address(new ERC1967Proxy(metadataImpl, abi.encodeWithSignature("initialize(address)", _foundersDAO))));
     }
 
     ///                                                          ///
