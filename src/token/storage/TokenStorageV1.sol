@@ -6,7 +6,7 @@ import {IToken} from "../IToken.sol";
 
 contract TokenStorageV1 {
     /// @notice The metadata renderer of the token
-    IMetadataRenderer internal metadataRenderer;
+    IMetadataRenderer public metadataRenderer;
 
     /// @notice The metadata of the founders DAO
     IToken.Founders public founders;
