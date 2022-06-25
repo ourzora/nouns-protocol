@@ -1,8 +1,5 @@
 {
   "WETH": "0xc778417e063141139fce010982780140aa0cd5ab",
-  "NounsDAO": "",
-  "NounsBuilderDAO": "",
-  "FoundersDAO": "",
   "UpgradeManager": "0x7627600d63ca3b9c4c491db887a504484e967d94",
   "MetadataRendererImplementation": "0x67eb765d96a6467bb4ddfb06ff0008b715f2670f",
   "TokenImplementation": "0x60648d460f587e6f557eeca0a438c9d62d29d1a8",
