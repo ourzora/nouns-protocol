@@ -63,8 +63,8 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
         // Initialize contract ownership
         __Ownable_init();
 
-        // Transfer ownership to the DAO treasury
-        transferOwnership(_treasury);
+        // Transfer ownership to the founders DAO
+        transferOwnership(_foundersDAO);
 
         // Initialize the ERC-721 token
         __ERC721_init(_name, _symbol);
