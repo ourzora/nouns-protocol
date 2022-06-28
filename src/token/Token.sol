@@ -21,7 +21,7 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
     ///                                                          ///
 
     /// @notice The contract upgrade manager
-    IUpgradeManager public immutable UpgradeManager;
+    IUpgradeManager public immutable upgradeManager;
 
     /// @notice The metadata renderer implementation
     address public immutable metadataImpl;
@@ -32,7 +32,7 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
 
     /// @param _upgradeManager The address of the contract upgrade manager
     constructor(address _upgradeManager, address _metadataImpl) payable initializer {
-        UpgradeManager = IUpgradeManager(_upgradeManager);
+        upgradeManager = IUpgradeManager(_upgradeManager);
         metadataImpl = _metadataImpl;
     }
 
@@ -188,6 +188,6 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
     /// @param _newImpl The address of the new implementation
     function _authorizeUpgrade(address _newImpl) internal override onlyOwner {
         // Ensure the implementation is valid
-        require(UpgradeManager.isValidUpgrade(_getImplementation(), _newImpl), "INVALID_UPGRADE");
+        require(upgradeManager.isValidUpgrade(_getImplementation(), _newImpl), "INVALID_UPGRADE");
     }
 }

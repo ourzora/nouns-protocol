@@ -136,7 +136,7 @@ interface IToken {
     ///                                                          ///
     ///                                                          ///
 
-    function UpgradeManager() external view returns (IUpgradeManager);
+    function upgradeManager() external view returns (IUpgradeManager);
 
     function upgradeTo(address newImplementation) external;
 
