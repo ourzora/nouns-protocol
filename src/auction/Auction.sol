@@ -72,11 +72,11 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         // Initialize ownership of the contract
         __Ownable_init();
 
-        // Transfer ownership to the treasury
-        transferOwnership(_foundersDAO);
-
         // Pause the contract
         _pause();
+
+        // Transfer ownership to the treasury
+        transferOwnership(_foundersDAO);
 
         // Store the address of the token
         token = IToken(_token);
