@@ -212,6 +212,6 @@ contract MetadataRenderer is UUPSUpgradeable, OwnableUpgradeable, Entropy, Metad
     ///                                                          ///
 
     function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
-        require(token.UpgradeManager().isValidUpgrade(_getImplementation(), newImplementation), "INVALID_UPGRADE");
+        require(token.upgradeManager().isValidUpgrade(_getImplementation(), newImplementation), "INVALID_UPGRADE");
     }
 }

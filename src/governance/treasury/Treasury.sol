@@ -11,7 +11,7 @@ import {ITreasury} from "./ITreasury.sol";
 /// @title Treasury
 /// @author Rohan Kulkarni
 /// @notice Modified version of NounsDAOExecutor.sol (commit 2cbe6c7) that NounsDAO licensed under the GPL-3.0 license
-contract Treasury is TimelockControllerUpgradeable, UUPSUpgradeable {
+contract Treasury is UUPSUpgradeable, TimelockControllerUpgradeable {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///

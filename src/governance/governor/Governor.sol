@@ -16,7 +16,7 @@ import {IGovernor} from "./IGovernor.sol";
 /// @title Governor
 /// @author Rohan Kulkarni
 /// @notice Modified version of NounsDAOLogicV1.sol (commit 2cbe6c7) that NounsDAO licensed under the GPL-3.0 license
-contract Governor is GovernorStorageV1, GovernorTimelockControlUpgradeable, GovernorCountingSimpleUpgradeable, UUPSUpgradeable, OwnableUpgradeable {
+contract Governor is UUPSUpgradeable, OwnableUpgradeable, GovernorTimelockControlUpgradeable, GovernorCountingSimpleUpgradeable, GovernorStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///

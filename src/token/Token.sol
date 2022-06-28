@@ -15,7 +15,7 @@ import {IToken} from "./IToken.sol";
 /// @title Nounish ERC-721 Token
 /// @author Rohan Kulkarni
 /// @notice Modified version of NounsToken.sol (commit 2cbe6c7) that NounsDAO licensed under the GPL-3.0 license
-contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable, TokenStorageV1, ERC721VotesUpgradeable {
+contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable, ERC721VotesUpgradeable, TokenStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
