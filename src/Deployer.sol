@@ -94,6 +94,7 @@ contract Deployer is IDeployer {
         IAuction(auction).initialize(
             token,
             _tokenParams.foundersDAO,
+            treasury,
             _auctionParams.timeBuffer,
             _auctionParams.reservePrice,
             _auctionParams.minBidIncrementPercentage,
