@@ -31,7 +31,19 @@ interface IMetadataRenderer {
     ///                                                          ///
     ///                                                          ///
 
-    function setAllMetadata(bytes memory data) external;
+    function setContractMetadata(bytes memory data) external;
+
+    function setContractImage(string memory newContractImage) external;
+
+    function setBaseRenderer(string memory newRenderer) external;
+
+    function addProperties(
+        string[] memory _newProperties,
+        ItemInfoStorage[] memory _items,
+        bytes memory _data
+    ) external;
+
+    function getProperties(uint256 tokenId) external view returns (bytes memory aryAttributes, bytes memory queryString);
 
     ///                                                          ///
     ///                                                          ///
