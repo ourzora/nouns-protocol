@@ -86,7 +86,6 @@ contract Deployer is IDeployer {
             _tokenParams.foundersDAO,
             _tokenParams.foundersMaxAllocation,
             _tokenParams.foundersAllocationFrequency,
-            treasury,
             auction
         );
 

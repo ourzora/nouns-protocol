@@ -15,7 +15,6 @@ interface IToken {
         address _foundersDAO,
         uint256 _foundersMaxAllocation,
         uint256 _foundersAllocationFrequency,
-        address _treasury,
         address _minter
     ) external;
 
@@ -31,8 +30,6 @@ interface IToken {
     }
 
     function founders() external view returns (Founders calldata);
-
-    function foundersDAO() external view returns (address);
 
     ///                                                          ///
     ///                                                          ///
