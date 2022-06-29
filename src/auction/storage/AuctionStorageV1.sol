@@ -11,6 +11,9 @@ contract AuctionStorageV1 {
     /// @notice The metadata of the current auction
     IAuction.Auction public auction;
 
+    /// @notice The address of the treasury
+    address public treasury;
+
     /// @notice The time duration of an auction
     uint256 public duration;
 
