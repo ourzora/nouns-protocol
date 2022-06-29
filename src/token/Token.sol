@@ -46,7 +46,6 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
     /// @param _foundersDAO The address of the founders DAO
     /// @param _foundersMaxAllocation The maximum number of tokens the founders will vest (eg. 183 nouns to nounders)
     /// @param _foundersAllocationFrequency The allocation frequency (eg. every 10 nouns)
-    /// @param _treasury The address of the treasury to own the contract
     /// @param _auction The address of the auction house that will mint tokens
     function initialize(
         string calldata _name,
@@ -54,7 +53,6 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
         address _foundersDAO,
         uint256 _foundersMaxAllocation,
         uint256 _foundersAllocationFrequency,
-        address _treasury,
         address _auction
     ) public initializer {
         // Initialize the reentrancy guard
@@ -90,21 +88,20 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
         // Ensure the caller is the auction house
         require(msg.sender == auction, "ONLY_AUCTION");
 
-        // TODO start with token id 0 or 1?
         unchecked {
             // If the token belongs to the founders:
             if (founders.currentAllocation < founders.maxAllocation && totalSupply % founders.allocationFrequency == 0) {
                 // Send the token to the founders
-                _mint(founders.DAO, ++totalSupply);
+                _mint(founders.DAO, totalSupply++);
 
                 // Update their vested allocation
                 ++founders.currentAllocation;
             }
 
             // Mint the next token for bidding
-            _mint(auction, ++totalSupply);
+            _mint(auction, totalSupply++);
 
-            return totalSupply;
+            return totalSupply - 1;
         }
     }
 
@@ -123,7 +120,7 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
     }
 
     ///                                                          ///
-    ///                              META                        ///
+    ///                               URI                        ///
     ///                                                          ///
 
     ///
@@ -135,11 +132,6 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
     ///
     function contractURI() public view returns (string memory) {
         return metadataRenderer.contractURI();
-    }
-
-    ///
-    function foundersDAO() public view returns (address) {
-        return founders.DAO;
     }
 
     ///                                                          ///
