@@ -8,19 +8,6 @@ interface IAuction {
     ///                                                          ///
     ///                                                          ///
 
-    function initialize(
-        address _token,
-        address _treasury,
-        uint256 _timeBuffer,
-        uint256 _reservePrice,
-        uint256 _minBidIncrementPercentage,
-        uint256 _duration
-    ) external;
-
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
     /// @notice The metadata type of an auction
     /// @param tokenId The ERC-721 token id
     /// @param highestBid The highest bid amount
@@ -41,9 +28,25 @@ interface IAuction {
     ///                                                          ///
     ///                                                          ///
 
+    function initialize(
+        address _token,
+        address _foundersDAO,
+        address _treasury,
+        uint256 _timeBuffer,
+        uint256 _reservePrice,
+        uint256 _minBidIncrementPercentage,
+        uint256 _duration
+    ) external;
+
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
     function token() external view returns (IToken);
 
     function auction() external view returns (Auction calldata);
+
+    function treasury() external view returns (address);
 
     function duration() external view returns (uint256);
 

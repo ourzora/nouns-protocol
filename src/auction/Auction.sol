@@ -61,6 +61,7 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     function initialize(
         address _token,
         address _foundersDAO,
+        address _treasury,
         uint256 _timeBuffer,
         uint256 _reservePrice,
         uint256 _minBidIncrementPercentage,
@@ -75,13 +76,14 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         // Pause the contract
         _pause();
 
-        // Transfer ownership to the treasury
+        // Transfer ownership to the founders
         transferOwnership(_foundersDAO);
 
-        // Store the address of the token
+        // Store the associated token
         token = IToken(_token);
 
-        // Store the auction house config
+        //
+        treasury = _treasury;
         timeBuffer = _timeBuffer;
         reservePrice = _reservePrice;
         minBidIncrementPercentage = _minBidIncrementPercentage;
@@ -98,7 +100,7 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     /// @notice Creates a bid for the current token
     /// @param _tokenId The ERC-721 token id
     function createBid(uint256 _tokenId) external payable nonReentrant {
-        // Get the current auction in memory
+        // Get the auction in memory
         IAuction.Auction memory _auction = auction;
 
         // Ensure the bid is for the current token id
@@ -117,14 +119,22 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
 
             // Else this is a subsequent bid:
         } else {
-            // Cache the highest bid
-            uint256 highestBid = _auction.highestBid;
+            // Cache the previous highest bid
+            uint256 prevBid = _auction.highestBid;
+
+            // Used to store the next minimum bid
+            uint256 minRaiseAmount;
+
+            // Calculate the minimum amount of ETH required to place a subsequent bid
+            unchecked {
+                minRaiseAmount = prevBid + ((prevBid * minBidIncrementPercentage) / 100);
+            }
 
             // Ensure the bid meets the minimum bid increase
-            require(msg.value >= highestBid + ((highestBid * minBidIncrementPercentage) / 100), "MUST_MEET_MINIMUM_BID");
+            require(msg.value >= minRaiseAmount, "MUST_MEET_MINIMUM_BID");
 
             // Refund the previous bidder
-            _handleOutgoingTransfer(lastBidder, highestBid);
+            _handleOutgoingTransfer(lastBidder, prevBid);
         }
 
         // Store the attached ETH as the highest bid
@@ -133,42 +143,25 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         // Store the caller as the highest bidder
         auction.highestBidder = msg.sender;
 
-        // Extend the auction if the bid was received within `timeBuffer` of the auction end time
-        bool extended = _auction.endTime - block.timestamp < timeBuffer;
+        // Used to store if the auction will be extended
+        bool extend;
 
-        if (extended) {
-            auction.endTime = _auction.endTime = uint40(block.timestamp + timeBuffer);
+        // Check if the bid was placed within the `timeBuffer` of the auction end time
+        // Cannot underflow as `block.timestamp` is ensured to be less than `_auction.endTime` on line 109
+        unchecked {
+            extend = (_auction.endTime - block.timestamp) < timeBuffer;
         }
 
-        emit AuctionBid(_tokenId, msg.sender, msg.value, extended, _auction.endTime);
-    }
-
-    ///                                                          ///
-    ///                         CREATE AUCTION                   ///
-    ///                                                          ///
-
-    /// @notice Emitted when an auction is created
-    event AuctionCreated(uint256 indexed nounId, uint256 startTime, uint256 endTime);
-
-    /// @notice Creates an auction for the next token
-    function _createAuction() internal {
-        // Mint the next token either to this contract for bidding or to the founders if valid for vesting
-        try token.mint() returns (uint256 tokenId) {
-            uint256 startTime = block.timestamp;
-            uint256 endTime = startTime + duration;
-
-            auction.tokenId = tokenId;
-            auction.startTime = uint40(startTime);
-            auction.endTime = uint40(endTime);
-
-            emit AuctionCreated(tokenId, startTime, endTime);
-
-            // If the `minter` address on the `token` contract was updated without pausing this contract first:
-            // Catch the error
-        } catch Error(string memory) {
-            // Pause this contract
-            _pause();
+        // If the auction will be extended:
+        if (extend) {
+            // Add the `timeBuffer` to the current time and store as the new end time
+            //
+            unchecked {
+                auction.endTime = _auction.endTime = uint40(block.timestamp + timeBuffer);
+            }
         }
+
+        emit AuctionBid(_tokenId, msg.sender, msg.value, extend, _auction.endTime);
     }
 
     ///                                                          ///
@@ -176,9 +169,18 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     ///                                                          ///
 
     /// @notice Emitted when an auction is settled
+    /// @param tokenId The ERC-721 token id of the settled auction
+    /// @param winner The address of the winning bidder
+    /// @param amount The amount of ETH raised from the winning bid
     event AuctionSettled(uint256 tokenId, address winner, uint256 amount);
 
-    /// @notice Settle the auction when the contract is paused
+    /// @notice Settles the current auction and creates the next one
+    function settleCurrentAndCreateNewAuction() external nonReentrant whenNotPaused {
+        _settleAuction();
+        _createAuction();
+    }
+
+    /// @notice Settles the current auction when the contract is paused
     function settleAuction() external nonReentrant whenPaused {
         _settleAuction();
     }
@@ -188,10 +190,10 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         // Get the current auction in memory
         IAuction.Auction memory _auction = auction;
 
-        // Ensure the auction had started
+        // Ensure the auction started
         require(_auction.startTime != 0, "AUCTION_NOT_STARTED");
 
-        // Ensure the auction has ended
+        // Ensure the auction ended
         require(block.timestamp >= _auction.endTime, "AUCTION_STILL_ACTIVE");
 
         // Ensure the auction was not settled
@@ -200,18 +202,28 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         // Mark the auction as settled
         auction.settled = true;
 
-        // If there was a winning bidder:
+        // If a bid was placed:
         if (_auction.highestBidder != address(0)) {
-            // Transfer them the token
+            // Transfer the token to the highest bidder
             token.transferFrom(address(this), _auction.highestBidder, _auction.tokenId);
 
-            // If their bid included ETH:
+            // If ETH was included in the bid:
             if (_auction.highestBid > 0) {
-                // Calculate 100 BPS of the winning bid
-                uint256 fee = (_auction.highestBid * 100) / 10_000;
+                //
+                uint256 fee;
+
+                //
+                unchecked {
+                    fee = (_auction.highestBid * 100) / 10_000;
+                }
 
                 // Calculate the remaining profit to the treasury
-                uint256 remainingProfit = _auction.highestBid - (2 * fee);
+                uint256 remainingProfit;
+
+                //
+                unchecked {
+                    remainingProfit = _auction.highestBid - (2 * fee);
+                }
 
                 // Transfer 100 bps to Nouns DAO
                 _handleOutgoingTransfer(NounsDAO, fee);
@@ -220,10 +232,10 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
                 _handleOutgoingTransfer(NounsBuilderDAO, fee);
 
                 // Transfer the remaining profit to the treasury
-                _handleOutgoingTransfer(owner(), remainingProfit);
+                _handleOutgoingTransfer(treasury, remainingProfit);
             }
 
-            // Otherwise, nobody placed a bid:
+            // Else no bid was placed:
         } else {
             // Burn the token
             token.burn(_auction.tokenId);
@@ -233,61 +245,47 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     }
 
     ///                                                          ///
-    ///                    SETTLE & CREATE AUCTION               ///
+    ///                         CREATE AUCTION                   ///
     ///                                                          ///
 
-    /// @notice Settles the current auction and creates the next one
-    function settleCurrentAndCreateNewAuction() external nonReentrant whenNotPaused {
-        _settleAuction();
-        _createAuction();
-    }
+    /// @notice Emitted when an auction is created
+    /// @param tokenId The ERC-721 token id of the created auction
+    /// @param startTime The start time of the created auction
+    /// @param endTime The end time of the created auction
+    event AuctionCreated(uint256 tokenId, uint256 startTime, uint256 endTime);
 
-    ///                                                          ///
-    ///                        UPDATE DURATION                   ///
-    ///                                                          ///
+    /// @notice Creates an auction for the next token
+    function _createAuction() internal {
+        // Mint the next token either to this contract for bidding or to the founders if valid for vesting
+        try token.mint() returns (uint256 tokenId) {
+            //
+            auction.tokenId = tokenId;
 
-    event DurationUpdated(uint256 duration);
+            //
+            uint256 startTime = block.timestamp;
 
-    function setDuration(uint256 _duration) external onlyOwner {
-        duration = _duration;
+            //
+            uint256 endTime;
 
-        emit DurationUpdated(_duration);
-    }
+            //
+            unchecked {
+                endTime = startTime + duration;
+            }
 
-    ///                                                          ///
-    ///                     UPDATE RESERVE PRICE                 ///
-    ///                                                          ///
+            //
+            auction.startTime = uint40(startTime); // block.timestamp
+            auction.endTime = uint40(endTime); // block.timestamp + duration
 
-    event ReservePriceUpdated(uint256 reservePrice);
+            auction.highestBid = 0;
+            auction.highestBidder = address(0);
+            auction.settled = false;
 
-    function setReservePrice(uint256 _reservePrice) external onlyOwner {
-        reservePrice = _reservePrice;
+            emit AuctionCreated(tokenId, startTime, endTime);
 
-        emit ReservePriceUpdated(_reservePrice);
-    }
-
-    ///                                                          ///
-    ///                      UPDATE BID INCREMENT                ///
-    ///                                                          ///
-
-    event MinBidIncrementPercentageUpdated(uint256 minBidIncrementPercentage);
-
-    function setMinBidIncrementPercentage(uint256 _minBidIncrementPercentage) external onlyOwner {
-        minBidIncrementPercentage = _minBidIncrementPercentage;
-
-        emit MinBidIncrementPercentageUpdated(_minBidIncrementPercentage);
-    }
-
-    ///                                                          ///
-    ///                       UPDATE TIME BUFFER                 ///
-    ///                                                          ///
-
-    event TimeBufferUpdated(uint256 timeBuffer);
-
-    function setTimeBuffer(uint256 _timeBuffer) external onlyOwner {
-        timeBuffer = _timeBuffer;
-
-        emit TimeBufferUpdated(_timeBuffer);
+            // If the `auction` address on the `token` contract was updated without pausing this contract first:
+        } catch Error(string memory) {
+            _pause();
+        }
     }
 
     ///                                                          ///
@@ -311,6 +309,70 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     }
 
     ///                                                          ///
+    ///                        UPDATE DURATION                   ///
+    ///                                                          ///
+
+    ///
+    ///
+    event DurationUpdated(uint256 duration);
+
+    ///
+    ///
+    function setDuration(uint256 _duration) external onlyOwner {
+        duration = _duration;
+
+        emit DurationUpdated(_duration);
+    }
+
+    ///                                                          ///
+    ///                     UPDATE RESERVE PRICE                 ///
+    ///                                                          ///
+
+    ///
+    ///
+    event ReservePriceUpdated(uint256 reservePrice);
+
+    ///
+    ///
+    function setReservePrice(uint256 _reservePrice) external onlyOwner {
+        reservePrice = _reservePrice;
+
+        emit ReservePriceUpdated(_reservePrice);
+    }
+
+    ///                                                          ///
+    ///                      UPDATE BID INCREMENT                ///
+    ///                                                          ///
+
+    ///
+    ///
+    event MinBidIncrementPercentageUpdated(uint256 minBidIncrementPercentage);
+
+    ///
+    ///
+    function setMinBidIncrementPercentage(uint256 _minBidIncrementPercentage) external onlyOwner {
+        minBidIncrementPercentage = _minBidIncrementPercentage;
+
+        emit MinBidIncrementPercentageUpdated(_minBidIncrementPercentage);
+    }
+
+    ///                                                          ///
+    ///                       UPDATE TIME BUFFER                 ///
+    ///                                                          ///
+
+    ///
+    ///
+    event TimeBufferUpdated(uint256 timeBuffer);
+
+    ///
+    ///
+    function setTimeBuffer(uint256 _timeBuffer) external onlyOwner {
+        timeBuffer = _timeBuffer;
+
+        emit TimeBufferUpdated(_timeBuffer);
+    }
+
+    ///                                                          ///
     ///                          ETH TRANSFER                    ///
     ///                                                          ///
 
@@ -318,10 +380,10 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     /// @param _dest The address of the destination
     /// @param _amount The amount of ETH to transfer
     function _handleOutgoingTransfer(address _dest, uint256 _amount) internal {
-        // Ensure the contract holds more ETH than sending
+        // Ensure the contract holds enough ETH
         require(address(this).balance >= _amount, "INSOLVENT");
 
-        // Transfer ETH to the destination
+        // Transfer the given amount of ETH to the given destination
         (bool success, ) = _dest.call{value: _amount, gas: 50_000}("");
 
         // If the transfer fails:
@@ -329,7 +391,7 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
             // Wrap the ETH as WETH
             IWETH(WETH).deposit{value: _amount}();
 
-            // Transfer WETH to the destination
+            // Transfer as WETH instead
             IERC20(WETH).transfer(_dest, _amount);
         }
     }
