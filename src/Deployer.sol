@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.10;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity 0.8.15;
 
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
@@ -81,24 +81,16 @@ contract Deployer is IDeployer {
 
         // Initialize the token
         IToken(token).initialize(
-            _tokenParams.name,
-            _tokenParams.symbol,
+            _tokenParams.initInfo,
             _tokenParams.foundersDAO,
             _tokenParams.foundersMaxAllocation,
             _tokenParams.foundersAllocationFrequency,
-            auction
+            auction,
+            treasury
         );
 
         // Initialize the auction house
-        IAuction(auction).initialize(
-            token,
-            _tokenParams.foundersDAO,
-            treasury,
-            _auctionParams.timeBuffer,
-            _auctionParams.reservePrice,
-            _auctionParams.minBidIncrementPercentage,
-            _auctionParams.duration
-        );
+        IAuction(auction).initialize(token, _tokenParams.foundersDAO, treasury, _auctionParams.duration, _auctionParams.reservePrice);
 
         // Initialize the treasury
         ITreasury(treasury).initialize(governor, _govParams.timelockDelay);
