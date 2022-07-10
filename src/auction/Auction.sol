@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.10;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity 0.8.15;
 
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
@@ -24,33 +24,47 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     /// @notice The contract upgrade manager
     IUpgradeManager private immutable UpgradeManager;
 
+    /// @notice The WETH token address
+    address private immutable WETH;
+
     /// @notice The Nouns DAO address
     address private immutable NounsDAO;
 
     /// @notice The Nouns Builder DAO address
     address private immutable NounsBuilderDAO;
 
-    /// @notice The WETH token address
-    address private immutable WETH;
+    /// @notice
+    uint256 private immutable NounsDAOFeeBPS;
+
+    /// @notice
+    uint256 private immutable NounsBuilderDAOFeeBPS;
 
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
     /// @param _upgradeManager The address of the contract upgrade manager
-    /// @param _nouns The address of the Nouns Treasury
-    /// @param _nounsBuilder The address of the Nouns Builder
     /// @param _weth The WETH token address
+    /// @param _nounsDAO The address of the Nouns Treasury
+    /// @param _nounsDAOFeeBPS The Nouns DAO Fee
+    /// @param _nounsBuilderDAO The address of the Nouns Builder
+    /// @param _nounsBuilderDAOFeeBPS The Nouns Builder DAO Fee
     constructor(
         address _upgradeManager,
-        address _nouns,
-        address _nounsBuilder,
-        address _weth
+        address _weth,
+        address _nounsDAO,
+        uint256 _nounsDAOFeeBPS,
+        address _nounsBuilderDAO,
+        uint256 _nounsBuilderDAOFeeBPS
     ) payable initializer {
         UpgradeManager = IUpgradeManager(_upgradeManager);
-        NounsDAO = _nouns;
-        NounsBuilderDAO = _nounsBuilder;
         WETH = _weth;
+
+        NounsDAO = _nounsDAO;
+        NounsDAOFeeBPS = _nounsDAOFeeBPS;
+
+        NounsBuilderDAO = _nounsBuilderDAO;
+        NounsBuilderDAOFeeBPS = _nounsBuilderDAOFeeBPS;
     }
 
     ///                                                          ///
@@ -62,10 +76,8 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         address _token,
         address _foundersDAO,
         address _treasury,
-        uint256 _timeBuffer,
-        uint256 _reservePrice,
-        uint256 _minBidIncrementPercentage,
-        uint256 _duration
+        uint256 _duration,
+        uint256 _reservePrice
     ) external initializer {
         // Initialize the reentrancy guard
         __ReentrancyGuard_init();
@@ -76,18 +88,18 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         // Pause the contract
         _pause();
 
-        // Transfer ownership to the founders
+        // Transfer initial ownership to the founders
         transferOwnership(_foundersDAO);
 
         // Store the associated token
         token = IToken(_token);
 
         //
-        treasury = _treasury;
-        timeBuffer = _timeBuffer;
-        reservePrice = _reservePrice;
-        minBidIncrementPercentage = _minBidIncrementPercentage;
-        duration = _duration;
+        house.treasury = _treasury;
+        house.duration = uint40(_duration);
+        house.timeBuffer = 5 minutes;
+        house.minBidIncrementPercentage = 10;
+        house.reservePrice = _reservePrice;
     }
 
     ///                                                          ///
@@ -115,7 +127,7 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         // If this is the first bid:
         if (lastBidder == address(0)) {
             // Ensure the bid meets the reserve price
-            require(msg.value >= reservePrice, "MUST_MEET_RESERVE_PRICE");
+            require(msg.value >= house.reservePrice, "MUST_MEET_RESERVE_PRICE");
 
             // Else this is a subsequent bid:
         } else {
@@ -127,7 +139,7 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
 
             // Calculate the minimum amount of ETH required to place a subsequent bid
             unchecked {
-                minRaiseAmount = prevBid + ((prevBid * minBidIncrementPercentage) / 100);
+                minRaiseAmount = prevBid + ((prevBid * house.minBidIncrementPercentage) / 100);
             }
 
             // Ensure the bid meets the minimum bid increase
@@ -149,7 +161,7 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         // Check if the bid was placed within the `timeBuffer` of the auction end time
         // Cannot underflow as `block.timestamp` is ensured to be less than `_auction.endTime` on line 109
         unchecked {
-            extend = (_auction.endTime - block.timestamp) < timeBuffer;
+            extend = (_auction.endTime - block.timestamp) < house.timeBuffer;
         }
 
         // If the auction will be extended:
@@ -157,7 +169,7 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
             // Add the `timeBuffer` to the current time and store as the new end time
             //
             unchecked {
-                auction.endTime = _auction.endTime = uint40(block.timestamp + timeBuffer);
+                auction.endTime = _auction.endTime = uint40(block.timestamp + house.timeBuffer);
             }
         }
 
@@ -207,6 +219,10 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
             // Transfer the token to the highest bidder
             token.transferFrom(address(this), _auction.highestBidder, _auction.tokenId);
 
+            // Delegate on behalf of the winning bidder
+            // Removes the need for a winning bidder to self-delegate their token
+            token.autoDelegate(_auction.highestBidder);
+
             // If ETH was included in the bid:
             if (_auction.highestBid > 0) {
                 //
@@ -232,7 +248,7 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
                 _handleOutgoingTransfer(NounsBuilderDAO, fee);
 
                 // Transfer the remaining profit to the treasury
-                _handleOutgoingTransfer(treasury, remainingProfit);
+                _handleOutgoingTransfer(house.treasury, remainingProfit);
             }
 
             // Else no bid was placed:
@@ -269,7 +285,7 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
 
             //
             unchecked {
-                endTime = startTime + duration;
+                endTime = startTime + house.duration;
             }
 
             //
@@ -301,6 +317,12 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     function unpause() external onlyOwner {
         _unpause();
 
+        // If this is the first auction:
+        if (auction.tokenId == 0) {
+            //
+            _transferOwnership(house.treasury);
+        }
+
         // If this is the first auction OR the previous auction was settled:
         if (auction.startTime == 0 || auction.settled) {
             // Create a new auction
@@ -312,14 +334,16 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     ///                        UPDATE DURATION                   ///
     ///                                                          ///
 
-    ///
-    ///
+    /// @notice Emitted when the auction duration is updated
+    /// @param duration The new auction duration
     event DurationUpdated(uint256 duration);
 
-    ///
-    ///
+    /// @notice Updates the auction duration
+    /// @param _duration The duration to set
     function setDuration(uint256 _duration) external onlyOwner {
-        duration = _duration;
+        require(_duration < type(uint40).max, "INVALID_DURATION");
+
+        house.duration = uint40(_duration);
 
         emit DurationUpdated(_duration);
     }
@@ -335,7 +359,7 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     ///
     ///
     function setReservePrice(uint256 _reservePrice) external onlyOwner {
-        reservePrice = _reservePrice;
+        house.reservePrice = _reservePrice;
 
         emit ReservePriceUpdated(_reservePrice);
     }
@@ -351,7 +375,9 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     ///
     ///
     function setMinBidIncrementPercentage(uint256 _minBidIncrementPercentage) external onlyOwner {
-        minBidIncrementPercentage = _minBidIncrementPercentage;
+        require(_minBidIncrementPercentage < type(uint16).max, "INVALID_BID_INCREMENT");
+
+        house.minBidIncrementPercentage = uint16(_minBidIncrementPercentage);
 
         emit MinBidIncrementPercentageUpdated(_minBidIncrementPercentage);
     }
@@ -367,7 +393,9 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     ///
     ///
     function setTimeBuffer(uint256 _timeBuffer) external onlyOwner {
-        timeBuffer = _timeBuffer;
+        require(_timeBuffer < type(uint40).max, "INVALID_TIME_BUFFER");
+
+        house.timeBuffer = uint40(_timeBuffer);
 
         emit TimeBufferUpdated(_timeBuffer);
     }
