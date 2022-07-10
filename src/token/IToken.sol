@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.10;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity 0.8.15;
 
 import {IMetadataRenderer} from "./metadata/IMetadataRenderer.sol";
 import {IUpgradeManager} from "../upgrade/IUpgradeManager.sol";
@@ -10,12 +10,12 @@ interface IToken {
     ///                                                          ///
 
     function initialize(
-        string calldata _name,
-        string calldata _symbol,
-        address _foundersDAO,
-        uint256 _foundersMaxAllocation,
-        uint256 _foundersAllocationFrequency,
-        address _minter
+        bytes calldata initData,
+        address foundersDAO,
+        uint256 foundersMaxAllocation,
+        uint256 foundersAllocationFrequency,
+        address auction,
+        address treasury
     ) external;
 
     ///                                                          ///
@@ -86,7 +86,7 @@ interface IToken {
 
     function approve(address to, uint256 tokenId) external;
 
-    function setApprovalForAll(address operator, bool _approved) external;
+    function setApprovalForAll(address operator, bool approved) external;
 
     function isApprovedForAll(address owner, address operator) external view returns (bool);
 
@@ -111,6 +111,8 @@ interface IToken {
     function getPastVotes(address account, uint256 blockNumber) external view returns (uint256);
 
     function getPastTotalSupply(uint256 blockNumber) external view returns (uint256);
+
+    function autoDelegate(address user) external;
 
     function delegates(address account) external view returns (address);
 
