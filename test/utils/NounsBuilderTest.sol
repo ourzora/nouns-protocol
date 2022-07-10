@@ -17,6 +17,10 @@ import {ITreasury, Treasury} from "../../src/governance/treasury/Treasury.sol";
 import {WETH} from ".././utils/WETH.sol";
 
 contract NounsBuilderTest is Test {
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
     Deployer internal deployer;
     UpgradeManager internal upgradeManager;
 
@@ -30,16 +34,6 @@ contract NounsBuilderTest is Test {
     address internal nounsBuilderDAO;
     address internal foundersDAO;
     address internal weth;
-
-    IDeployer.TokenParams internal tokenParams;
-    IDeployer.AuctionParams internal auctionParams;
-    IDeployer.GovParams internal govParams;
-
-    IToken internal token;
-    IMetadataRenderer internal metadataRenderer;
-    IAuction internal auction;
-    ITreasury internal treasury;
-    IGovernor internal governor;
 
     function setUp() public virtual {
         weth = address(new WETH());
@@ -56,15 +50,31 @@ contract NounsBuilderTest is Test {
         metadataRendererImpl = address(new MetadataRenderer());
 
         tokenImpl = address(new Token(address(upgradeManager), metadataRendererImpl));
-        auctionImpl = address(new Auction(address(upgradeManager), nounsDAO, nounsBuilderDAO, weth));
+        auctionImpl = address(new Auction(address(upgradeManager), weth, nounsDAO, 100, nounsBuilderDAO, 100));
         treasuryImpl = address(new Treasury(address(upgradeManager)));
         governorImpl = address(new Governor(address(upgradeManager)));
 
         deployer = new Deployer(tokenImpl, auctionImpl, treasuryImpl, governorImpl);
     }
 
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
+    bytes internal tokenInitInfo;
+
+    IDeployer.TokenParams internal tokenParams;
+    IDeployer.AuctionParams internal auctionParams;
+    IDeployer.GovParams internal govParams;
+
+    IToken internal token;
+    IMetadataRenderer internal metadataRenderer;
+    IAuction internal auction;
+    ITreasury internal treasury;
+    IGovernor internal governor;
+
     function deploy() public {
-        bytes memory _init = abi.encode(
+        tokenInitInfo = abi.encode(
             "Mock Token",
             "MOCK",
             "This is a mock token",
@@ -72,7 +82,12 @@ contract NounsBuilderTest is Test {
             "http://localhost:5000/render?"
         );
 
-        tokenParams = IDeployer.TokenParams({initInfo: _init, foundersDAO: foundersDAO, foundersMaxAllocation: 100, foundersAllocationFrequency: 5});
+        tokenParams = IDeployer.TokenParams({
+            initInfo: tokenInitInfo,
+            foundersDAO: foundersDAO,
+            foundersMaxAllocation: 100,
+            foundersAllocationFrequency: 5
+        });
 
         auctionParams = IDeployer.AuctionParams({reservePrice: 0.01 ether, duration: 10 minutes});
 
