@@ -1,5 +1,7 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.10;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity 0.8.15;
+
+import {IToken} from "../../token/IToken.sol";
 
 interface IGovernor {
     ///                                                          ///
@@ -14,6 +16,20 @@ interface IGovernor {
         uint256 proposalThresholdBPS,
         uint256 quorumVotesBPS
     ) external;
+
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
+    struct GovMeta {
+        IToken token; // The address of the governance token
+        uint32 votingDelay; // The number of blocks after a proposal that voting is delayed
+        uint32 votingPeriod; // The number of blocks that voting for a proposal will take place
+        uint16 proposalThresholdBPS; // The number of votes required for a voter to become a proposer
+        uint16 quorumVotesBPS; // The number of votes required to support a proposal
+    }
+
+    function govMeta() external view returns (GovMeta calldata);
 
     ///                                                          ///
     ///                                                          ///
