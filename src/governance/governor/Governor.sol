@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.10;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity 0.8.15;
 
 import {GovernorCountingSimpleUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorCountingSimpleUpgradeable.sol";
 import {IGovernorTimelockUpgradeable, GovernorTimelockControlUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/extensions/GovernorTimelockControlUpgradeable.sol";
@@ -10,8 +10,10 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 import {IUpgradeManager} from "../../upgrade/IUpgradeManager.sol";
-import {GovernorStorageV1, ITreasury, IToken} from "./storage/GovernorStorageV1.sol";
+import {GovernorStorageV1} from "./storage/GovernorStorageV1.sol";
 import {IGovernor} from "./IGovernor.sol";
+import {ITreasury} from "../treasury/ITreasury.sol";
+import {IToken} from "../../token/IToken.sol";
 
 /// @title Governor
 /// @author Rohan Kulkarni
@@ -21,10 +23,10 @@ contract Governor is UUPSUpgradeable, OwnableUpgradeable, GovernorTimelockContro
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
-    IUpgradeManager private immutable UpgradeManager;
+    IUpgradeManager private immutable upgradeManager;
 
     constructor(address _upgradeManager) payable initializer {
-        UpgradeManager = IUpgradeManager(_upgradeManager);
+        upgradeManager = IUpgradeManager(_upgradeManager);
     }
 
     ///                                                          ///
@@ -39,21 +41,19 @@ contract Governor is UUPSUpgradeable, OwnableUpgradeable, GovernorTimelockContro
         uint256 _proposalThresholdBPS,
         uint256 _quorumVotesBPS
     ) public initializer {
+        govMeta.token = IToken(_token);
+        govMeta.votingPeriod = uint32(_votingPeriod);
+        govMeta.votingDelay = uint32(_votingDelay);
+        govMeta.proposalThresholdBPS = uint16(_proposalThresholdBPS);
+        govMeta.quorumVotesBPS = uint16(_quorumVotesBPS);
+
         __GovernorTimelockControl_init(TimelockControllerUpgradeable(payable(_treasury)));
 
-        __Governor_init(""); // TODO update solc and use string.concat w/ token name
+        __Governor_init(string.concat(govMeta.token.name(), " Governor"));
 
         __Ownable_init();
 
         transferOwnership(_treasury);
-
-        treasury = ITreasury(_treasury);
-        token = IToken(_token);
-
-        VOTING_PERIOD = _votingPeriod;
-        VOTING_DELAY = _votingDelay;
-        PROPOSAL_THRESHOLD_BPS = _proposalThresholdBPS;
-        QUORUM_VOTES_BPS = _quorumVotesBPS;
     }
 
     ///                                                          ///
@@ -61,19 +61,19 @@ contract Governor is UUPSUpgradeable, OwnableUpgradeable, GovernorTimelockContro
     ///                                                          ///
 
     function proposalThreshold() public view override returns (uint256) {
-        return bps2Uint(token.totalSupply(), PROPOSAL_THRESHOLD_BPS);
+        return bps2Uint(govMeta.token.totalSupply(), govMeta.proposalThresholdBPS);
     }
 
-    function quorum(uint256 blockNumber) public view override returns (uint256) {
-        return bps2Uint(token.getPastTotalSupply(blockNumber), QUORUM_VOTES_BPS);
+    function quorum(uint256 _blockNumber) public view override returns (uint256) {
+        return bps2Uint(govMeta.token.getPastTotalSupply(_blockNumber), govMeta.quorumVotesBPS);
     }
 
     function votingDelay() public view override(IGovernorUpgradeable) returns (uint256) {
-        return VOTING_DELAY;
+        return govMeta.votingDelay;
     }
 
     function votingPeriod() public view virtual override(IGovernorUpgradeable) returns (uint256) {
-        return VOTING_PERIOD;
+        return govMeta.votingPeriod;
     }
 
     function state(uint256 _proposalId) public view override(GovernorTimelockControlUpgradeable, GovernorUpgradeable) returns (ProposalState) {
@@ -93,7 +93,7 @@ contract Governor is UUPSUpgradeable, OwnableUpgradeable, GovernorTimelockContro
         uint256 _blockNumber,
         bytes memory
     ) internal view override returns (uint256) {
-        return token.getPastVotes(_account, _blockNumber);
+        return govMeta.token.getPastVotes(_account, _blockNumber);
     }
 
     function _executor() internal view virtual override(GovernorTimelockControlUpgradeable, GovernorUpgradeable) returns (address) {
@@ -123,8 +123,10 @@ contract Governor is UUPSUpgradeable, OwnableUpgradeable, GovernorTimelockContro
     ///                             UTILS                        ///
     ///                                                          ///
 
-    function bps2Uint(uint256 _number, uint256 _bps) internal pure returns (uint256) {
-        return (_number * _bps) / 10_000;
+    function bps2Uint(uint256 _number, uint256 _bps) internal pure returns (uint256 result) {
+        assembly {
+            result := div(mul(_number, _bps), 10000)
+        }
     }
 
     ///                                                          ///
@@ -136,6 +138,6 @@ contract Governor is UUPSUpgradeable, OwnableUpgradeable, GovernorTimelockContro
     /// @param _newImpl The address of the new implementation
     function _authorizeUpgrade(address _newImpl) internal override onlyOwner {
         // Ensure the implementation is valid
-        require(UpgradeManager.isValidUpgrade(_getImplementation(), _newImpl), "INVALID_UPGRADE");
+        require(upgradeManager.isValidUpgrade(_getImplementation(), _newImpl), "INVALID_UPGRADE");
     }
 }
