@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.10;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity 0.8.15;
 
 import {TimelockControllerUpgradeable} from "@openzeppelin/contracts-upgradeable/governance/TimelockControllerUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -16,14 +16,14 @@ contract Treasury is UUPSUpgradeable, TimelockControllerUpgradeable {
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
-    IUpgradeManager private immutable UpgradeManager;
+    IUpgradeManager private immutable upgradeManager;
 
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
     constructor(address _upgradeManager) payable initializer {
-        UpgradeManager = IUpgradeManager(_upgradeManager);
+        upgradeManager = IUpgradeManager(_upgradeManager);
     }
 
     ///                                                          ///
@@ -33,15 +33,15 @@ contract Treasury is UUPSUpgradeable, TimelockControllerUpgradeable {
     ///
     ///
     ///
-    function initialize(address _governor, uint256 _minDelay) public initializer {
+    function initialize(address _governor, uint256 _timelockDelay) public initializer {
         //
-        address[] memory timelockUser = new address[](1);
+        address[] memory proposersAndExecutors = new address[](1);
 
         //
-        timelockUser[0] = _governor;
+        proposersAndExecutors[0] = _governor;
 
         //
-        __TimelockController_init(_minDelay, timelockUser, timelockUser);
+        __TimelockController_init(_timelockDelay, proposersAndExecutors, proposersAndExecutors);
 
         //
         _grantRole(TIMELOCK_ADMIN_ROLE, _governor);
@@ -59,6 +59,6 @@ contract Treasury is UUPSUpgradeable, TimelockControllerUpgradeable {
     /// @param _newImpl The address of the new implementation
     function _authorizeUpgrade(address _newImpl) internal override onlyRole(TIMELOCK_ADMIN_ROLE) {
         // Ensure the implementation is valid
-        require(UpgradeManager.isValidUpgrade(_getImplementation(), _newImpl), "INVALID_UPGRADE");
+        require(upgradeManager.isValidUpgrade(_getImplementation(), _newImpl), "INVALID_UPGRADE");
     }
 }

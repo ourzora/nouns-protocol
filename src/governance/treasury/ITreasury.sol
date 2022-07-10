@@ -1,12 +1,12 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.10;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity 0.8.15;
 
 interface ITreasury {
     ///                                                          ///
     ///                                                          ///
     ///                                                          ///
 
-    function initialize(address governor, uint256 minDelay) external;
+    function initialize(address governor, uint256 timelockDelay) external;
 
     ///                                                          ///
     ///                                                          ///
@@ -102,4 +102,12 @@ interface ITreasury {
     function revokeRole(bytes32 role, address account) external;
 
     function renounceRole(bytes32 role, address account) external;
+
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
+    function upgradeTo(address newImplementation) external;
+
+    function upgradeToAndCall(address newImplementation, bytes memory data) external payable;
 }
