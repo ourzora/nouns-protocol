@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.10;
+pragma solidity 0.8.15;
 
 import {NounsBuilderTest} from "./utils/NounsBuilderTest.sol";
 
@@ -11,7 +11,7 @@ contract DeployerTest is NounsBuilderTest {
     function test_TokenInitialized() public {
         deploy();
 
-        assertEq(token.owner(), foundersDAO);
+        assertEq(token.owner(), address(treasury));
         assertEq(token.auction(), address(auction));
         assertEq(token.totalSupply(), 0);
 
@@ -31,10 +31,10 @@ contract DeployerTest is NounsBuilderTest {
         deploy();
 
         assertEq(auction.owner(), foundersDAO);
-        assertEq(auction.timeBuffer(), auctionParams.timeBuffer);
-        assertEq(auction.reservePrice(), auctionParams.reservePrice);
-        assertEq(auction.minBidIncrementPercentage(), auctionParams.minBidIncrementPercentage);
-        assertEq(auction.duration(), auctionParams.duration);
+        assertEq(auction.house().timeBuffer, 5 minutes);
+        assertEq(auction.house().reservePrice, auctionParams.reservePrice);
+        assertEq(auction.house().minBidIncrementPercentage, 10);
+        assertEq(auction.house().duration, auctionParams.duration);
 
         assertTrue(auction.paused());
     }
