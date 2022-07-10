@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0
-pragma solidity ^0.8.10;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity 0.8.15;
 
 import {IToken} from "../token/IToken.sol";
 
@@ -8,13 +8,6 @@ interface IAuction {
     ///                                                          ///
     ///                                                          ///
 
-    /// @notice The metadata type of an auction
-    /// @param tokenId The ERC-721 token id
-    /// @param highestBid The highest bid amount
-    /// @param highestBidder The address of the highest bidder
-    /// @param startTime The time that the auction started
-    /// @param endTime The time that the auction is scheduled to end
-    /// @param settled If the auction has been settled
     struct Auction {
         uint256 tokenId;
         uint256 highestBid;
@@ -24,18 +17,24 @@ interface IAuction {
         bool settled;
     }
 
+    struct House {
+        address treasury;
+        uint40 duration;
+        uint40 timeBuffer;
+        uint16 minBidIncrementPercentage;
+        uint256 reservePrice;
+    }
+
     ///                                                          ///
     ///                                                          ///
     ///                                                          ///
 
     function initialize(
-        address _token,
-        address _foundersDAO,
-        address _treasury,
-        uint256 _timeBuffer,
-        uint256 _reservePrice,
-        uint256 _minBidIncrementPercentage,
-        uint256 _duration
+        address token,
+        address foundersDAO,
+        address treasury,
+        uint256 duration,
+        uint256 reservePrice
     ) external;
 
     ///                                                          ///
@@ -46,31 +45,31 @@ interface IAuction {
 
     function auction() external view returns (Auction calldata);
 
-    function treasury() external view returns (address);
-
-    function duration() external view returns (uint256);
-
-    function reservePrice() external view returns (uint256);
-
-    function timeBuffer() external view returns (uint256);
-
-    function minBidIncrementPercentage() external view returns (uint256);
+    function house() external view returns (House calldata);
 
     ///                                                          ///
     ///                                                          ///
     ///                                                          ///
 
-    function settleAuction() external;
+    function createBid(uint256 tokenId) external payable;
 
     function settleCurrentAndCreateNewAuction() external;
 
-    function createBid(uint256 nounId) external payable;
+    function settleAuction() external;
+
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
 
     function paused() external view returns (bool);
 
+    function unpause() external;
+
     function pause() external;
 
-    function unpause() external;
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
 
     function setTimeBuffer(uint256 timeBuffer) external;
 
@@ -92,7 +91,7 @@ interface IAuction {
     ///                                                          ///
     ///                                                          ///
 
-    function upgradeTo(address newImplementation) external;
+    function upgradeTo(address implementation) external;
 
-    function upgradeToAndCall(address newImplementation, bytes memory data) external payable;
+    function upgradeToAndCall(address implementation, bytes memory data) external payable;
 }
