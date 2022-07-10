@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.10;
+pragma solidity 0.8.15;
 
 import "forge-std/test.sol";
 
@@ -48,9 +48,9 @@ contract NounsBuilderTest is Test {
         nounsBuilderDAO = vm.addr(0xB0B);
         foundersDAO = vm.addr(0xCAB);
 
-        vm.label(nounsDAO, "NounsDAO");
-        vm.label(nounsBuilderDAO, "NounsBuilderDAO");
-        vm.label(foundersDAO, "FoundersDAO");
+        vm.label(nounsDAO, "NOUNS_DAO");
+        vm.label(nounsBuilderDAO, "NOUNS_BUILDER_DAO");
+        vm.label(foundersDAO, "FOUNDERS_DAO");
 
         upgradeManager = new UpgradeManager(nounsBuilderDAO);
         metadataRendererImpl = address(new MetadataRenderer());
@@ -64,22 +64,25 @@ contract NounsBuilderTest is Test {
     }
 
     function deploy() public {
-        tokenParams = IDeployer.TokenParams({
-            name: "Mock Token",
-            symbol: "MOCK",
-            foundersDAO: foundersDAO,
-            foundersMaxAllocation: 100,
-            foundersAllocationFrequency: 5
-        });
+        bytes memory _init = abi.encode(
+            "Mock Token",
+            "MOCK",
+            "This is a mock token",
+            "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
+            "http://localhost:5000/render?"
+        );
 
-        auctionParams = IDeployer.AuctionParams({
-            timeBuffer: 2 minutes,
-            reservePrice: 0.01 ether,
-            minBidIncrementPercentage: 5,
-            duration: 10 minutes
-        });
+        tokenParams = IDeployer.TokenParams({initInfo: _init, foundersDAO: foundersDAO, foundersMaxAllocation: 100, foundersAllocationFrequency: 5});
 
-        govParams = IDeployer.GovParams({timelockDelay: 2 days, votingDelay: 5, votingPeriod: 10, proposalThresholdBPS: 25, quorumVotesBPS: 1000});
+        auctionParams = IDeployer.AuctionParams({reservePrice: 0.01 ether, duration: 10 minutes});
+
+        govParams = IDeployer.GovParams({
+            timelockDelay: 2 days,
+            votingDelay: 1, // 1 block
+            votingPeriod: 1 days,
+            proposalThresholdBPS: 500,
+            quorumVotesBPS: 1000
+        });
 
         deployer.deploy(tokenParams, auctionParams, govParams);
 
@@ -90,5 +93,11 @@ contract NounsBuilderTest is Test {
         auction = IAuction(_auction);
         treasury = ITreasury(_treasury);
         governor = IGovernor(_governor);
+
+        vm.label(address(token), "TOKEN");
+        vm.label(address(metadataRenderer), "METADATA_RENDERER");
+        vm.label(address(auction), "AUCTION");
+        vm.label(address(treasury), "TREASURY");
+        vm.label(address(governor), "GOVERNOR");
     }
 }

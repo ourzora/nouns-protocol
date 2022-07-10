@@ -1,58 +1,55 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.10;
+pragma solidity 0.8.15;
 
 interface IMetadataRenderer {
-    struct Item {
-        uint8 dataType;
-        uint16 referenceSlot;
-        string name;
-        bytes info;
-    }
-
-    struct ItemInfoStorage {
-        uint256 propertyId;
-        uint8 dataType;
-        string name;
-        bytes info;
-    }
-
-    struct Property {
-        string name;
-        Item[] items;
-    }
-
     ///                                                          ///
     ///                                                          ///
     ///                                                          ///
 
-    function initialize(address foundersDAO) external;
-
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
-    function setContractMetadata(bytes memory data) external;
-
-    function setContractImage(string memory newContractImage) external;
-
-    function setBaseRenderer(string memory newRenderer) external;
-
-    function addProperties(
-        string[] memory _newProperties,
-        ItemInfoStorage[] memory _items,
-        bytes memory _data
+    function initialize(
+        address _foundersDAO,
+        string calldata _name,
+        string calldata _description,
+        string calldata _contractImage,
+        string calldata _rendererBase
     ) external;
 
-    function getProperties(uint256 tokenId) external view returns (bytes memory aryAttributes, bytes memory queryString);
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
+    struct ItemParam {
+        uint256 propertyId;
+        uint256 dataType;
+        string name;
+        bytes info;
+    }
+
+    function addProperties(
+        string[] calldata names,
+        ItemParam[] calldata items,
+        bytes calldata data
+    ) external;
 
     ///                                                          ///
     ///                                                          ///
     ///                                                          ///
+
     function contractURI() external view returns (string memory);
 
     function tokenURI(uint256 tokenId) external view returns (string memory);
 
-    function minted(uint256 tokenId) external;
+    function propertiesCount() external view returns (uint256);
+
+    function itemsCount(uint256 propertyId) external view returns (uint256);
+
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
+    function getProperties(uint256 tokenId) external view returns (bytes memory aryAttributes, bytes memory queryString);
+
+    function generate(uint256 tokenId) external;
 
     ///                                                          ///
     ///                                                          ///
