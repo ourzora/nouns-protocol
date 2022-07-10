@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.10;
+pragma solidity 0.8.15;
 
 import {NounsBuilderTest} from "../utils/NounsBuilderTest.sol";
 
@@ -19,13 +19,21 @@ contract AuctionTest is NounsBuilderTest {
         vm.deal(bidder2, 100 ether);
     }
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
+    function test_Init() public {
+        assertEq(auction.owner(), foundersDAO);
 
-    function test_AuctionKickstart() public {
+        assertEq(auction.house().treasury, address(treasury));
+        assertEq(auction.house().duration, auctionParams.duration);
+        assertEq(auction.house().timeBuffer, 5 minutes);
+        assertEq(auction.house().minBidIncrementPercentage, 10);
+        assertEq(auction.house().reservePrice, auctionParams.reservePrice);
+    }
+
+    function test_AuctionStart() public {
         vm.prank(foundersDAO);
         auction.unpause();
+
+        assertEq(auction.owner(), address(treasury));
 
         assertEq(auction.token().ownerOf(0), foundersDAO);
         assertEq(auction.token().ownerOf(1), address(auction));
@@ -43,11 +51,7 @@ contract AuctionTest is NounsBuilderTest {
         auction.unpause();
     }
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
-    function test_CreateFirstBid() public {
+    function test_CreateBid() public {
         vm.prank(foundersDAO);
         auction.unpause();
 
@@ -92,7 +96,7 @@ contract AuctionTest is NounsBuilderTest {
         vm.prank(bidder2);
         auction.createBid{value: 1 ether}(1);
 
-        assertEq(auction.auction().endTime, 11 minutes);
+        assertEq(auction.auction().endTime, 14 minutes);
     }
 
     function testRevert_InvalidTokenId() public {
@@ -135,12 +139,8 @@ contract AuctionTest is NounsBuilderTest {
 
         vm.prank(bidder2);
         vm.expectRevert("MUST_MEET_MINIMUM_BID");
-        auction.createBid{value: 0.440 ether}(1);
+        auction.createBid{value: 0.461 ether}(1);
     }
-
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
 
     function test_SettleAuction() public {
         vm.prank(foundersDAO);
@@ -157,7 +157,7 @@ contract AuctionTest is NounsBuilderTest {
         auction.settleCurrentAndCreateNewAuction();
 
         assertEq(auction.token().ownerOf(1), bidder2);
-        assertEq(auction.treasury().balance, 0.98 ether);
+        assertEq(auction.house().treasury.balance, 0.98 ether);
 
         assertEq(nounsDAO.balance, 0.01 ether);
         assertEq(nounsBuilderDAO.balance, 0.01 ether);
@@ -201,29 +201,11 @@ contract AuctionTest is NounsBuilderTest {
 
         vm.warp(10 minutes + 1 seconds);
 
-        vm.prank(foundersDAO);
+        vm.prank(address(treasury));
         auction.pause();
 
         auction.settleAuction();
 
         assertEq(auction.auction().settled, true);
-    }
-
-    function testRevert_AuctionNotStarted() public {
-        vm.prank(foundersDAO);
-        auction.unpause();
-
-        vm.prank(bidder1);
-        auction.createBid{value: 0.420 ether}(1);
-
-        vm.prank(bidder2);
-        auction.createBid{value: 1 ether}(1);
-
-        vm.warp(10 minutes + 1 seconds);
-
-        vm.prank(foundersDAO);
-        auction.pause();
-
-        auction.settleAuction();
     }
 }
