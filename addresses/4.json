@@ -1,10 +1,10 @@
 {
   "WETH": "0xc778417e063141139fce010982780140aa0cd5ab",
   "UpgradeManager": "0x7627600d63ca3b9c4c491db887a504484e967d94",
-  "MetadataRendererImplementation": "0x67eb765d96a6467bb4ddfb06ff0008b715f2670f",
-  "TokenImplementation": "0x60648d460f587e6f557eeca0a438c9d62d29d1a8",
-  "AuctionImplementation": "0x9434e7162cb146dff871b9e6dfd4ec9dfabfb01f",
-  "TreasuryImplementation": "0xdff1d1de10d5da19d8ca61ef6e0f386c3652fff7",
-  "GovernorImplementation": "0x52f5036976454bbbf89bfb7a83f5ab2b76435d7b",
-  "Deployer": "0x322162b0021600f057cb29495b8eff59718d0d0c"
+  "MetadataRendererImplementation": "0x218feb6a98e2d866448c5b6c302c1c1eaa806a0e",
+  "TokenImplementation": "0xeb365c018663b4dba6a7c85fcc11d9409ae7158d",
+  "AuctionImplementation": "0x1b2def0aca9a2af961fae45e2d0bdbcbc73f83ac",
+  "TreasuryImplementation": "0x04f52ac3286e9eec98ca6b9b7e0437db792c04bf",
+  "GovernorImplementation": "0xae40f24471d94a10e503d449c8393fb10c6adb4d",
+  "Deployer": "0xd8db59a7ec0a1f7b165d7e7d4e3b06bf982d8d83"
 }
