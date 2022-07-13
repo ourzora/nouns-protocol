@@ -3,6 +3,6 @@ auto_detect_solc = true
 libs = ['lib']
 optimizer = true
 optimizer_runs = 500000
-out = 'out'
+out = 'dist/artifacts'
 src = 'src'
 test = 'test'
