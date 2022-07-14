@@ -20,25 +20,37 @@ contract MetadataRendererTest is NounsBuilderTest {
 
         IMetadataRenderer.ItemParam[] memory items = new IMetadataRenderer.ItemParam[](7);
 
-        items[0] = IMetadataRenderer.ItemParam({propertyId: 100, dataType: 0, name: "Cloud", info: ""});
-        items[1] = IMetadataRenderer.ItemParam({propertyId: 100, dataType: 0, name: "CloudGray", info: ""});
-        items[2] = IMetadataRenderer.ItemParam({propertyId: 100, dataType: 0, name: "CloudLight", info: ""});
-        items[3] = IMetadataRenderer.ItemParam({propertyId: 100, dataType: 0, name: "Sun", info: ""});
-        items[4] = IMetadataRenderer.ItemParam({propertyId: 101, dataType: 0, name: "Grass", info: ""});
-        items[5] = IMetadataRenderer.ItemParam({propertyId: 101, dataType: 0, name: "Lava", info: ""});
-        items[6] = IMetadataRenderer.ItemParam({propertyId: 101, dataType: 0, name: "Water", info: ""});
-
-        bytes memory data = abi.encode("Qmds9a4KdAyKqrBRMPyvDtoJc8QGMH45rgPnAGueSaCTYb", ".svg");
+        items[0] = IMetadataRenderer.ItemParam({isNewProperty: true, propertyId: 0, name: "Cloud"});
+        items[1] = IMetadataRenderer.ItemParam({isNewProperty: true, propertyId: 0, name: "CloudGray"});
+        items[2] = IMetadataRenderer.ItemParam({isNewProperty: true, propertyId: 0, name: "CloudLight"});
+        items[3] = IMetadataRenderer.ItemParam({isNewProperty: true, propertyId: 0, name: "Sun"});
+        items[4] = IMetadataRenderer.ItemParam({isNewProperty: true, propertyId: 1, name: "Grass"});
+        items[5] = IMetadataRenderer.ItemParam({isNewProperty: true, propertyId: 1, name: "Lava"});
+        items[6] = IMetadataRenderer.ItemParam({isNewProperty: true, propertyId: 1, name: "Water"});
 
         vm.prank(foundersDAO);
-        metadataRenderer.addProperties(names, items, data);
+        metadataRenderer.addProperties(
+            names,
+            items,
+            IMetadataRenderer.IPFSGroup({baseUri: "ipfs://Qmds9a4KdAyKqrBRMPyvDtoJc8QGMH45rgPnAGueSaCTYb/", extension: ".svg"})
+        );
+
+        string[] memory newNames = new string[](0);
+        IMetadataRenderer.ItemParam[] memory newItems = new IMetadataRenderer.ItemParam[](1);
+        newItems[0] = IMetadataRenderer.ItemParam({isNewProperty: false, propertyId: 0, name: "Cloud"}); 
+        vm.prank(foundersDAO);
+        metadataRenderer.addProperties(
+            newNames,
+            newItems,
+            IMetadataRenderer.IPFSGroup({baseUri: "ipfs://Qmds9a4KdAyKqrBRMPyvDtoJc8QGMH45rgPnAGuaaaCTYb/", extension: ".svg"})
+        );
     }
 
     function test_AddProperties() public {
         addProperties();
 
         assertEq(metadataRenderer.propertiesCount(), 2);
-        assertEq(metadataRenderer.itemsCount(0), 4);
+        assertEq(metadataRenderer.itemsCount(0), 5);
         assertEq(metadataRenderer.itemsCount(1), 3);
     }
 
