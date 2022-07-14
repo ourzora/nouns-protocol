@@ -5,6 +5,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import {LibUintToString} from "sol2string/LibUintToString.sol";
+import {UriEncode} from "sol-uriencode/UriEncode.sol";
 
 import {MetadataRendererStorageV1} from "./storage/MetadataRendererStorageV1.sol";
 import {IToken} from "../IToken.sol";
@@ -296,7 +297,7 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
     }
 
     function _getImageForItem(Item memory _item, string memory _propertyName) internal view returns (bytes memory) {
-        return abi.encodePacked(data[_item.referenceSlot].baseUri, _item.name, "/", _propertyName, data[_item.referenceSlot].extension);
+        return abi.encodePacked(data[_item.referenceSlot].baseUri, UriEncode.uriEncode(_item.name), "/", UriEncode.uriEncode(_propertyName), data[_item.referenceSlot].extension);
     }
 
     ///                                                          ///

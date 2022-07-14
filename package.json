@@ -10,9 +10,11 @@
     "./dist/**/*",
     "./dist/*"
   ],
+  "license": "MIT",
   "dependencies": {
     "@openzeppelin/contracts": "^4.7.0",
     "@openzeppelin/contracts-upgradeable": "^4.7.0",
+    "sol-uriencode": "^0.1.0",
     "sol2string": "https://github.com/mzhu25/sol2string.git#13f566f7dc61c820c24a673da72d0114183a17c8"
   },
   "devDependencies": {
