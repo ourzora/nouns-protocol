@@ -2,12 +2,9 @@
 pragma solidity 0.8.15;
 
 import {IToken} from "../../IToken.sol";
+import {IMetadataRenderer} from "../IMetadataRenderer.sol";
 
 contract MetadataRendererStorageV1 {
-    uint8 internal constant DATA_TYPE_IPFS_SINGULAR = 0;
-    uint8 internal constant DATA_TYPE_IPFS_GROUP = 1;
-    uint8 internal constant DATA_TYPE_CENTRALIZED = 2;
-
     IToken public token;
 
     string internal name;
@@ -15,9 +12,9 @@ contract MetadataRendererStorageV1 {
     string internal contractImage;
     string internal rendererBase;
 
-    mapping(uint256 => uint16[11]) attributes;
+    mapping(uint256 => uint16[16]) attributes;
 
-    bytes[] internal data;
+    IMetadataRenderer.IPFSGroup[] internal data;
 
     Property[] internal properties;
 
@@ -27,9 +24,7 @@ contract MetadataRendererStorageV1 {
     }
 
     struct Item {
-        uint8 dataType;
         uint16 referenceSlot;
         string name;
-        bytes info;
     }
 }

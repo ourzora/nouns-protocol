@@ -20,15 +20,19 @@ interface IMetadataRenderer {
 
     struct ItemParam {
         uint256 propertyId;
-        uint256 dataType;
         string name;
-        bytes info;
+        bool isNewProperty;
+    }
+
+    struct IPFSGroup {
+        string baseUri;
+        string extension;
     }
 
     function addProperties(
         string[] calldata names,
         ItemParam[] calldata items,
-        bytes calldata data
+        IPFSGroup calldata data
     ) external;
 
     ///                                                          ///

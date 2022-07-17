@@ -5,6 +5,7 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import {LibUintToString} from "sol2string/LibUintToString.sol";
+import {UriEncode} from "sol-uriencode/UriEncode.sol";
 
 import {MetadataRendererStorageV1} from "./storage/MetadataRendererStorageV1.sol";
 import {IToken} from "../IToken.sol";
@@ -15,15 +16,12 @@ import {IUpgradeManager} from "../../upgrade/IUpgradeManager.sol";
 /// @author Iain Nash & Rohan Kulkarni
 /// @notice
 contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradeable, MetadataRendererStorageV1 {
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
+    /// @dev Don't allow factory contract to be initialized
     constructor() payable initializer {}
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
+    event DescriptionUpdated(string);
+    event PropertyAdded(uint256 id, string name);
+    event ItemAdded(uint256 propertyId, uint256 itemIndex);
 
     function initialize(
         address _foundersDAO,
@@ -38,7 +36,7 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
         // Store the associated token
         token = IToken(msg.sender);
 
-        //
+        // Set the base information on the contract.
         name = _name;
         description = _description;
         contractImage = _contractImage;
@@ -48,39 +46,33 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
         transferOwnership(_foundersDAO);
     }
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
+    function updateDescription(string memory newDescription) external onlyOwner {
+        description = newDescription;
+        emit DescriptionUpdated(newDescription);
+    }
 
+    /// @notice Get the number of properties
+    /// @return count of properties
     function propertiesCount() external view returns (uint256) {
         return properties.length;
     }
 
+    /// @notice Get the number of items in a property
+    /// @param _propertyId ID of the property to get items for
     function itemsCount(uint256 _propertyId) external view returns (uint256) {
         return properties[_propertyId].items.length;
     }
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
-    event PropertyAdded(uint256 id, string name);
-
-    event ItemAdded(uint256 propertyId, uint256 itemIndex);
-
     function addProperties(
         string[] calldata _names,
         ItemParam[] calldata _items,
-        bytes calldata _data
+        IPFSGroup calldata _ipfsGroup
     ) external onlyOwner {
-        //
+        // Cache data length
         uint256 dataLength = data.length;
 
-        //
-        if (_data.length > 0) {
-            //
-            data.push(_data);
-        }
+        // Add IPFS group information
+        data.push(_ipfsGroup);
 
         // Cache the number of properties that already exist
         uint256 numStoredProperties = properties.length;
@@ -122,15 +114,16 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
             // 100 - x = uses only new properties x >= 100
             // x = uses current properties where x < 100
 
-            //
-            if (_propertyId >= 100) {
+            // Offset the IDs for new properties
+            if (_items[i].isNewProperty) {
                 //
                 unchecked {
-                    _propertyId += numStoredProperties - 100;
+                    _propertyId += numStoredProperties;
                 }
             }
 
             // Get the storage location of its property's items
+            // Property IDs under the hood are offset by 1
             Item[] storage propertyItems = properties[_propertyId].items;
 
             // Append one slot of storage space
@@ -144,7 +137,6 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
 
             // Cannot underflow as `propertyItems.length` is ensured to be at least 1
             unchecked {
-                //
                 newItemIndex = propertyItems.length - 1;
             }
 
@@ -152,8 +144,6 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
             newItem = propertyItems[newItemIndex];
 
             // Store its associated metadata
-            newItem.dataType = uint8(_items[i].dataType);
-            newItem.info = _items[i].info;
             newItem.name = _items[i].name;
             newItem.referenceSlot = uint16(dataLength);
 
@@ -165,10 +155,8 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
         }
     }
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
+    /// @notice Generates token information
+    /// @param _tokenId id of the token to generate
     function generate(uint256 _tokenId) external {
         // Ensure the caller is the token contract
         require(msg.sender == address(token), "ONLY_TOKEN");
@@ -177,7 +165,7 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
         uint256 entropy = _getEntropy(_tokenId);
 
         // Get the storage location for the token attributes
-        uint16[11] storage tokenAttributes = attributes[_tokenId];
+        uint16[16] storage tokenAttributes = attributes[_tokenId];
 
         // Cache the number of properties to choose from
         uint256 numProperties = properties.length;
@@ -248,7 +236,7 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
 
     function getProperties(uint256 _tokenId) public view returns (bytes memory aryAttributes, bytes memory queryString) {
         // Get the attributes for the given token
-        uint16[11] memory tokenAttributes = attributes[_tokenId];
+        uint16[16] memory tokenAttributes = attributes[_tokenId];
 
         // Compute its query string
         queryString = abi.encodePacked(
@@ -308,18 +296,8 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
         }
     }
 
-    function _getImageForItem(Item memory _item, string memory _propertyName) internal view returns (string memory) {
-        if (_item.dataType == DATA_TYPE_IPFS_SINGULAR) {
-            return string(abi.encodePacked("ipfs://", _item.info));
-        } else if (_item.dataType == DATA_TYPE_IPFS_GROUP) {
-            (string memory base, string memory postfix) = abi.decode(data[_item.referenceSlot], (string, string));
-            return string(abi.encodePacked("ipfs://", base, "/", _propertyName, "/", _item.name, postfix));
-        } else if (_item.dataType == DATA_TYPE_CENTRALIZED) {
-            // ignore image paths for centralized, pass in specific data if needed.
-            return string(abi.encodePacked("data:", _item.info));
-        } else {
-            return "";
-        }
+    function _getImageForItem(Item memory _item, string memory _propertyName) internal view returns (bytes memory) {
+        return abi.encodePacked(data[_item.referenceSlot].baseUri, UriEncode.uriEncode(_item.name), "/", UriEncode.uriEncode(_propertyName), data[_item.referenceSlot].extension);
     }
 
     ///                                                          ///
