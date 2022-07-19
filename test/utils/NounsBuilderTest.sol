@@ -99,8 +99,6 @@ contract NounsBuilderTest is Test {
             quorumVotesBPS: 1000
         });
 
-        deployer.deploy(tokenParams, auctionParams, govParams);
-
         (address _token, address _metadata, address _auction, address _treasury, address _governor) = deployer.deploy(
             tokenParams,
             auctionParams,

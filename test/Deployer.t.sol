@@ -8,6 +8,18 @@ contract DeployerTest is NounsBuilderTest {
         super.setUp();
     }
 
+    function test_Create2() public {
+        (address _token, address _metadata, address _auction, address _treasury, address _governor) = deployer.getAddresses(1);
+
+        deploy();
+
+        assertEq(address(token), _token);
+        assertEq(address(metadataRenderer), _metadata);
+        assertEq(address(auction), _auction);
+        assertEq(address(treasury), _treasury);
+        assertEq(address(governor), _governor);
+    }
+
     function test_TokenInitialized() public {
         deploy();
 
