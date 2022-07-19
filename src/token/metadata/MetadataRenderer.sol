@@ -320,7 +320,7 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
             itemName = item.name;
 
             aryAttributes = abi.encodePacked(aryAttributes, '"', propertyName, '": "', itemName, '"', isLast ? "" : ",");
-            queryString = abi.encodePacked(queryString, "&", propertyName, "=", itemName, "&images[]=", _getImageForItem(item, propertyName), "&");
+            queryString = abi.encodePacked(queryString, "&", propertyName, "=", itemName, "&images=", _getImageForItem(item, propertyName), "&");
 
             unchecked {
                 ++i;
