@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Unlicense
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.7.0 <0.9.0;
 
 import "../Test.sol";
@@ -138,9 +138,29 @@ contract StdCheatsTest is Test {
         assertEq(string(getCode(deployed)), string(getCode(address(this))));
     }
 
+    // We need that payable constructor in order to send ETH on construction
+    constructor() payable {}
+
+    function testDeployCodeVal() public {
+        address deployed = deployCode("StdCheats.t.sol:StdCheatsTest", bytes(""), 1 ether);
+        assertEq(string(getCode(deployed)), string(getCode(address(this))));
+	assertEq(deployed.balance, 1 ether);
+    }
+
+    function testDeployCodeValNoArgs() public {
+        address deployed = deployCode("StdCheats.t.sol:StdCheatsTest", 1 ether);
+        assertEq(string(getCode(deployed)), string(getCode(address(this))));
+	assertEq(deployed.balance, 1 ether);
+    }
+
+    // We need this so we can call "this.deployCode" rather than "deployCode" directly
+    function deployCodeHelper(string memory what) external {
+        deployCode(what);
+    }
+    
     function testDeployCodeFail() public {
         vm.expectRevert(bytes("Test deployCode(string): Deployment failed."));
-        this.deployCode("StdCheats.t.sol:RevertingContract");
+        this.deployCodeHelper("StdCheats.t.sol:RevertingContract");
     }
 
     function getCode(address who) internal view returns (bytes memory o_code) {
