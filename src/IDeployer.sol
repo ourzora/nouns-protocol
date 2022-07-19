@@ -35,4 +35,13 @@ interface IDeployer {
             address treasury,
             address governor
         );
+
+    function getAddresses(address token)
+        external
+        returns (
+            address metadataRenderer,
+            address auction,
+            address treasury,
+            address governor
+        );
 }
