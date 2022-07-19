@@ -37,7 +37,7 @@ contract MetadataRendererTest is NounsBuilderTest {
 
         string[] memory newNames = new string[](0);
         IMetadataRenderer.ItemParam[] memory newItems = new IMetadataRenderer.ItemParam[](1);
-        newItems[0] = IMetadataRenderer.ItemParam({isNewProperty: false, propertyId: 0, name: "Cloud"}); 
+        newItems[0] = IMetadataRenderer.ItemParam({isNewProperty: false, propertyId: 0, name: "Cloud"});
         vm.prank(foundersDAO);
         metadataRenderer.addProperties(
             newNames,

@@ -11,7 +11,7 @@ contract DeployerTest is NounsBuilderTest {
     function test_TokenInitialized() public {
         deploy();
 
-        assertEq(token.owner(), address(treasury));
+        assertEq(token.owner(), foundersDAO);
         assertEq(token.auction(), address(auction));
         assertEq(token.totalSupply(), 0);
 

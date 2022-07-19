@@ -20,7 +20,7 @@ contract E2ETest is NounsBuilderTest {
     }
 
     function test_InitialOwnership() public {
-        assertEq(token.owner(), address(treasury));
+        assertEq(token.owner(), foundersDAO);
         assertEq(metadataRenderer.owner(), foundersDAO);
 
         assertEq(auction.owner(), foundersDAO);

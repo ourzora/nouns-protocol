@@ -18,7 +18,7 @@ import {WETH} from ".././utils/WETH.sol";
 
 contract NounsBuilderTest is Test {
     ///                                                          ///
-    ///                                                          ///
+    ///                        DEPLOYER SETUP                    ///
     ///                                                          ///
 
     Deployer internal deployer;
@@ -47,21 +47,21 @@ contract NounsBuilderTest is Test {
         vm.label(foundersDAO, "FOUNDERS_DAO");
 
         upgradeManager = new UpgradeManager(nounsBuilderDAO);
-        metadataRendererImpl = address(new MetadataRenderer());
 
-        tokenImpl = address(new Token(address(upgradeManager), metadataRendererImpl));
+        tokenImpl = address(new Token(address(upgradeManager)));
+        metadataRendererImpl = address(new MetadataRenderer(address(upgradeManager)));
         auctionImpl = address(new Auction(address(upgradeManager), weth, nounsDAO, 100, nounsBuilderDAO, 100));
         treasuryImpl = address(new Treasury(address(upgradeManager)));
         governorImpl = address(new Governor(address(upgradeManager)));
 
-        deployer = new Deployer(tokenImpl, auctionImpl, treasuryImpl, governorImpl);
+        deployer = new Deployer(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl);
     }
 
     ///                                                          ///
-    ///                                                          ///
+    ///                        MOCK DAO DEPLOY                   ///
     ///                                                          ///
 
-    bytes internal tokenInitInfo;
+    bytes internal tokeninitStrings;
 
     IDeployer.TokenParams internal tokenParams;
     IDeployer.AuctionParams internal auctionParams;
@@ -74,7 +74,7 @@ contract NounsBuilderTest is Test {
     IGovernor internal governor;
 
     function deploy() public {
-        tokenInitInfo = abi.encode(
+        tokeninitStrings = abi.encode(
             "Mock Token",
             "MOCK",
             "This is a mock token",
@@ -83,7 +83,7 @@ contract NounsBuilderTest is Test {
         );
 
         tokenParams = IDeployer.TokenParams({
-            initInfo: tokenInitInfo,
+            initStrings: tokeninitStrings,
             foundersDAO: foundersDAO,
             foundersMaxAllocation: 100,
             foundersAllocationFrequency: 5
@@ -101,10 +101,14 @@ contract NounsBuilderTest is Test {
 
         deployer.deploy(tokenParams, auctionParams, govParams);
 
-        (address _token, address _auction, address _treasury, address _governor) = deployer.deploy(tokenParams, auctionParams, govParams);
+        (address _token, address _metadata, address _auction, address _treasury, address _governor) = deployer.deploy(
+            tokenParams,
+            auctionParams,
+            govParams
+        );
 
         token = IToken(_token);
-        metadataRenderer = token.metadataRenderer();
+        metadataRenderer = IMetadataRenderer(_metadata);
         auction = IAuction(_auction);
         treasury = ITreasury(_treasury);
         governor = IGovernor(_governor);
