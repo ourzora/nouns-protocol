@@ -10,12 +10,12 @@ interface IToken {
     ///                                                          ///
 
     function initialize(
-        bytes calldata initData,
+        bytes calldata init,
+        address metadataRenderer,
         address foundersDAO,
         uint256 foundersMaxAllocation,
         uint256 foundersAllocationFrequency,
-        address auction,
-        address treasury
+        address auction
     ) external;
 
     ///                                                          ///
@@ -97,10 +97,6 @@ interface IToken {
     ///                                                          ///
 
     function owner() external view returns (address);
-
-    function transferOwnership(address newOwner) external;
-
-    function renounceOwnership() external;
 
     ///                                                          ///
     ///                                                          ///

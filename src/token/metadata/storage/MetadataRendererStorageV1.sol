@@ -6,6 +6,7 @@ import {IMetadataRenderer} from "../IMetadataRenderer.sol";
 
 contract MetadataRendererStorageV1 {
     IToken public token;
+    address public treasury;
 
     string internal name;
     string internal description;

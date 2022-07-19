@@ -15,7 +15,7 @@ import {IToken} from "./IToken.sol";
 /// @title Nounish ERC-721 Token
 /// @author Rohan Kulkarni
 /// @notice Modified version of NounsToken.sol (commit 2cbe6c7) that NounsDAO licensed under the GPL-3.0 license
-contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable, ERC721VotesUpgradeable, TokenStorageV1 {
+contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgradeable, TokenStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -23,17 +23,13 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
     /// @notice The contract upgrade manager
     IUpgradeManager public immutable upgradeManager;
 
-    /// @notice The metadata renderer implementation
-    address public immutable metadataImpl;
-
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
     /// @param _upgradeManager The address of the contract upgrade manager
-    constructor(address _upgradeManager, address _metadataImpl) payable initializer {
+    constructor(address _upgradeManager) payable initializer {
         upgradeManager = IUpgradeManager(_upgradeManager);
-        metadataImpl = _metadataImpl;
     }
 
     ///                                                          ///
@@ -41,31 +37,24 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
     ///                                                          ///
 
     /// @notice Initializes an ERC-1967 proxy instance of the token
-    /// @param _initData The encoded token and metadata init strings
+    /// @param _init The encoded token and metadata init strings
     /// @param _foundersDAO The address of the founders DAO
     /// @param _foundersMaxTokens The maximum number of tokens the founders will vest (eg. 183 nouns to nounders)
     /// @param _foundersAllocationFrequency The allocation frequency (eg. every 10 nouns)
     /// @param _auction The address of the auction house that will mint tokens
     function initialize(
-        bytes calldata _initData,
+        bytes calldata _init,
+        address _metadataRenderer,
         address _foundersDAO,
         uint256 _foundersMaxTokens,
         uint256 _foundersAllocationFrequency,
-        address _auction,
-        address _treasury
+        address _auction
     ) public initializer {
         // Initialize the reentrancy guard
         __ReentrancyGuard_init();
 
-        // Initialize contract ownership
-        __Ownable_init();
-
-        // Transfer ownership to the DAO treasury
-        transferOwnership(_treasury);
-
-        // Decode the tuple of init strings
-        (string memory _name, string memory _symbol, string memory _description, string memory _contractImage, string memory _rendererBase) = abi
-            .decode(_initData, (string, string, string, string, string));
+        // Decode the strings required to initialize the token
+        (string memory _name, string memory _symbol, , , ) = abi.decode(_init, (string, string, string, string, string));
 
         // Initialize the ERC-721 token
         __ERC721_init(_name, _symbol);
@@ -75,25 +64,11 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
         founders.maxAllocation = uint32(_foundersMaxTokens);
         founders.allocationFrequency = uint32(_foundersAllocationFrequency);
 
-        // Store the address allowed to mint tokens
+        // Store the address of the auction house that will mint tokens
         auction = _auction;
 
-        // Deploy the associated metadata renderer
-        metadataRenderer = IMetadataRenderer(
-            address(
-                new ERC1967Proxy(
-                    metadataImpl,
-                    abi.encodeWithSignature(
-                        "initialize(address,string,string,string,string)",
-                        _foundersDAO,
-                        _name,
-                        _description,
-                        _contractImage,
-                        _rendererBase
-                    )
-                )
-            )
-        );
+        // Store the metadata renderer for the token
+        metadataRenderer = IMetadataRenderer(_metadataRenderer);
     }
 
     ///                                                          ///
@@ -101,22 +76,19 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
     ///                                                          ///
 
     /// @notice Mints tokens to the auction house for bidding and the founders DAO for vesting
-    function mint() public nonReentrant returns (uint256) {
+    function mint() public nonReentrant returns (uint256 tokenId) {
         // Ensure the caller is the auction house
         require(msg.sender == auction, "ONLY_AUCTION");
 
-        // Used to store the next token id
-        uint256 tokenId;
-
-        //
+        // Cannot realistically overflow on human time scales
         unchecked {
-            //
+            // Get the next token id to mint
             tokenId = totalSupply++;
         }
 
-        // If the token belongs to the founders:
+        // If the token is valid for vesting:
         if (_isFoundersVest(tokenId)) {
-            // Send the token to the founders
+            // Mint the token to the founders
             _mint(founders.DAO, tokenId);
 
             unchecked {
@@ -128,26 +100,33 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
             }
         }
 
-        // Send the next token to the auction house for bidding
+        // Mint the next token to the auction house for bidding
         _mint(auction, tokenId);
 
         return tokenId;
     }
 
+    /// @dev Checks if the given token id is valid to send to the founders
+    /// @param _tokenId The ERC-721 token id
     function _isFoundersVest(uint256 _tokenId) private view returns (bool valid) {
         uint256 currentAllocation = founders.currentAllocation;
         uint256 maxAllocation = founders.maxAllocation;
         uint256 allocationFrequency = founders.allocationFrequency;
 
         assembly {
-            // if (founders.currentAllocation < founders.maxAllocation && _tokenId % founders.allocationFrequency == 0);
+            // founders.currentAllocation < founders.maxAllocation && _tokenId % founders.allocationFrequency == 0
             valid := and(lt(currentAllocation, maxAllocation), iszero(mod(_tokenId, allocationFrequency)))
         }
     }
 
+    /// @dev Overrides _mint to include attribute generation
+    /// @param _to The address to send the token
+    /// @param _tokenId The ERC-721 token id
     function _mint(address _to, uint256 _tokenId) internal override {
+        // Mint the token
         super._mint(_to, _tokenId);
 
+        // Generate the token attributes
         metadataRenderer.generate(_tokenId);
     }
 
@@ -155,8 +134,8 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
     ///                             BURN                         ///
     ///                                                          ///
 
-    /// @notice Burns a token that did not have any bids
-    /// @param _tokenId The token id to burn
+    /// @notice Burns a token that did not see any bids
+    /// @param _tokenId The ERC-721 token id
     function burn(uint256 _tokenId) public {
         // Ensure the caller is the auction house
         require(msg.sender == auction, "ONLY_AUCTION");
@@ -166,16 +145,16 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
     }
 
     ///                                                          ///
-    ///                               URI                        ///
+    ///                              URI                         ///
     ///                                                          ///
 
-    ///
-    ///
-    function tokenURI(uint256 tokenId) public view override returns (string memory) {
-        return metadataRenderer.tokenURI(tokenId);
+    /// @notice The URI for a given token
+    /// @param _tokenId The ERC-721 token id
+    function tokenURI(uint256 _tokenId) public view override returns (string memory) {
+        return metadataRenderer.tokenURI(_tokenId);
     }
 
-    ///
+    /// @notice The URI for the contract
     function contractURI() public view returns (string memory) {
         return metadataRenderer.contractURI();
     }
@@ -220,12 +199,27 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeabl
         emit FoundersVestingSchedule(_tokenInterval);
     }
 
+    /// @notice Called by the auction house upon bid settlement to auto-delegate the winner their vote
+    /// @param _user The address of the winning bidder
     function autoDelegate(address _user) external {
         // Ensure the caller is the auction house
         require(msg.sender == auction, "ONLY_AUCTION");
 
-        //
+        // Delegate the winning bidder's voting unit to themselves
         _delegate(_user, _user);
+    }
+
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
+    modifier onlyOwner() {
+        require(msg.sender == metadataRenderer.owner(), "ONLY_OWNER");
+        _;
+    }
+
+    function owner() external view returns (address) {
+        return metadataRenderer.owner();
     }
 
     ///                                                          ///
