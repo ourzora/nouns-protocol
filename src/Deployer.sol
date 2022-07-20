@@ -100,7 +100,7 @@ contract Deployer is IDeployer {
     {
         token = address(new ERC1967Proxy(tokenImpl, ""));
 
-        bytes32 salt = _getSalt(token);
+        bytes32 salt = bytes32(uint256(uint160(token)));
 
         metadata = address(new ERC1967Proxy{salt: salt}(metadataImpl, ""));
         auction = address(new ERC1967Proxy{salt: salt}(auctionImpl, ""));
@@ -144,15 +144,11 @@ contract Deployer is IDeployer {
             address governor
         )
     {
-        bytes32 salt = _getSalt(_token);
+        bytes32 salt = bytes32(uint256(uint160(_token)));
 
         metadata = address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, metadataHash)))));
         auction = address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, auctionHash)))));
         treasury = address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, treasuryHash)))));
         governor = address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, governorHash)))));
-    }
-
-    function _getSalt(address _token) private pure returns (bytes32) {
-        return bytes32(uint256(uint160(_token)));
     }
 }
