@@ -7,11 +7,10 @@ interface IMetadataRenderer {
     ///                                                          ///
 
     function initialize(
-        address _foundersDAO,
-        string calldata _name,
-        string calldata _description,
-        string calldata _contractImage,
-        string calldata _rendererBase
+        bytes calldata initStrings,
+        address token,
+        address foundersDAO,
+        address treasury
     ) external;
 
     ///                                                          ///
@@ -59,7 +58,7 @@ interface IMetadataRenderer {
     ///                                                          ///
     ///                                                          ///
 
-    function owner() external returns (address);
+    function owner() external view returns (address);
 
     function transferOwnership(address newOwner) external;
 }

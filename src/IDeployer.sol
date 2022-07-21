@@ -3,7 +3,7 @@ pragma solidity 0.8.15;
 
 interface IDeployer {
     struct TokenParams {
-        bytes initInfo; // name, symbol, description, contract image, renderer base
+        bytes initStrings; // name, symbol, description, contract image, renderer base
         address foundersDAO;
         uint256 foundersMaxAllocation;
         uint256 foundersAllocationFrequency;
@@ -30,6 +30,16 @@ interface IDeployer {
         external
         returns (
             address token,
+            address metadataRenderer,
+            address auction,
+            address treasury,
+            address governor
+        );
+
+    function getAddresses(address token)
+        external
+        returns (
+            address metadataRenderer,
             address auction,
             address treasury,
             address governor

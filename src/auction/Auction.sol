@@ -22,22 +22,22 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     ///                                                          ///
 
     /// @notice The contract upgrade manager
-    IUpgradeManager private immutable UpgradeManager;
+    IUpgradeManager private immutable upgradeManager;
 
     /// @notice The WETH token address
     address private immutable WETH;
 
     /// @notice The Nouns DAO address
-    address private immutable NounsDAO;
+    address public immutable nounsDAO;
 
     /// @notice The Nouns Builder DAO address
-    address private immutable NounsBuilderDAO;
+    address public immutable nounsBuilderDAO;
 
-    /// @notice
-    uint256 private immutable NounsDAOFeeBPS;
+    /// @notice The Nouns DAO Fee
+    uint256 public immutable nounsDAOFeeBPS;
 
-    /// @notice
-    uint256 private immutable NounsBuilderDAOFeeBPS;
+    /// @notice The Nouns Builder DAO Fee
+    uint256 public immutable nounsBuilderDAOFeeBPS;
 
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
@@ -57,14 +57,14 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         address _nounsBuilderDAO,
         uint256 _nounsBuilderDAOFeeBPS
     ) payable initializer {
-        UpgradeManager = IUpgradeManager(_upgradeManager);
+        upgradeManager = IUpgradeManager(_upgradeManager);
         WETH = _weth;
 
-        NounsDAO = _nounsDAO;
-        NounsDAOFeeBPS = _nounsDAOFeeBPS;
+        nounsDAO = _nounsDAO;
+        nounsDAOFeeBPS = _nounsDAOFeeBPS;
 
-        NounsBuilderDAO = _nounsBuilderDAO;
-        NounsBuilderDAOFeeBPS = _nounsBuilderDAOFeeBPS;
+        nounsBuilderDAO = _nounsBuilderDAO;
+        nounsBuilderDAOFeeBPS = _nounsBuilderDAOFeeBPS;
     }
 
     ///                                                          ///
@@ -94,7 +94,7 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         // Store the associated token
         token = IToken(_token);
 
-        //
+        // Store the auction house config
         house.treasury = _treasury;
         house.duration = uint40(_duration);
         house.timeBuffer = 5 minutes;
@@ -107,7 +107,12 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     ///                                                          ///
 
     /// @notice Emitted when a bid is placed
-    event AuctionBid(uint256 tokenId, address sender, uint256 value, bool extended, uint256 endTime);
+    /// @param tokenId The ERC-721 token id
+    /// @param bidder The address of the bidder
+    /// @param amount The amount of ETH
+    /// @param extended If the bid extended the auction
+    /// @param endTime The end time of the auction
+    event AuctionBid(uint256 tokenId, address bidder, uint256 amount, bool extended, uint256 endTime);
 
     /// @notice Creates a bid for the current token
     /// @param _tokenId The ERC-721 token id
@@ -118,7 +123,7 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         // Ensure the bid is for the current token id
         require(_auction.tokenId == _tokenId, "INVALID_TOKEN_ID");
 
-        // Ensure the auction is still active
+        // Ensure the auction is active
         require(block.timestamp < _auction.endTime, "AUCTION_EXPIRED");
 
         // Cache the highest bidder
@@ -127,23 +132,23 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         // If this is the first bid:
         if (lastBidder == address(0)) {
             // Ensure the bid meets the reserve price
-            require(msg.value >= house.reservePrice, "MUST_MEET_RESERVE_PRICE");
+            require(msg.value >= house.reservePrice, "RESERVE_PRICE_NOT_MET");
 
-            // Else this is a subsequent bid:
+            // Else for a subsequent bid:
         } else {
-            // Cache the previous highest bid
+            // Cache the previous bid
             uint256 prevBid = _auction.highestBid;
 
-            // Used to store the next minimum bid
-            uint256 minRaiseAmount;
+            // Used to store the next bid minimum
+            uint256 nextBidMin;
 
-            // Calculate the minimum amount of ETH required to place a subsequent bid
+            // Calculate the amount of ETH required to place the next bid
             unchecked {
-                minRaiseAmount = prevBid + ((prevBid * house.minBidIncrementPercentage) / 100);
+                nextBidMin = prevBid + ((prevBid * house.minBidIncrementPercentage) / 100);
             }
 
-            // Ensure the bid meets the minimum bid increase
-            require(msg.value >= minRaiseAmount, "MUST_MEET_MINIMUM_BID");
+            // Ensure the bid meets the minimum
+            require(msg.value >= nextBidMin, "MIN_BID_NOT_MET");
 
             // Refund the previous bidder
             _handleOutgoingTransfer(lastBidder, prevBid);
@@ -158,17 +163,17 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         // Used to store if the auction will be extended
         bool extend;
 
-        // Check if the bid was placed within the `timeBuffer` of the auction end time
-        // Cannot underflow as `block.timestamp` is ensured to be less than `_auction.endTime` on line 109
+        // Cannot underflow as `block.timestamp` is ensured to be less than `_auction.endTime`
         unchecked {
+            // Get if the bid was placed within the time buffer of the auction end
             extend = (_auction.endTime - block.timestamp) < house.timeBuffer;
         }
 
         // If the auction will be extended:
         if (extend) {
-            // Add the `timeBuffer` to the current time and store as the new end time
-            //
+            // Cannot overflow on human timescales
             unchecked {
+                // Add to the current time so that the time buffer remains
                 auction.endTime = _auction.endTime = uint40(block.timestamp + house.timeBuffer);
             }
         }
@@ -197,7 +202,7 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         _settleAuction();
     }
 
-    /// @notice Settles the current auction
+    /// @dev Settles the current auction
     function _settleAuction() internal {
         // Get the current auction in memory
         IAuction.Auction memory _auction = auction;
@@ -206,50 +211,34 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         require(_auction.startTime != 0, "AUCTION_NOT_STARTED");
 
         // Ensure the auction ended
-        require(block.timestamp >= _auction.endTime, "AUCTION_STILL_ACTIVE");
+        require(block.timestamp >= _auction.endTime, "AUCTION_NOT_OVER");
 
-        // Ensure the auction was not settled
-        require(!_auction.settled, "AUCTION_ALREADY_SETTLED");
+        // Ensure the auction was not already settled
+        require(!_auction.settled, "AUCTION_SETTLED");
 
         // Mark the auction as settled
         auction.settled = true;
 
         // If a bid was placed:
         if (_auction.highestBidder != address(0)) {
+            // Cache the highest bid amount
+            uint256 highestBid = _auction.highestBid;
+
+            // If the highest bid included ETH:
+            if (highestBid > 0) {
+                // Calculate the profit after fees
+                uint256 remainingProfit = _handleNounsFees(highestBid);
+
+                // Transfer the profit to the DAO treasury
+                _handleOutgoingTransfer(house.treasury, remainingProfit);
+            }
+
             // Transfer the token to the highest bidder
             token.transferFrom(address(this), _auction.highestBidder, _auction.tokenId);
 
-            // Delegate on behalf of the winning bidder
-            // Removes the need for a winning bidder to self-delegate their token
+            // Delegate voting power to the winning bidder
+            // This removes the need for a user to self-delegate their vote
             token.autoDelegate(_auction.highestBidder);
-
-            // If ETH was included in the bid:
-            if (_auction.highestBid > 0) {
-                //
-                uint256 fee;
-
-                //
-                unchecked {
-                    fee = (_auction.highestBid * 100) / 10_000;
-                }
-
-                // Calculate the remaining profit to the treasury
-                uint256 remainingProfit;
-
-                //
-                unchecked {
-                    remainingProfit = _auction.highestBid - (2 * fee);
-                }
-
-                // Transfer 100 bps to Nouns DAO
-                _handleOutgoingTransfer(NounsDAO, fee);
-
-                // Transfer 100 bps to Nouns Builder DAO
-                _handleOutgoingTransfer(NounsBuilderDAO, fee);
-
-                // Transfer the remaining profit to the treasury
-                _handleOutgoingTransfer(house.treasury, remainingProfit);
-            }
 
             // Else no bid was placed:
         } else {
@@ -313,18 +302,21 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         _pause();
     }
 
+    // TODO optimize logic
     /// @notice Unpause the auction house
     function unpause() external onlyOwner {
         _unpause();
 
         // If this is the first auction:
         if (auction.tokenId == 0) {
-            //
+            // Transfer ownership to the treasury
             _transferOwnership(house.treasury);
-        }
 
-        // If this is the first auction OR the previous auction was settled:
-        if (auction.startTime == 0 || auction.settled) {
+            // Create a new auction
+            _createAuction();
+        }
+        // If the contract was paused and the previous auction was settled:
+        else if (auction.settled) {
             // Create a new auction
             _createAuction();
         }
@@ -352,12 +344,12 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     ///                     UPDATE RESERVE PRICE                 ///
     ///                                                          ///
 
-    ///
-    ///
+    /// @notice Emitted when the reserve price is updated
+    /// @param reservePrice The new reserve price
     event ReservePriceUpdated(uint256 reservePrice);
 
-    ///
-    ///
+    /// @notice Updates the reserve price
+    /// @param _reservePrice The new reserve price to set
     function setReservePrice(uint256 _reservePrice) external onlyOwner {
         house.reservePrice = _reservePrice;
 
@@ -368,12 +360,12 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     ///                      UPDATE BID INCREMENT                ///
     ///                                                          ///
 
-    ///
-    ///
+    /// @notice Emitted when the min bid increment percentage is updated
+    /// @param minBidIncrementPercentage The new min bid increment percentage
     event MinBidIncrementPercentageUpdated(uint256 minBidIncrementPercentage);
 
-    ///
-    ///
+    /// @notice Updates the minimum bid increment percentage
+    /// @param _minBidIncrementPercentage The new min bid increment percentage to set
     function setMinBidIncrementPercentage(uint256 _minBidIncrementPercentage) external onlyOwner {
         require(_minBidIncrementPercentage < type(uint16).max, "INVALID_BID_INCREMENT");
 
@@ -386,12 +378,12 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     ///                       UPDATE TIME BUFFER                 ///
     ///                                                          ///
 
-    ///
-    ///
+    /// @notice Emitted when the time buffer is updated
+    /// @param timeBuffer The new time buffer
     event TimeBufferUpdated(uint256 timeBuffer);
 
-    ///
-    ///
+    /// @notice Updates the time buffer
+    /// @param _timeBuffer The new time buffer to set
     function setTimeBuffer(uint256 _timeBuffer) external onlyOwner {
         require(_timeBuffer < type(uint40).max, "INVALID_TIME_BUFFER");
 
@@ -424,6 +416,36 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         }
     }
 
+    /// @dev Handles payouts to Nouns DAO and Nouns Builder DAO
+    /// @param _bid The amount of ETH raised from the winning bid
+    function _handleNounsFees(uint256 _bid) private returns (uint256 remainingProfit) {
+        // Calculate the Nouns DAO fee from the winning bid
+        uint256 nounsDAOFee = _computeFee(_bid, nounsDAOFeeBPS);
+
+        // Calculate the Nouns Builder DAO fee from the winning bid
+        uint256 nounsBuilderDAOFee = _computeFee(_bid, nounsBuilderDAOFeeBPS);
+
+        unchecked {
+            // Get the remaining profit after fees
+            remainingProfit = _bid - nounsDAOFee - nounsBuilderDAOFee;
+        }
+
+        // Transfer the Nouns DAO fee to Nouns DAO
+        _handleOutgoingTransfer(nounsDAO, nounsDAOFee);
+
+        // Transfer the Nouns Builder DAO fee to Nouns Builder DAO
+        _handleOutgoingTransfer(nounsBuilderDAO, nounsBuilderDAOFee);
+    }
+
+    /// @dev Computes a fee
+    /// @param _amount The base amount
+    /// @param _bps The fee in basis points
+    function _computeFee(uint256 _amount, uint256 _bps) private pure returns (uint256 fee) {
+        assembly {
+            fee := div(mul(_amount, _bps), 10000)
+        }
+    }
+
     ///                                                          ///
     ///                         PROXY UPGRADE                    ///
     ///                                                          ///
@@ -433,6 +455,6 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     /// @param _newImpl The address of the new implementation
     function _authorizeUpgrade(address _newImpl) internal override onlyOwner {
         // Ensure the implementation is valid
-        require(UpgradeManager.isValidUpgrade(_getImplementation(), _newImpl), "INVALID_UPGRADE");
+        require(upgradeManager.isValidUpgrade(_getImplementation(), _newImpl), "INVALID_UPGRADE");
     }
 }

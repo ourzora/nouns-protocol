@@ -16,40 +16,60 @@ import {IUpgradeManager} from "../../upgrade/IUpgradeManager.sol";
 /// @author Iain Nash & Rohan Kulkarni
 /// @notice
 contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradeable, MetadataRendererStorageV1 {
-    /// @dev Don't allow factory contract to be initialized
-    constructor() payable initializer {}
+    ///                                                          ///
+    ///                          IMMUTABLES                      ///
+    ///                                                          ///
 
-    event DescriptionUpdated(string);
-    event PropertyAdded(uint256 id, string name);
-    event ItemAdded(uint256 propertyId, uint256 itemIndex);
+    /// @notice The contract upgrade manager
+    IUpgradeManager private immutable upgradeManager;
+
+    ///                                                          ///
+    ///                          CONSTRUCTOR                     ///
+    ///                                                          ///
+
+    /// @dev Don't allow factory contract to be initialized
+    constructor(address _upgradeManager) payable initializer {
+        upgradeManager = IUpgradeManager(_upgradeManager);
+    }
+
+    ///                                                          ///
+    ///                          INITIALIZER                     ///
+    ///                                                          ///
 
     function initialize(
+        bytes calldata _initStrings,
+        address _token,
         address _foundersDAO,
-        string calldata _name,
-        string calldata _description,
-        string calldata _contractImage,
-        string calldata _rendererBase
+        address _treasury
     ) external initializer {
         // Initialize ownership
         __Ownable_init();
 
-        // Store the associated token
-        token = IToken(msg.sender);
+        // Store the token contract
+        token = IToken(_token);
 
-        // Set the base information on the contract.
+        // Store the DAO treasury
+        treasury = _treasury;
+
+        // Decode the contract strings
+        (string memory _name, , string memory _description, string memory _contractImage, string memory _rendererBase) = abi.decode(
+            _initStrings,
+            (string, string, string, string, string)
+        );
+
+        // Store the renderer config
         name = _name;
         description = _description;
         contractImage = _contractImage;
         rendererBase = _rendererBase;
 
-        // Transfer ownership to the founders
+        // Transfer initial ownership to the founders
         transferOwnership(_foundersDAO);
     }
 
-    function updateDescription(string memory newDescription) external onlyOwner {
-        description = newDescription;
-        emit DescriptionUpdated(newDescription);
-    }
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
 
     /// @notice Get the number of properties
     /// @return count of properties
@@ -62,6 +82,20 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
     function itemsCount(uint256 _propertyId) external view returns (uint256) {
         return properties[_propertyId].items.length;
     }
+
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
+    /// @notice Emitted when a property is added
+    /// @param id The id of the added property
+    /// @param name The name of the added property
+    event PropertyAdded(uint256 id, string name);
+
+    /// @notice Emitted when an item for a property is added
+    /// @param propertyId The id of the associated property
+    /// @param index The index of the item in its property
+    event ItemAdded(uint256 propertyId, uint256 index);
 
     function addProperties(
         string[] calldata _names,
@@ -265,7 +299,6 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
 
         // For each of the token's properties:
         for (uint256 i = 0; i < numProperties; ) {
-            //
             unchecked {
                 // Check if this is the last iteration
                 isLast = i == (numProperties - 1);
@@ -286,7 +319,6 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
             propertyName = property.name;
             itemName = item.name;
 
-            //
             aryAttributes = abi.encodePacked(aryAttributes, '"', propertyName, '": "', itemName, '"', isLast ? "" : ",");
             queryString = abi.encodePacked(queryString, "&", propertyName, "=", itemName, "&images=", _getImageForItem(item, propertyName), "&");
 
@@ -297,26 +329,51 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
     }
 
     function _getImageForItem(Item memory _item, string memory _propertyName) internal view returns (bytes memory) {
-        return abi.encodePacked(data[_item.referenceSlot].baseUri, UriEncode.uriEncode(_item.name), "/", UriEncode.uriEncode(_propertyName), data[_item.referenceSlot].extension);
+        return
+            abi.encodePacked(
+                data[_item.referenceSlot].baseUri,
+                UriEncode.uriEncode(_item.name),
+                "/",
+                UriEncode.uriEncode(_propertyName),
+                data[_item.referenceSlot].extension
+            );
     }
 
     ///                                                          ///
     ///                                                          ///
     ///                                                          ///
 
+    event DescriptionUpdated(string);
+
+    function updateDescription(string memory newDescription) external onlyOwner {
+        description = newDescription;
+
+        emit DescriptionUpdated(newDescription);
+    }
+
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
+    /// @notice The owner of the token and metadata renderer contracts
     function owner() public view override(IMetadataRenderer, OwnableUpgradeable) returns (address) {
         return super.owner();
     }
 
+    /// @notice Transfers ownership of the token and metadata renderer contracts
+    /// @param _newOwner The address to set as the new owner
     function transferOwnership(address _newOwner) public override(IMetadataRenderer, OwnableUpgradeable) {
         return super.transferOwnership(_newOwner);
     }
 
     ///                                                          ///
-    ///                                                          ///
+    ///                         PROXY UPGRADE                    ///
     ///                                                          ///
 
-    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {
-        require(token.upgradeManager().isValidUpgrade(_getImplementation(), newImplementation), "INVALID_UPGRADE");
+    /// @notice Ensures the caller is authorized to upgrade the contract to a valid implementation
+    /// @dev This function is called in UUPS `upgradeTo` & `upgradeToAndCall`
+    /// @param _impl The address of the new implementation
+    function _authorizeUpgrade(address _impl) internal override onlyOwner {
+        require(upgradeManager.isValidUpgrade(_getImplementation(), _impl), "INVALID_UPGRADE");
     }
 }
