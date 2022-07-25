@@ -48,7 +48,7 @@ contract NounsBuilderTest is Test {
 
         upgradeManager = new UpgradeManager(nounsBuilderDAO);
 
-        tokenImpl = address(new Token(address(upgradeManager)));
+        tokenImpl = address(new Token(address(upgradeManager), nounsBuilderDAO));
         metadataRendererImpl = address(new MetadataRenderer(address(upgradeManager)));
         auctionImpl = address(new Auction(address(upgradeManager), weth, nounsDAO, 100, nounsBuilderDAO, 100));
         treasuryImpl = address(new Treasury(address(upgradeManager)));

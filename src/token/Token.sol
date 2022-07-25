@@ -21,15 +21,20 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
     ///                                                          ///
 
     /// @notice The contract upgrade manager
-    IUpgradeManager public immutable upgradeManager;
+    IUpgradeManager private immutable upgradeManager;
+
+    /// @notice The Nouns Builder DAO address
+    address public immutable nounsBuilderDAO;
 
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
     /// @param _upgradeManager The address of the contract upgrade manager
-    constructor(address _upgradeManager) payable initializer {
+    /// @param _nounsBuilderDAO The address of the Nouns Builder DAO
+    constructor(address _upgradeManager, address _nounsBuilderDAO) payable initializer {
         upgradeManager = IUpgradeManager(_upgradeManager);
+        nounsBuilderDAO = _nounsBuilderDAO;
     }
 
     ///                                                          ///
@@ -75,27 +80,50 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
     ///                              MINT                        ///
     ///                                                          ///
 
-    /// @notice Mints tokens to the auction house for bidding and the founders DAO for vesting
+    /// @notice Mints tokens to the auction house for bidding and handles vesting to the founders & Nouns Builder DAO
     function mint() public nonReentrant returns (uint256 tokenId) {
         // Ensure the caller is the auction house
         require(msg.sender == auction, "ONLY_AUCTION");
 
-        // Cannot realistically overflow on human time scales
+        // Cannot realistically overflow uint32 or uint256 counters
         unchecked {
-            // Get the next token id to mint
+            // Get the next available token id
             tokenId = totalSupply++;
-        }
 
-        // If the token is valid for vesting:
-        if (_isFoundersVest(tokenId)) {
-            // Mint the token to the founders
-            _mint(founders.DAO, tokenId);
+            // If the token is a vesting overlap between Nouns Builder DAO and the founders:
+            if (_isForNounsBuilderDAO(tokenId) && _isForFounders(tokenId)) {
+                // Mint the token to Nouns Builder DAO
+                _mint(nounsBuilderDAO, tokenId);
 
-            unchecked {
-                // Update the number of vested tokens
+                // Get the next available token id
+                tokenId = totalSupply++;
+
+                // Update the number of tokens vested to the founders
                 ++founders.currentAllocation;
 
-                // Get the next token id
+                // Mint the next token to the founders
+                _mint(founders.DAO, tokenId);
+
+                // Get the next available token id
+                tokenId = totalSupply++;
+
+                // Else if the token is only for the founders:
+            } else if (_isForFounders(tokenId)) {
+                // Update the number of tokens vested to the founders
+                ++founders.currentAllocation;
+
+                // Mint the token to the founders
+                _mint(founders.DAO, tokenId);
+
+                // Get the next available token id
+                tokenId = totalSupply++;
+
+                // Else if the token is only for Nouns Builder DAO:
+            } else if (_isForNounsBuilderDAO(tokenId)) {
+                // Mint the token to Nouns Builder DAO
+                _mint(nounsBuilderDAO, tokenId);
+
+                // Get the next available token id
                 tokenId = totalSupply++;
             }
         }
@@ -106,16 +134,23 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
         return tokenId;
     }
 
-    /// @dev Checks if the given token id is valid to send to the founders
+    /// @dev If a token meets the Nouns Builder DAO vesting schedule
     /// @param _tokenId The ERC-721 token id
-    function _isFoundersVest(uint256 _tokenId) private view returns (bool valid) {
-        uint256 currentAllocation = founders.currentAllocation;
-        uint256 maxAllocation = founders.maxAllocation;
-        uint256 allocationFrequency = founders.allocationFrequency;
+    function _isForNounsBuilderDAO(uint256 _tokenId) private pure returns (bool vest) {
+        assembly {
+            vest := iszero(mod(add(_tokenId, 1), 100))
+        }
+    }
+
+    /// @dev If a token meets the founders' vesting schedule
+    /// @param _tokenId The ERC-721 token id
+    function _isForFounders(uint256 _tokenId) private view returns (bool vest) {
+        uint256 numVested = founders.currentAllocation;
+        uint256 vestingTotal = founders.maxAllocation;
+        uint256 vestingSchedule = founders.allocationFrequency;
 
         assembly {
-            // founders.currentAllocation < founders.maxAllocation && _tokenId % founders.allocationFrequency == 0
-            valid := and(lt(currentAllocation, maxAllocation), iszero(mod(_tokenId, allocationFrequency)))
+            vest := and(lt(numVested, vestingTotal), iszero(mod(_tokenId, vestingSchedule)))
         }
     }
 
