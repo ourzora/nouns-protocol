@@ -41,8 +41,8 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
     ///                          INITIALIZER                     ///
     ///                                                          ///
 
-    /// @notice Initializes an ERC-1967 proxy instance of the token
-    /// @param _init The encoded token and metadata init strings
+    /// @notice Initializes an ERC-1967 proxy instance of this token implementation
+    /// @param _init The encoded token and metadata initialization strings
     /// @param _foundersDAO The address of the founders DAO
     /// @param _foundersMaxTokens The maximum number of tokens the founders will vest (eg. 183 nouns to nounders)
     /// @param _foundersAllocationFrequency The allocation frequency (eg. every 10 nouns)
@@ -58,21 +58,21 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
         // Initialize the reentrancy guard
         __ReentrancyGuard_init();
 
-        // Decode the strings required to initialize the token
+        // Decode the token initialization strings
         (string memory _name, string memory _symbol, , , ) = abi.decode(_init, (string, string, string, string, string));
 
         // Initialize the ERC-721 token
         __ERC721_init(_name, _symbol);
 
-        // Store the founders metadata
+        // Store the founders' vesting details
         founders.DAO = _foundersDAO;
         founders.maxAllocation = uint32(_foundersMaxTokens);
         founders.allocationFrequency = uint32(_foundersAllocationFrequency);
 
-        // Store the address of the auction house that will mint tokens
+        // Store the associated auction house
         auction = _auction;
 
-        // Store the metadata renderer for the token
+        // Store the associated metadata renderer
         metadataRenderer = IMetadataRenderer(_metadataRenderer);
     }
 
@@ -155,7 +155,7 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
     }
 
     /// @dev Overrides _mint to include attribute generation
-    /// @param _to The address to send the token
+    /// @param _to The token recipient
     /// @param _tokenId The ERC-721 token id
     function _mint(address _to, uint256 _tokenId) internal override {
         // Mint the token
@@ -183,7 +183,7 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
     ///                              URI                         ///
     ///                                                          ///
 
-    /// @notice The URI for a given token
+    /// @notice The URI for the given token
     /// @param _tokenId The ERC-721 token id
     function tokenURI(uint256 _tokenId) public view override returns (string memory) {
         return metadataRenderer.tokenURI(_tokenId);
@@ -195,7 +195,7 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
     }
 
     ///                                                          ///
-    ///                        UPDATE FOUNDERS                   ///
+    ///                          FOUNDERS DAO                    ///
     ///                                                          ///
 
     /// @notice Emitted when the founders DAO is updated
@@ -214,24 +214,30 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
         emit FoundersDAOUpdated(_foundersDAO);
     }
 
+    /// @notice Emitted when the founders vesting total is updated
+    /// @param numTokens The updated number of tokens to vest to the founders DAO
     event FoundersVestingAllocation(uint256 numTokens);
 
+    /// @notice Updates the total number of tokens that will be vested to the founders DAO
+    /// @param _numTokens The number of tokens
     function setFoundersVestingAllocation(uint256 _numTokens) external onlyOwner {
-        require(_numTokens < type(uint32).max, "");
-
+        // Update the vesting total
         founders.maxAllocation = uint32(_numTokens);
 
         emit FoundersVestingAllocation(_numTokens);
     }
 
+    /// @notice Emitted when the founders vesting schedule is updated
+    /// @param numTokens The gap between tokens vested to the founders DAO
     event FoundersVestingSchedule(uint256 numTokens);
 
-    function setFoundersVestingSchedule(uint256 _tokenInterval) external onlyOwner {
-        require(_tokenInterval < type(uint32).max, "");
+    /// @notice Updates the gap between tokens that will be vested to the founders DAO
+    /// @param _numTokens The number of tokens
+    function setFoundersVestingSchedule(uint256 _numTokens) external onlyOwner {
+        // Update the vesting schedule
+        founders.allocationFrequency = uint32(_numTokens);
 
-        founders.allocationFrequency = uint32(_tokenInterval);
-
-        emit FoundersVestingSchedule(_tokenInterval);
+        emit FoundersVestingSchedule(_numTokens);
     }
 
     /// @notice Called by the auction house upon bid settlement to auto-delegate the winner their vote
@@ -245,14 +251,16 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
     }
 
     ///                                                          ///
-    ///                                                          ///
+    ///                             OWNER                        ///
     ///                                                          ///
 
+    /// @dev Ensures the caller is the contract owner
     modifier onlyOwner() {
         require(msg.sender == metadataRenderer.owner(), "ONLY_OWNER");
         _;
     }
 
+    /// @notice Returns the address of the contract owner
     function owner() external view returns (address) {
         return metadataRenderer.owner();
     }
