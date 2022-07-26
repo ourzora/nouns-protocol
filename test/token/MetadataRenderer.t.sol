@@ -46,6 +46,15 @@ contract MetadataRendererTest is NounsBuilderTest {
         );
     }
 
+    function test_UpdateDescription() public {
+        vm.expectRevert("Ownable: caller is not the owner");
+        metadataRenderer.updateDescription("new desc");
+
+        vm.prank(foundersDAO);
+        metadataRenderer.updateDescription("new desc");
+        assertEq(metadataRenderer.getDescription(), "new desc");
+    }
+
     function test_AddProperties() public {
         addProperties();
 
@@ -62,12 +71,18 @@ contract MetadataRendererTest is NounsBuilderTest {
 
         string memory tokenURI = metadataRenderer.tokenURI(1);
 
-        emit log_string(tokenURI);
+        assertEq(
+            tokenURI,
+            '{"name": "Mock Token #1", "description": "This is a mock token", "image": "http://localhost:5000/render?contractAddress=0x0b9ddda2abbee07d5298db0b24f0936d0bab8422&tokenId=1&images=ipfs%3a%2f%2fQmds9a4KdAyKqrBRMPyvDtoJc8QGMH45rgPnAGuaaaCTYb%2fCloud%2fSky.svg&images=ipfs%3a%2f%2fQmds9a4KdAyKqrBRMPyvDtoJc8QGMH45rgPnAGueSaCTYb%2fLava%2fFloor.svg", "properties": {"Sky": "Cloud","Floor": "Lava"}}'
+        );
     }
 
     function test_ContractURI() public {
         string memory contractURI = metadataRenderer.contractURI();
 
-        emit log_string(contractURI);
+        assertEq(
+            contractURI,
+            '{"name": "Mock Token", "description": "This is a mock token", "image": "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j"}'
+        );
     }
 }

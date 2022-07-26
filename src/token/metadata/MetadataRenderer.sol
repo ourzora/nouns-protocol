@@ -67,6 +67,11 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
         transferOwnership(_foundersDAO);
     }
 
+    /// @notice getter for description field
+    function getDescription() external view returns (string memory) {
+        return description;
+    }
+
     ///                                                          ///
     ///                                                          ///
     ///                                                          ///
@@ -274,7 +279,7 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
 
         // Compute its query string
         queryString = abi.encodePacked(
-            "contractAddress=",
+            "?contractAddress=",
             StringsUpgradeable.toHexString(uint256(uint160(address(this))), 20),
             "&tokenId=",
             StringsUpgradeable.toString(_tokenId)
@@ -320,7 +325,7 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
             itemName = item.name;
 
             aryAttributes = abi.encodePacked(aryAttributes, '"', propertyName, '": "', itemName, '"', isLast ? "" : ",");
-            queryString = abi.encodePacked(queryString, "&", propertyName, "=", itemName, "&images=", _getImageForItem(item, propertyName), "&");
+            queryString = abi.encodePacked(queryString, "&images=", _getImageForItem(item, propertyName));
 
             unchecked {
                 ++i;
@@ -328,14 +333,10 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
         }
     }
 
-    function _getImageForItem(Item memory _item, string memory _propertyName) internal view returns (bytes memory) {
+    function _getImageForItem(Item memory _item, string memory _propertyName) internal view returns (string memory) {
         return
-            abi.encodePacked(
-                data[_item.referenceSlot].baseUri,
-                UriEncode.uriEncode(_item.name),
-                "/",
-                UriEncode.uriEncode(_propertyName),
-                data[_item.referenceSlot].extension
+            UriEncode.uriEncode(
+                string(abi.encodePacked(data[_item.referenceSlot].baseUri, _item.name, "/", _propertyName, data[_item.referenceSlot].extension))
             );
     }
 

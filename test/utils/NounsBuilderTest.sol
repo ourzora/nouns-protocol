@@ -79,7 +79,7 @@ contract NounsBuilderTest is Test {
             "MOCK",
             "This is a mock token",
             "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
-            "http://localhost:5000/render?"
+            "http://localhost:5000/render"
         );
 
         tokenParams = IDeployer.TokenParams({
