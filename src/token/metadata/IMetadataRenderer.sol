@@ -38,6 +38,10 @@ interface IMetadataRenderer {
     ///                                                          ///
     ///                                                          ///
 
+    function getDescription() external returns (string memory);
+
+    function updateDescription(string memory) external;
+
     function contractURI() external view returns (string memory);
 
     function tokenURI(uint256 tokenId) external view returns (string memory);
