@@ -1,6 +1,6 @@
 {
   "name": "@zoralabs/nouns-protocol",
-  "version": "0.1.3",
+  "version": "0.1.5",
   "private": false,
   "repository": {
     "type": "git",
@@ -14,6 +14,7 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.7.0",
     "@openzeppelin/contracts-upgradeable": "^4.7.0",
+    "@types/node": "^18.6.2",
     "sol-uriencode": "^0.1.0",
     "sol2string": "https://github.com/mzhu25/sol2string.git#13f566f7dc61c820c24a673da72d0114183a17c8"
   },
@@ -34,10 +35,10 @@
     "*.sol": "solhint"
   },
   "scripts": {
-    "build": "forge build && yarn typechain",
+    "build": "forge build && yarn typechain && tsc",
     "clean": "forge clean && rm -rf ./dist",
-    "prepublishOnly": "rm -rf ./dist && forge clean && mkdir -p ./dist/artifacts && forge build && yarn typechain && cp -R src dist && cp -R addresses dist",
+    "prepublishOnly": "rm -rf ./dist && forge clean && mkdir -p ./dist/artifacts && yarn build && cp -R src dist && cp -R addresses dist",
     "test": "forge test",
-    "typechain": "typechain --target=ethers-v5 'dist/artifacts/*/*.json' --out-dir dist/typechain"
+    "typechain": "typechain --target=ethers-v5 'dist/artifacts/*/*.json' --out-dir build/typechain"
   }
 }
