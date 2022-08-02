@@ -71,6 +71,7 @@ contract NounsBuilderTest is Test {
     IMetadataRenderer internal metadataRenderer;
     IAuction internal auction;
     ITreasury internal treasury;
+    address internal treasuryAddress;
     IGovernor internal governor;
 
     function deploy() public {
@@ -82,12 +83,10 @@ contract NounsBuilderTest is Test {
             "http://localhost:5000/render"
         );
 
-        tokenParams = IDeployer.TokenParams({
-            initStrings: tokeninitStrings,
-            foundersDAO: foundersDAO,
-            foundersMaxAllocation: 100,
-            foundersAllocationFrequency: 5
-        });
+        address[] memory foundersAlloc = new address[](100);
+        foundersAlloc[0] = foundersDAO;
+
+        tokenParams = IDeployer.TokenParams({initStrings: tokeninitStrings, foundersAlloc: foundersAlloc});
 
         auctionParams = IDeployer.AuctionParams({reservePrice: 0.01 ether, duration: 10 minutes});
 
@@ -109,6 +108,7 @@ contract NounsBuilderTest is Test {
         metadataRenderer = IMetadataRenderer(_metadata);
         auction = IAuction(_auction);
         treasury = ITreasury(_treasury);
+        treasuryAddress = _treasury;
         governor = IGovernor(_governor);
 
         vm.label(address(token), "TOKEN");

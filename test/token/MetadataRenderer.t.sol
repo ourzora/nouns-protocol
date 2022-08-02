@@ -28,7 +28,7 @@ contract MetadataRendererTest is NounsBuilderTest {
         items[5] = IMetadataRenderer.ItemParam({isNewProperty: true, propertyId: 1, name: "Lava"});
         items[6] = IMetadataRenderer.ItemParam({isNewProperty: true, propertyId: 1, name: "Water"});
 
-        vm.prank(foundersDAO);
+        vm.prank(treasuryAddress);
         metadataRenderer.addProperties(
             names,
             items,
@@ -38,7 +38,7 @@ contract MetadataRendererTest is NounsBuilderTest {
         string[] memory newNames = new string[](0);
         IMetadataRenderer.ItemParam[] memory newItems = new IMetadataRenderer.ItemParam[](1);
         newItems[0] = IMetadataRenderer.ItemParam({isNewProperty: false, propertyId: 0, name: "Cloud"});
-        vm.prank(foundersDAO);
+        vm.prank(treasuryAddress);
         metadataRenderer.addProperties(
             newNames,
             newItems,
@@ -50,7 +50,7 @@ contract MetadataRendererTest is NounsBuilderTest {
         vm.expectRevert("Ownable: caller is not the owner");
         metadataRenderer.updateDescription("new desc");
 
-        vm.prank(foundersDAO);
+        vm.prank(treasuryAddress);
         metadataRenderer.updateDescription("new desc");
         assertEq(metadataRenderer.getDescription(), "new desc");
     }
