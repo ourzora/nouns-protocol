@@ -2,9 +2,9 @@
   "WETH": "0xc778417E063141139Fce010982780140Aa0cD5Ab",
   "UpgradeManager": "0xa295ee0fd23d5e4f6dd697fda6dd877e23985b65",
   "TokenImplementation": "0xc8076C1435B5d41BE526B05d8AF9F59Fb55FFB98",
-  "MetadataRendererImplementation": "0xF2d855A2F980239b2289CE42dCF08112f6B185cF",
+  "MetadataRendererImplementation": "0x9deb34ae2c6b245f1aa8cb1cf27adeb59cbec4a5",
   "AuctionImplementation": "0xa00e297fDd793f090319843Ad7fda518FF30D5a9",
   "TreasuryImplementation": "0xEE642D5892130c0d08054F53546AB7289A42760d",
   "GovernorImplementation": "0xB403ab151E162B3B7AE0078B81C794803cD7E43e",
-  "Deployer": "0xa1945224e53A832CBA5eda28cdBB2eBA9997f9F1"
+  "Deployer": "0x6123b3555fc2853dac5ff51e191cc3390031d976"
 }

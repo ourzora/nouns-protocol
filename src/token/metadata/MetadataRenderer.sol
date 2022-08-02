@@ -352,6 +352,14 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
         emit DescriptionUpdated(newDescription);
     }
 
+    event RendererBaseUpdated(string);
+
+    function updateRendererBase(string memory _newRendererBase) external onlyOwner {
+        rendererBase = _newRendererBase;
+
+        emit RendererBaseUpdated(_newRendererBase);
+    }
+
     ///                                                          ///
     ///                                                          ///
     ///                                                          ///
