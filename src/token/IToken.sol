@@ -12,24 +12,9 @@ interface IToken {
     function initialize(
         bytes calldata init,
         address metadataRenderer,
-        address foundersDAO,
-        uint256 foundersMaxAllocation,
-        uint256 foundersAllocationFrequency,
+        address[] calldata foundersAlloc,
         address auction
     ) external;
-
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
-    struct Founders {
-        address DAO;
-        uint32 maxAllocation;
-        uint32 allocationFrequency;
-        uint32 currentAllocation;
-    }
-
-    function founders() external view returns (Founders calldata);
 
     ///                                                          ///
     ///                                                          ///

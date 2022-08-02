@@ -39,7 +39,6 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
     function initialize(
         bytes calldata _initStrings,
         address _token,
-        address _foundersDAO,
         address _treasury
     ) external initializer {
         // Initialize ownership
@@ -63,8 +62,8 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
         contractImage = _contractImage;
         rendererBase = _rendererBase;
 
-        // Transfer initial ownership to the founders
-        transferOwnership(_foundersDAO);
+        // Transfer initial ownership to the DAO
+        transferOwnership(treasury);
     }
 
     /// @notice getter for description field

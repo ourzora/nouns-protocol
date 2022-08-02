@@ -74,8 +74,8 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     ///
     function initialize(
         address _token,
-        address _foundersDAO,
         address _treasury,
+        address _founder,
         uint256 _duration,
         uint256 _reservePrice
     ) external initializer {
@@ -88,8 +88,8 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         // Pause the contract
         _pause();
 
-        // Transfer initial ownership to the founders
-        transferOwnership(_foundersDAO);
+        // Transfer initial ownership to the DAO
+        transferOwnership(_founder);
 
         // Store the associated token
         token = IToken(_token);

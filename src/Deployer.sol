@@ -98,6 +98,7 @@ contract Deployer is IDeployer {
             address governor
         )
     {
+        require(_tokenParams.foundersAlloc.length > 0 && _tokenParams.foundersAlloc[0] != address(0), "must have founder allocation");
         token = address(new ERC1967Proxy(tokenImpl, ""));
 
         bytes32 salt = bytes32(uint256(uint160(token)));
@@ -107,18 +108,11 @@ contract Deployer is IDeployer {
         treasury = address(new ERC1967Proxy{salt: salt}(treasuryImpl, ""));
         governor = address(new ERC1967Proxy{salt: salt}(governorImpl, ""));
 
-        IToken(token).initialize(
-            _tokenParams.initStrings,
-            metadata,
-            _tokenParams.foundersDAO,
-            _tokenParams.foundersMaxAllocation,
-            _tokenParams.foundersAllocationFrequency,
-            auction
-        );
+        IToken(token).initialize(_tokenParams.initStrings, metadata, _tokenParams.foundersAlloc, auction);
 
-        IMetadataRenderer(metadata).initialize(_tokenParams.initStrings, token, _tokenParams.foundersDAO, treasury);
+        IMetadataRenderer(metadata).initialize(_tokenParams.initStrings, token, treasury);
 
-        IAuction(auction).initialize(token, _tokenParams.foundersDAO, treasury, _auctionParams.duration, _auctionParams.reservePrice);
+        IAuction(auction).initialize(token, treasury, _tokenParams.foundersAlloc[0], _auctionParams.duration, _auctionParams.reservePrice);
 
         ITreasury(treasury).initialize(governor, _govParams.timelockDelay);
 

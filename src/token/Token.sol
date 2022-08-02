@@ -42,16 +42,12 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
 
     /// @notice Initializes an ERC-1967 proxy instance of this token implementation
     /// @param _init The encoded token and metadata initialization strings
-    /// @param _foundersDAO The address of the founders DAO
-    /// @param _foundersMaxTokens The maximum number of tokens the founders will vest (eg. 183 nouns to nounders)
-    /// @param _foundersAllocationFrequency The allocation frequency (eg. every 10 nouns)
+    /// @param _foundersAlloc The founders allocation for each token ID % 100
     /// @param _auction The address of the auction house that will mint tokens
     function initialize(
         bytes calldata _init,
         address _metadataRenderer,
-        address _foundersDAO,
-        uint256 _foundersMaxTokens,
-        uint256 _foundersAllocationFrequency,
+        address[] calldata _foundersAlloc,
         address _auction
     ) public initializer {
         // Initialize the reentrancy guard
@@ -64,9 +60,7 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
         __ERC721_init(_name, _symbol);
 
         // Store the founders' vesting details
-        founders.DAO = _foundersDAO;
-        founders.maxAllocation = uint32(_foundersMaxTokens);
-        founders.allocationFrequency = uint32(_foundersAllocationFrequency);
+        foundersAlloc = _foundersAlloc;
 
         // Store the associated auction house
         auction = _auction;
@@ -86,49 +80,25 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
 
         // Cannot realistically overflow uint32 or uint256 counters
         unchecked {
-            // Get the next available token id
-            tokenId = totalSupply++;
-
-            // If the token is a vesting overlap between Nouns Builder DAO and the founders:
-            if (_isForNounsBuilderDAO(tokenId) && _isForFounders(tokenId)) {
-                // Mint the token to Nouns Builder DAO
-                _mint(nounsBuilderDAO, tokenId);
-
+            do {
                 // Get the next available token id
                 tokenId = totalSupply++;
 
-                // Update the number of tokens vested to the founders
-                ++founders.currentAllocation;
+                // If the token is reserved for the builderDAO:
+                if (_isForNounsBuilderDAO(tokenId)) {
+                    _mint(nounsBuilderDAO, tokenId);
+                    continue;
+                }
 
-                // Mint the next token to the founders
-                _mint(founders.DAO, tokenId);
+                // If this token is reserved for a founder, send it to them
+                if (foundersAlloc[tokenId % foundersAlloc.length] != address(0)) {
+                    _mint(foundersAlloc[tokenId % foundersAlloc.length], tokenId);
+                }
+            } while (foundersAlloc[tokenId % foundersAlloc.length] != address(0));
 
-                // Get the next available token id
-                tokenId = totalSupply++;
-
-                // Else if the token is only for the founders:
-            } else if (_isForFounders(tokenId)) {
-                // Update the number of tokens vested to the founders
-                ++founders.currentAllocation;
-
-                // Mint the token to the founders
-                _mint(founders.DAO, tokenId);
-
-                // Get the next available token id
-                tokenId = totalSupply++;
-
-                // Else if the token is only for Nouns Builder DAO:
-            } else if (_isForNounsBuilderDAO(tokenId)) {
-                // Mint the token to Nouns Builder DAO
-                _mint(nounsBuilderDAO, tokenId);
-
-                // Get the next available token id
-                tokenId = totalSupply++;
-            }
+            // Mint the next token to the auction house for bidding
+            _mint(auction, tokenId);
         }
-
-        // Mint the next token to the auction house for bidding
-        _mint(auction, tokenId);
 
         return tokenId;
     }
@@ -138,18 +108,6 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
     function _isForNounsBuilderDAO(uint256 _tokenId) private pure returns (bool vest) {
         assembly {
             vest := iszero(mod(add(_tokenId, 1), 100))
-        }
-    }
-
-    /// @dev If a token meets the founders' vesting schedule
-    /// @param _tokenId The ERC-721 token id
-    function _isForFounders(uint256 _tokenId) private view returns (bool vest) {
-        uint256 numVested = founders.currentAllocation;
-        uint256 vestingTotal = founders.maxAllocation;
-        uint256 vestingSchedule = founders.allocationFrequency;
-
-        assembly {
-            vest := and(lt(numVested, vestingTotal), iszero(mod(_tokenId, vestingSchedule)))
         }
     }
 
@@ -196,48 +154,6 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
     ///                                                          ///
     ///                          FOUNDERS DAO                    ///
     ///                                                          ///
-
-    /// @notice Emitted when the founders DAO is updated
-    /// @param foundersDAO The updated address of the founders DAO
-    event FoundersDAOUpdated(address foundersDAO);
-
-    /// @notice Updates the address of the founders DAO
-    /// @param _foundersDAO The address of the founders DAO to set
-    function setFoundersDAO(address _foundersDAO) external {
-        // Ensure the caller is the founders DAO
-        require(msg.sender == founders.DAO, "ONLY_FOUNDERS");
-
-        // Update the founders DAO address
-        founders.DAO = _foundersDAO;
-
-        emit FoundersDAOUpdated(_foundersDAO);
-    }
-
-    /// @notice Emitted when the founders vesting total is updated
-    /// @param numTokens The updated number of tokens to vest to the founders DAO
-    event FoundersVestingAllocation(uint256 numTokens);
-
-    /// @notice Updates the total number of tokens that will be vested to the founders DAO
-    /// @param _numTokens The number of tokens
-    function setFoundersVestingAllocation(uint256 _numTokens) external onlyOwner {
-        // Update the vesting total
-        founders.maxAllocation = uint32(_numTokens);
-
-        emit FoundersVestingAllocation(_numTokens);
-    }
-
-    /// @notice Emitted when the founders vesting schedule is updated
-    /// @param numTokens The gap between tokens vested to the founders DAO
-    event FoundersVestingSchedule(uint256 numTokens);
-
-    /// @notice Updates the gap between tokens that will be vested to the founders DAO
-    /// @param _numTokens The number of tokens
-    function setFoundersVestingSchedule(uint256 _numTokens) external onlyOwner {
-        // Update the vesting schedule
-        founders.allocationFrequency = uint32(_numTokens);
-
-        emit FoundersVestingSchedule(_numTokens);
-    }
 
     /// @notice Called by the auction house upon bid settlement to auto-delegate the winner their vote
     /// @param _user The address of the winning bidder

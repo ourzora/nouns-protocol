@@ -4,9 +4,7 @@ pragma solidity 0.8.15;
 interface IDeployer {
     struct TokenParams {
         bytes initStrings; // name, symbol, description, contract image, renderer base
-        address foundersDAO;
-        uint256 foundersMaxAllocation;
-        uint256 foundersAllocationFrequency;
+        address[] foundersAlloc;
     }
 
     struct AuctionParams {
