@@ -336,7 +336,7 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
     function _getImageForItem(Item memory _item, string memory _propertyName) internal view returns (string memory) {
         return
             UriEncode.uriEncode(
-                string(abi.encodePacked(data[_item.referenceSlot].baseUri, _item.name, "/", _propertyName, data[_item.referenceSlot].extension))
+                string(abi.encodePacked(data[_item.referenceSlot].baseUri, _propertyName, "/", _item.name, data[_item.referenceSlot].extension))
             );
     }
 

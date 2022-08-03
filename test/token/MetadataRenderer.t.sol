@@ -73,7 +73,7 @@ contract MetadataRendererTest is NounsBuilderTest {
 
         assertEq(
             tokenURI,
-            '{"name": "Mock Token #1", "description": "This is a mock token", "image": "http://localhost:5000/render?contractAddress=0x0b9ddda2abbee07d5298db0b24f0936d0bab8422&tokenId=1&images=ipfs%3a%2f%2fQmds9a4KdAyKqrBRMPyvDtoJc8QGMH45rgPnAGuaaaCTYb%2fCloud%2fSky.svg&images=ipfs%3a%2f%2fQmds9a4KdAyKqrBRMPyvDtoJc8QGMH45rgPnAGueSaCTYb%2fLava%2fFloor.svg", "properties": {"Sky": "Cloud","Floor": "Lava"}}'
+            '{"name": "Mock Token #1", "description": "This is a mock token", "image": "http://localhost:5000/render?contractAddress=0xff1f22fa4aba99150fb4d9fc8dd449d6e3b8f2db&tokenId=1&images=ipfs%3a%2f%2fQmds9a4KdAyKqrBRMPyvDtoJc8QGMH45rgPnAGuaaaCTYb%2fSky%2fCloud.svg&images=ipfs%3a%2f%2fQmds9a4KdAyKqrBRMPyvDtoJc8QGMH45rgPnAGueSaCTYb%2fFloor%2fLava.svg", "properties": {"Sky": "Cloud","Floor": "Lava"}}'
         );
     }
 
