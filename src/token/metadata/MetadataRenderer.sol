@@ -252,20 +252,25 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
     function tokenURI(uint256 _tokenId) external view returns (string memory) {
         (bytes memory propertiesAry, bytes memory propertiesQuery) = getProperties(_tokenId);
         return
-            Base64.encode(
+            string(
                 abi.encodePacked(
-                    '{"name": "',
-                    name,
-                    " #",
-                    LibUintToString.toString(_tokenId),
-                    '", "description": "',
-                    description,
-                    '", "image": "',
-                    rendererBase,
-                    propertiesQuery,
-                    '", "properties": {',
-                    propertiesAry,
-                    "}}"
+                    "data:application/json;base64,",
+                    Base64.encode(
+                        abi.encodePacked(
+                            '{"name": "',
+                            name,
+                            " #",
+                            LibUintToString.toString(_tokenId),
+                            '", "description": "',
+                            description,
+                            '", "image": "',
+                            rendererBase,
+                            propertiesQuery,
+                            '", "properties": {',
+                            propertiesAry,
+                            "}}"
+                        )
+                    )
                 )
             );
     }
