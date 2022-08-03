@@ -6,6 +6,7 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import {LibUintToString} from "sol2string/LibUintToString.sol";
 import {UriEncode} from "sol-uriencode/UriEncode.sol";
+import {Base64} from "@openzeppelin/contracts-upgradeable/utils/Base64.sol";
 
 import {MetadataRendererStorageV1} from "./storage/MetadataRendererStorageV1.sol";
 import {IToken} from "../IToken.sol";
@@ -251,7 +252,7 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
     function tokenURI(uint256 _tokenId) external view returns (string memory) {
         (bytes memory propertiesAry, bytes memory propertiesQuery) = getProperties(_tokenId);
         return
-            string(
+            Base64.encode(
                 abi.encodePacked(
                     '{"name": "',
                     name,
