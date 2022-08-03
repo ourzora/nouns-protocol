@@ -6,7 +6,7 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import {LibUintToString} from "sol2string/LibUintToString.sol";
 import {UriEncode} from "sol-uriencode/UriEncode.sol";
-import {Base64} from "@openzeppelin/contracts-upgradeable/utils/Base64.sol";
+import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
 import {MetadataRendererStorageV1} from "./storage/MetadataRendererStorageV1.sol";
 import {IToken} from "../IToken.sol";
@@ -245,32 +245,31 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
     ///                                                          ///
     ///                                                          ///
 
+    function encodeAsJson(bytes memory jsonBlob) internal pure returns (string memory) {
+        return string(abi.encodePacked("data:application/json;base64,", Base64.encode(jsonBlob)));
+    }
+
     function contractURI() external view returns (string memory) {
-        return string(abi.encodePacked('{"name": "', name, '", "description": "', description, '", "image": "', contractImage, '"}'));
+        return encodeAsJson(abi.encodePacked('{"name": "', name, '", "description": "', description, '", "image": "', contractImage, '"}'));
     }
 
     function tokenURI(uint256 _tokenId) external view returns (string memory) {
         (bytes memory propertiesAry, bytes memory propertiesQuery) = getProperties(_tokenId);
         return
-            string(
+            encodeAsJson(
                 abi.encodePacked(
-                    "data:application/json;base64,",
-                    Base64.encode(
-                        abi.encodePacked(
-                            '{"name": "',
-                            name,
-                            " #",
-                            LibUintToString.toString(_tokenId),
-                            '", "description": "',
-                            description,
-                            '", "image": "',
-                            rendererBase,
-                            propertiesQuery,
-                            '", "properties": {',
-                            propertiesAry,
-                            "}}"
-                        )
-                    )
+                    '{"name": "',
+                    name,
+                    " #",
+                    LibUintToString.toString(_tokenId),
+                    '", "description": "',
+                    description,
+                    '", "image": "',
+                    rendererBase,
+                    propertiesQuery,
+                    '", "properties": {',
+                    propertiesAry,
+                    "}}"
                 )
             );
     }
