@@ -73,7 +73,7 @@ contract MetadataRendererTest is NounsBuilderTest {
 
         assertEq(
             tokenURI,
-            '{"name": "Mock Token #1", "description": "This is a mock token", "image": "http://localhost:5000/render?contractAddress=0xff1f22fa4aba99150fb4d9fc8dd449d6e3b8f2db&tokenId=1&images=ipfs%3a%2f%2fQmds9a4KdAyKqrBRMPyvDtoJc8QGMH45rgPnAGuaaaCTYb%2fSky%2fCloud.svg&images=ipfs%3a%2f%2fQmds9a4KdAyKqrBRMPyvDtoJc8QGMH45rgPnAGueSaCTYb%2fFloor%2fLava.svg", "properties": {"Sky": "Cloud","Floor": "Lava"}}'
+            'data:application/json;base64,eyJuYW1lIjogIk1vY2sgVG9rZW4gIzEiLCAiZGVzY3JpcHRpb24iOiAiVGhpcyBpcyBhIG1vY2sgdG9rZW4iLCAiaW1hZ2UiOiAiaHR0cDovL2xvY2FsaG9zdDo1MDAwL3JlbmRlcj9jb250cmFjdEFkZHJlc3M9MHhmZjFmMjJmYTRhYmE5OTE1MGZiNGQ5ZmM4ZGQ0NDlkNmUzYjhmMmRiJnRva2VuSWQ9MSZpbWFnZXM9aXBmcyUzYSUyZiUyZlFtZHM5YTRLZEF5S3FyQlJNUHl2RHRvSmM4UUdNSDQ1cmdQbkFHdWFhYUNUWWIlMmZTa3klMmZDbG91ZC5zdmcmaW1hZ2VzPWlwZnMlM2ElMmYlMmZRbWRzOWE0S2RBeUtxckJSTVB5dkR0b0pjOFFHTUg0NXJnUG5BR3VlU2FDVFliJTJmRmxvb3IlMmZMYXZhLnN2ZyIsICJwcm9wZXJ0aWVzIjogeyJTa3kiOiAiQ2xvdWQiLCJGbG9vciI6ICJMYXZhIn19'
         );
     }
 
@@ -82,7 +82,7 @@ contract MetadataRendererTest is NounsBuilderTest {
 
         assertEq(
             contractURI,
-            '{"name": "Mock Token", "description": "This is a mock token", "image": "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j"}'
+            'data:application/json;base64,eyJuYW1lIjogIk1vY2sgVG9rZW4iLCAiZGVzY3JpcHRpb24iOiAiVGhpcyBpcyBhIG1vY2sgdG9rZW4iLCAiaW1hZ2UiOiAiaXBmczovL1FtZXc3VGR5R25qNllSVWpRUjY4c1VKTjMyMzlNWVhSRDh1eG93eEY2ckdLOGoifQ=='
         );
     }
 }
