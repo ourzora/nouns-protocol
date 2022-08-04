@@ -4,8 +4,8 @@ pragma solidity 0.8.15;
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
-import {LibUintToString} from "sol2string/LibUintToString.sol";
-import {UriEncode} from "sol-uriencode/UriEncode.sol";
+import {LibUintToString} from "sol2string/contracts/LibUintToString.sol";
+import {UriEncode} from "sol-uriencode/src/UriEncode.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
 import {MetadataRendererStorageV1} from "./storage/MetadataRendererStorageV1.sol";
