@@ -4,8 +4,9 @@ pragma solidity 0.8.15;
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
-import {LibUintToString} from "sol2string/LibUintToString.sol";
-import {UriEncode} from "sol-uriencode/UriEncode.sol";
+import {LibUintToString} from "sol2string/contracts/LibUintToString.sol";
+import {UriEncode} from "sol-uriencode/src/UriEncode.sol";
+import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
 import {MetadataRendererStorageV1} from "./storage/MetadataRendererStorageV1.sol";
 import {IToken} from "../IToken.sol";
@@ -243,14 +244,18 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
     ///                                                          ///
     ///                                                          ///
 
+    function encodeAsJson(bytes memory jsonBlob) internal pure returns (string memory) {
+        return string(abi.encodePacked("data:application/json;base64,", Base64.encode(jsonBlob)));
+    }
+
     function contractURI() external view returns (string memory) {
-        return string(abi.encodePacked('{"name": "', name, '", "description": "', description, '", "image": "', contractImage, '"}'));
+        return encodeAsJson(abi.encodePacked('{"name": "', name, '", "description": "', description, '", "image": "', contractImage, '"}'));
     }
 
     function tokenURI(uint256 _tokenId) external view returns (string memory) {
         (bytes memory propertiesAry, bytes memory propertiesQuery) = getProperties(_tokenId);
         return
-            string(
+            encodeAsJson(
                 abi.encodePacked(
                     '{"name": "',
                     name,
@@ -335,7 +340,7 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
     function _getImageForItem(Item memory _item, string memory _propertyName) internal view returns (string memory) {
         return
             UriEncode.uriEncode(
-                string(abi.encodePacked(data[_item.referenceSlot].baseUri, _item.name, "/", _propertyName, data[_item.referenceSlot].extension))
+                string(abi.encodePacked(data[_item.referenceSlot].baseUri, _propertyName, "/", _item.name, data[_item.referenceSlot].extension))
             );
     }
 
@@ -349,6 +354,14 @@ contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradea
         description = newDescription;
 
         emit DescriptionUpdated(newDescription);
+    }
+
+    event RendererBaseUpdated(string);
+
+    function updateRendererBase(string memory _newRendererBase) external onlyOwner {
+        rendererBase = _newRendererBase;
+
+        emit RendererBaseUpdated(_newRendererBase);
     }
 
     ///                                                          ///
