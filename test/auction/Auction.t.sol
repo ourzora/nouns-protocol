@@ -19,15 +19,15 @@ contract AuctionTest is NounsBuilderTest {
         vm.deal(bidder2, 100 ether);
     }
 
-    // function test_Init() public {
-    //     assertEq(auction.owner(), foundersDAO);
+    function test_Init() public {
+        assertEq(auction.owner(), foundersDAO);
 
-    //     assertEq(auction.house().treasury, address(treasury));
-    //     assertEq(auction.house().duration, auctionParams.duration);
-    //     assertEq(auction.house().timeBuffer, 5 minutes);
-    //     assertEq(auction.house().minBidIncrementPercentage, 10);
-    //     assertEq(auction.house().reservePrice, auctionParams.reservePrice);
-    // }
+        assertEq(auction.house().treasury, address(treasury));
+        assertEq(auction.house().duration, auctionParams.duration);
+        assertEq(auction.house().timeBuffer, 5 minutes);
+        assertEq(auction.house().minBidIncrementPercentage, 10);
+        assertEq(auction.house().reservePrice, auctionParams.reservePrice);
+    }
 
     // function test_AuctionStart() public {
     //     vm.prank(foundersDAO);

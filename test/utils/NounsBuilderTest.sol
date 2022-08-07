@@ -9,6 +9,7 @@ import {IDeployer} from "../../src/IDeployer.sol";
 import {IUpgradeManager, UpgradeManager} from "../../src/upgrade/UpgradeManager.sol";
 
 import {IToken, Token} from "../../src/token/Token.sol";
+import {TokenTypesV1} from "../../src/token/types/TokenTypesV1.sol";
 import {IMetadataRenderer, MetadataRenderer} from "../../src/token/metadata/MetadataRenderer.sol";
 import {IAuction, Auction} from "../../src/auction/Auction.sol";
 import {IGovernor, Governor} from "../../src/governance/governor/Governor.sol";
@@ -63,6 +64,7 @@ contract NounsBuilderTest is Test {
 
     bytes internal tokeninitStrings;
 
+    IDeployer.FounderParams internal founderParams;
     IDeployer.TokenParams internal tokenParams;
     IDeployer.AuctionParams internal auctionParams;
     IDeployer.GovParams internal govParams;
@@ -71,7 +73,6 @@ contract NounsBuilderTest is Test {
     IMetadataRenderer internal metadataRenderer;
     IAuction internal auction;
     ITreasury internal treasury;
-    address internal treasuryAddress;
     IGovernor internal governor;
 
     function deploy() public {
@@ -83,10 +84,15 @@ contract NounsBuilderTest is Test {
             "http://localhost:5000/render"
         );
 
-        address[] memory foundersAlloc = new address[](100);
-        foundersAlloc[0] = foundersDAO;
+        address[] memory wallets = new address[](1);
+        wallets[0] = foundersDAO;
 
-        tokenParams = IDeployer.TokenParams({initStrings: tokeninitStrings, foundersAlloc: foundersAlloc});
+        uint8[] memory percents = new uint8[](1);
+        percents[0] = 10;
+
+        founderParams = IDeployer.FounderParams({wallets: wallets, percentages: percents});
+
+        tokenParams = IDeployer.TokenParams({initStrings: tokeninitStrings});
 
         auctionParams = IDeployer.AuctionParams({reservePrice: 0.01 ether, duration: 10 minutes});
 
@@ -99,6 +105,7 @@ contract NounsBuilderTest is Test {
         });
 
         (address _token, address _metadata, address _auction, address _treasury, address _governor) = deployer.deploy(
+            founderParams,
             tokenParams,
             auctionParams,
             govParams
@@ -108,7 +115,6 @@ contract NounsBuilderTest is Test {
         metadataRenderer = IMetadataRenderer(_metadata);
         auction = IAuction(_auction);
         treasury = ITreasury(_treasury);
-        treasuryAddress = _treasury;
         governor = IGovernor(_governor);
 
         vm.label(address(token), "TOKEN");

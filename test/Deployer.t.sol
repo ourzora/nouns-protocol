@@ -22,7 +22,7 @@ contract DeployerTest is NounsBuilderTest {
     function test_TokenInitialized() public {
         deploy();
 
-        assertEq(token.owner(), treasuryAddress);
+        assertEq(token.owner(), foundersDAO);
         assertEq(token.auction(), address(auction));
         assertEq(token.totalSupply(), 0);
     }
@@ -30,7 +30,7 @@ contract DeployerTest is NounsBuilderTest {
     function test_MetadataRendererInitialized() public {
         deploy();
 
-        assertEq(metadataRenderer.owner(), treasuryAddress);
+        assertEq(metadataRenderer.owner(), foundersDAO);
     }
 
     function test_AuctionInitialized() public {
