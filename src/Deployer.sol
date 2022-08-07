@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.15;
 
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 import {IToken} from "./token/Token.sol";
@@ -13,7 +15,7 @@ import {IDeployer} from "./IDeployer.sol";
 /// @title Nounish DAO Deployer
 /// @author Rohan Kulkarni
 /// @notice This contract deploys Nounish DAOs with custom token, auction, and governance settings
-contract Deployer is IDeployer {
+contract Deployer is IDeployer, UUPSUpgradeable, OwnableUpgradeable {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -25,7 +27,7 @@ contract Deployer is IDeployer {
     address public immutable metadataImpl;
 
     /// @notice The address of the auction house implementation
-    address private immutable auctionImpl;
+    address public immutable auctionImpl;
 
     /// @notice The address of the treasury implementation
     address public immutable treasuryImpl;
@@ -69,7 +71,19 @@ contract Deployer is IDeployer {
     }
 
     ///                                                          ///
-    ///                             DEPLOY                       ///
+    ///                          INITIALIZER                     ///
+    ///                                                          ///
+
+    function initialize(address _owner) external initializer {
+        require(_owner != address(0));
+
+        __Ownable_init();
+
+        transferOwnership(_owner);
+    }
+
+    ///                                                          ///
+    ///                            DEPLOY                        ///
     ///                                                          ///
 
     /// @notice Emitted when a Nounish DAO is deployed
@@ -151,4 +165,9 @@ contract Deployer is IDeployer {
         treasury = address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, treasuryHash)))));
         governor = address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, governorHash)))));
     }
+
+    /// @notice Ensures the caller is authorized to upgrade the contract to a valid implementation
+    /// @dev This function is called in UUPS `upgradeTo` & `upgradeToAndCall`
+    /// @param _newImpl The address of the new implementation
+    function _authorizeUpgrade(address _newImpl) internal override onlyOwner {}
 }
