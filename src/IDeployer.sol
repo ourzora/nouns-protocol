@@ -2,9 +2,13 @@
 pragma solidity 0.8.15;
 
 interface IDeployer {
+    struct FounderParams {
+        address[] wallets;
+        uint8[] percentages;
+    }
+
     struct TokenParams {
         bytes initStrings; // name, symbol, description, contract image, renderer base
-        address[] foundersAlloc;
     }
 
     struct AuctionParams {
@@ -21,6 +25,7 @@ interface IDeployer {
     }
 
     function deploy(
+        FounderParams calldata founderParams,
         TokenParams calldata tokenParams,
         AuctionParams calldata auctionParams,
         GovParams calldata govParams

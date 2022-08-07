@@ -3,6 +3,7 @@ pragma solidity 0.8.15;
 
 import {IMetadataRenderer} from "./metadata/IMetadataRenderer.sol";
 import {IUpgradeManager} from "../upgrade/IUpgradeManager.sol";
+import {TokenTypesV1} from "./types/TokenTypesV1.sol";
 
 interface IToken {
     ///                                                          ///
@@ -10,9 +11,10 @@ interface IToken {
     ///                                                          ///
 
     function initialize(
-        bytes calldata init,
+        address[] calldata founderWallets,
+        uint8[] calldata founderPercentages,
+        bytes calldata tokenStrings,
         address metadataRenderer,
-        address[] calldata foundersAlloc,
         address auction
     ) external;
 

@@ -40,33 +40,54 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
     ///                          INITIALIZER                     ///
     ///                                                          ///
 
-    /// @notice Initializes an ERC-1967 proxy instance of this token implementation
-    /// @param _init The encoded token and metadata initialization strings
-    /// @param _foundersAlloc The founders allocation for each token ID % 100
-    /// @param _auction The address of the auction house that will mint tokens
     function initialize(
-        bytes calldata _init,
+        address[] calldata _founderWallets,
+        uint8[] calldata _founderPercentages,
+        bytes calldata _tokenStrings,
         address _metadataRenderer,
-        address[] calldata _foundersAlloc,
         address _auction
     ) public initializer {
         // Initialize the reentrancy guard
         __ReentrancyGuard_init();
 
         // Decode the token initialization strings
-        (string memory _name, string memory _symbol, , , ) = abi.decode(_init, (string, string, string, string, string));
+        (string memory _name, string memory _symbol, , , ) = abi.decode(_tokenStrings, (string, string, string, string, string));
 
         // Initialize the ERC-721 token
         __ERC721_init(_name, _symbol);
-
-        // Store the founders' vesting details
-        foundersAlloc = _foundersAlloc;
 
         // Store the associated auction house
         auction = _auction;
 
         // Store the associated metadata renderer
         metadataRenderer = IMetadataRenderer(_metadataRenderer);
+
+        // Store the founders' vesting details
+        _storeFounders(_founderWallets, _founderPercentages);
+    }
+
+    function _storeFounders(address[] memory _wallets, uint8[] memory _percentages) internal {
+        require(_wallets.length == _percentages.length, "");
+        require(_wallets[0] != address(0), "");
+
+        uint256 totalPercentage;
+
+        // TODO calculate MCD
+
+        for (uint256 i; i < _wallets.length; ) {
+            require(totalPercentage < 100, "");
+
+            founders.push();
+
+            founders[i].wallet = _wallets[i];
+            founders[i].percent = _percentages[i];
+
+            unchecked {
+                totalPercentage += _percentages[i];
+
+                ++i;
+            }
+        }
     }
 
     ///                                                          ///
@@ -87,14 +108,17 @@ contract Token is UUPSUpgradeable, ReentrancyGuardUpgradeable, ERC721VotesUpgrad
                 // If the token is reserved for the builderDAO:
                 if (_isForNounsBuilderDAO(tokenId)) {
                     _mint(nounsBuilderDAO, tokenId);
-                    continue;
+
+                    tokenId = totalSupply++;
                 }
 
                 // If this token is reserved for a founder, send it to them
-                if (foundersAlloc[tokenId % foundersAlloc.length] != address(0)) {
-                    _mint(foundersAlloc[tokenId % foundersAlloc.length], tokenId);
+                if (founders[tokenId % founders.length].wallet != address(0)) {
+                    _mint(founders[tokenId % founders.length].wallet, tokenId);
+
+                    tokenId = totalSupply++;
                 }
-            } while (foundersAlloc[tokenId % foundersAlloc.length] != address(0));
+            } while (founders[tokenId % founders.length].wallet != address(0));
 
             // Mint the next token to the auction house for bidding
             _mint(auction, tokenId);

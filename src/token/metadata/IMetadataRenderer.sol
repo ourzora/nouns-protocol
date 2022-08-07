@@ -9,6 +9,7 @@ interface IMetadataRenderer {
     function initialize(
         bytes calldata initStrings,
         address token,
+        address founder,
         address treasury
     ) external;
 

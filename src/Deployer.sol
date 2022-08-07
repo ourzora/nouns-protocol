@@ -3,6 +3,8 @@ pragma solidity 0.8.15;
 
 import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
+import {TokenTypesV1} from "./token/types/TokenTypesV1.sol";
+
 import {IToken} from "./token/Token.sol";
 import {IMetadataRenderer} from "./token/metadata/IMetadataRenderer.sol";
 import {IAuction} from "./auction/Auction.sol";
@@ -85,6 +87,7 @@ contract Deployer is IDeployer {
     /// @param _auctionParams The initial auction config
     /// @param _govParams The initial governance config
     function deploy(
+        FounderParams calldata _founderParams,
         TokenParams calldata _tokenParams,
         AuctionParams calldata _auctionParams,
         GovParams calldata _govParams
@@ -98,7 +101,6 @@ contract Deployer is IDeployer {
             address governor
         )
     {
-        require(_tokenParams.foundersAlloc.length > 0 && _tokenParams.foundersAlloc[0] != address(0), "must have founder allocation");
         token = address(new ERC1967Proxy(tokenImpl, ""));
 
         bytes32 salt = bytes32(uint256(uint160(token)));
@@ -108,11 +110,11 @@ contract Deployer is IDeployer {
         treasury = address(new ERC1967Proxy{salt: salt}(treasuryImpl, ""));
         governor = address(new ERC1967Proxy{salt: salt}(governorImpl, ""));
 
-        IToken(token).initialize(_tokenParams.initStrings, metadata, _tokenParams.foundersAlloc, auction);
+        IToken(token).initialize(_founderParams.wallets, _founderParams.percentages, _tokenParams.initStrings, metadata, auction);
 
-        IMetadataRenderer(metadata).initialize(_tokenParams.initStrings, token, treasury);
+        IMetadataRenderer(metadata).initialize(_tokenParams.initStrings, token, _founderParams.wallets[0], treasury);
 
-        IAuction(auction).initialize(token, treasury, _tokenParams.foundersAlloc[0], _auctionParams.duration, _auctionParams.reservePrice);
+        IAuction(auction).initialize(token, treasury, _founderParams.wallets[0], _auctionParams.duration, _auctionParams.reservePrice);
 
         ITreasury(treasury).initialize(governor, _govParams.timelockDelay);
 
