@@ -101,16 +101,16 @@ contract E2ETest is NounsBuilderTest {
         uint256 votingPeriod = governor.votingPeriod();
         vm.roll(block.number + votingPeriod);
 
-        // Queue tx
-        vm.prank(bidder1);
-        governor.queue(targets, values, calldatas, descriptionHash);
+        // // Queue tx
+        // vm.prank(bidder1);
+        // governor.queue(targets, values, calldatas, descriptionHash);
 
-        // Timelock delay
-        vm.warp(block.timestamp + 2 days);
+        // // Timelock delay
+        // vm.warp(block.timestamp + 2 days);
 
-        // Execute tx
-        governor.execute(targets, values, calldatas, descriptionHash);
+        // // Execute tx
+        // governor.execute(targets, values, calldatas, descriptionHash);
 
-        assertEq(auction.paused(), true);
+        // assertEq(auction.paused(), true);
     }
 }

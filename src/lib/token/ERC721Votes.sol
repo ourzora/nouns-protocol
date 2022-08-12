@@ -17,7 +17,7 @@ contract ERC721VotesStorageV1 is ERC721VotesTypesV1 {
 
     mapping(address => uint256) public numCheckpoints;
 
-    mapping(address => address) public delegates;
+    mapping(address => address) internal delegation;
 
     mapping(address => uint256) internal nonces;
 }
@@ -31,8 +31,13 @@ abstract contract ERC721Votes is EIP712, ERC721, ERC721VotesStorageV1 {
     /// @dev Emitted when a token transfer or delegate change results in changes to a delegate's number of votes
     event DelegateVotesChanged(address indexed delegate, uint256 previousBalance, uint256 newBalance);
 
+    function delegates(address _account) external view returns (address) {
+        address current = delegation[_account];
+        return current == address(0) ? _account : current;
+    }
+
     /// @dev Delegates votes from the sender to `_delegatee`
-    function delegate(address _delegatee) public virtual {
+    function delegate(address _delegatee) external {
         _delegate(msg.sender, _delegatee);
     }
 
@@ -44,7 +49,7 @@ abstract contract ERC721Votes is EIP712, ERC721, ERC721VotesStorageV1 {
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public virtual {
+    ) external {
         require(block.timestamp <= expiry, "EXPIRED_SIG");
 
         address signer = ECDSA.recover(_hashTypedDataV4(keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry))), v, r, s);
@@ -57,10 +62,10 @@ abstract contract ERC721Votes is EIP712, ERC721, ERC721VotesStorageV1 {
     }
 
     /// @dev Delegate all of `account`'s voting units to `delegatee`.
-    function _delegate(address _account, address _delegatee) internal virtual {
-        address prevDelegate = delegates[_account];
+    function _delegate(address _account, address _delegatee) internal {
+        address prevDelegate = delegation[_account];
 
-        delegates[_account] = _delegatee;
+        delegation[_account] = _delegatee;
 
         emit DelegateChanged(_account, prevDelegate, _delegatee);
 
@@ -120,7 +125,7 @@ abstract contract ERC721Votes is EIP712, ERC721, ERC721VotesStorageV1 {
         address _from,
         address _to,
         uint256 _tokenId
-    ) internal virtual override {
+    ) internal override {
         _moveDelegateVotes(_from, _to, 1);
 
         super._afterTokenTransfer(_from, _to, _tokenId);
@@ -140,7 +145,7 @@ abstract contract ERC721Votes is EIP712, ERC721, ERC721VotesStorageV1 {
     }
 
     /// @notice Returns the amount of votes that `_account` had at the end of a past timestamp.
-    function getPastVotes(address _account, uint256 _timestamp) public view virtual returns (uint256) {
+    function getPastVotes(address _account, uint256 _timestamp) public view returns (uint256) {
         require(_timestamp < block.timestamp, "INVALID_TIMESTAMP");
 
         uint256 nCheckpoints = numCheckpoints[_account];

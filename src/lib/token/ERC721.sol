@@ -11,8 +11,6 @@ contract ERC721StorageV1 {
 
     string public symbol;
 
-    uint256 public totalSupply;
-
     mapping(uint256 => address) public getApproved;
 
     mapping(address => mapping(address => bool)) public isApprovedForAll;
@@ -38,11 +36,11 @@ abstract contract ERC721 is Initializable, ERC721StorageV1 {
 
     function contractURI() public view virtual returns (string memory) {}
 
-    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
+    function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
         return
-            interfaceId == 0x01ffc9a7 || // ERC165 Interface ID
-            interfaceId == 0x80ac58cd || // ERC721 Interface ID
-            interfaceId == 0x5b5e139f; // ERC721Metadata Interface ID
+            _interfaceId == 0x01ffc9a7 || // ERC165 Interface ID
+            _interfaceId == 0x80ac58cd || // ERC721 Interface ID
+            _interfaceId == 0x5b5e139f; // ERC721Metadata Interface ID
     }
 
     function balanceOf(address _owner) public view virtual returns (uint256) {
@@ -54,7 +52,7 @@ abstract contract ERC721 is Initializable, ERC721StorageV1 {
     function ownerOf(uint256 _tokenId) public view virtual returns (address) {
         address owner = _ownerOf[_tokenId];
 
-        require(owner != address(0), "ZERO_ADDRESS");
+        require(owner != address(0), "NO_OWNER");
 
         return owner;
     }
@@ -132,7 +130,7 @@ abstract contract ERC721 is Initializable, ERC721StorageV1 {
         );
     }
 
-    function _mint(address _to, uint256 _tokenId) internal virtual returns (uint256) {
+    function _mint(address _to, uint256 _tokenId) internal virtual {
         require(_to != address(0), "INVALID_RECIPIENT");
 
         require(_ownerOf[_tokenId] == address(0), "ALREADY_MINTED");
@@ -140,7 +138,6 @@ abstract contract ERC721 is Initializable, ERC721StorageV1 {
         _beforeTokenTransfer(address(0), _to, _tokenId);
 
         unchecked {
-            ++totalSupply;
             ++_balanceOf[_to];
         }
 
@@ -149,8 +146,6 @@ abstract contract ERC721 is Initializable, ERC721StorageV1 {
         emit Transfer(address(0), _to, _tokenId);
 
         _afterTokenTransfer(address(0), _to, _tokenId);
-
-        return totalSupply;
     }
 
     function _burn(uint256 _tokenId) internal virtual {
@@ -161,7 +156,6 @@ abstract contract ERC721 is Initializable, ERC721StorageV1 {
         _beforeTokenTransfer(owner, address(0), _tokenId);
 
         unchecked {
-            --totalSupply;
             --_balanceOf[owner];
         }
 

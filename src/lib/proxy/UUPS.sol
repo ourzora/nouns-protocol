@@ -26,12 +26,12 @@ abstract contract UUPS {
 
     modifier onlyProxy() {
         require(address(this) != __self, "ONLY_DELEGATECALL");
-        require(_implementation() == __self, "ONLY_PROXY");
+        require(_getImplementation() == __self, "ONLY_PROXY");
         _;
     }
 
     /// @dev Returns the current implementation address.
-    function _implementation() internal view returns (address) {
+    function _getImplementation() internal view returns (address) {
         return StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value;
     }
 

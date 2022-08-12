@@ -238,7 +238,7 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
 
             // Delegate voting power to the winning bidder
             // This removes the need for a user to self-delegate their vote
-            token.autoDelegate(_auction.highestBidder);
+            // token.autoDelegate(_auction.highestBidder);
 
             // Else no bid was placed:
         } else {
