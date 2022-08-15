@@ -5,55 +5,83 @@ import {IERC1822Proxiable} from "./IERC1822.sol";
 import {Address} from "../utils/Address.sol";
 import {StorageSlot} from "../utils/StorageSlot.sol";
 
-abstract contract UUPS {
+/// @notice Modified from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/utils/UUPSUpgradeable.sol
+abstract contract UUPS is IERC1822Proxiable {
+    ///                                                          ///
+    ///                          CONSTANTS                       ///
+    ///                                                          ///
+
     /// @dev keccak256 hash of "eip1967.proxy.rollback" subtracted by 1
     bytes32 private constant _ROLLBACK_SLOT = 0x4910fdfa16fed3260ed0e7147f7cc6da11a60208b5b9406d12a635614ffd9143;
 
     /// @dev keccak256 hash of "eip1967.proxy.implementation" subtracted by 1
     bytes32 internal constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
+    ///                                                          ///
+    ///                          IMMUTABLES                      ///
+    ///                                                          ///
+
     address private immutable __self = address(this);
 
     ///                                                          ///
+    ///                            EVENTS                        ///
     ///                                                          ///
+
+    event Upgraded(address indexed impl);
+
+    ///                                                          ///
+    ///                            ERRORS                        ///
+    ///                                                          ///
+
+    error INVALID_UPGRADE(address impl);
+
+    error ONLY_DELEGATECALL();
+
+    error NO_DELEGATECALL();
+
+    error ONLY_PROXY();
+
+    error INVALID_UUID();
+
+    error NOT_UUPS();
+
+    error INVALID_TARGET();
+
+    ///                                                          ///
+    ///                          MODIFIERS                       ///
+    ///                                                          ///
+
+    modifier onlyProxy() {
+        if (address(this) == __self) revert ONLY_DELEGATECALL();
+        if (_getImplementation() != __self) revert ONLY_PROXY();
+        _;
+    }
+
+    modifier notDelegated() {
+        if (address(this) != __self) revert NO_DELEGATECALL();
+        _;
+    }
+
+    ///                                                          ///
+    ///                          FUNCTIONS                       ///
     ///                                                          ///
 
     function _authorizeUpgrade(address _impl) internal virtual;
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
-    modifier onlyProxy() {
-        require(address(this) != __self, "ONLY_DELEGATECALL");
-        require(_getImplementation() == __self, "ONLY_PROXY");
-        _;
+    function proxiableUUID() external view notDelegated returns (bytes32) {
+        return _IMPLEMENTATION_SLOT;
     }
 
-    /// @dev Returns the current implementation address.
-    function _getImplementation() internal view returns (address) {
-        return StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value;
-    }
-
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
-    event Upgraded(address impl);
-
-    /// @dev Upgrade the proxy implementation
     function upgradeTo(address _impl) external onlyProxy {
         _authorizeUpgrade(_impl);
         _upgradeToAndCallUUPS(_impl, "", false);
     }
 
-    /// @dev Upgrade the proxy implementation with an additional setup call
     function upgradeToAndCall(address _impl, bytes memory _data) external payable onlyProxy {
         _authorizeUpgrade(_impl);
         _upgradeToAndCallUUPS(_impl, _data, true);
     }
 
-    /// @dev Upgrade the proxy implementation with security checks for UUPS proxies and an additional setup call
     function _upgradeToAndCallUUPS(
         address _impl,
         bytes memory _data,
@@ -63,16 +91,15 @@ abstract contract UUPS {
             _setImplementation(_impl);
         } else {
             try IERC1822Proxiable(_impl).proxiableUUID() returns (bytes32 slot) {
-                require(slot == _IMPLEMENTATION_SLOT, "INVALID_UUID");
+                if (slot != _IMPLEMENTATION_SLOT) revert INVALID_UUID();
             } catch {
-                revert("NOT_UUPS");
+                revert NOT_UUPS();
             }
 
             _upgradeToAndCall(_impl, _data, _forceCall);
         }
     }
 
-    /// @dev Perform implementation upgrade with additional setup call.
     function _upgradeToAndCall(
         address _impl,
         bytes memory _data,
@@ -85,30 +112,19 @@ abstract contract UUPS {
         }
     }
 
-    /// @dev Perform the implementation upgrade
     function _upgradeTo(address _impl) internal {
         _setImplementation(_impl);
 
         emit Upgraded(_impl);
     }
 
-    /// @dev Stores a new address in the EIP1967 implementation slot
     function _setImplementation(address _impl) private {
-        require(Address.isContract(_impl), "INVALID_TARGET");
+        if (!Address.isContract(_impl)) revert INVALID_TARGET();
 
         StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value = _impl;
     }
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
-    modifier notDelegated() {
-        require(address(this) == __self, "NO_DELEGATECALL");
-        _;
-    }
-
-    function proxiableUUID() external view notDelegated returns (bytes32) {
-        return _IMPLEMENTATION_SLOT;
+    function _getImplementation() internal view returns (address) {
+        return StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value;
     }
 }

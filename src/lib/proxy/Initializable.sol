@@ -8,18 +8,27 @@ contract InitializableStorageV1 {
     bool internal _initializing;
 }
 
+/// @notice Modified from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/proxy/utils/Initializable.sol
 abstract contract Initializable is InitializableStorageV1 {
     event Initialized(uint256 version);
 
+    error ADDRESS_ZERO();
+
+    error INVALID_INIT();
+
+    error NOT_INITIALIZING();
+
+    error ALREADY_INITIALIZED();
+
     modifier onlyInitializing() {
-        require(_initializing, "NOT_INITIALIZING");
+        if (!_initializing) revert NOT_INITIALIZING();
         _;
     }
 
     modifier initializer() {
         bool isTopLevelCall = !_initializing;
 
-        require((isTopLevelCall && _initialized == 0) || (!Address.isContract(address(this)) && _initialized == 1), "INITIALIZED");
+        if ((!isTopLevelCall || _initialized != 0) && (Address.isContract(address(this)) || _initialized != 1)) revert ALREADY_INITIALIZED();
 
         _initialized = 1;
 
@@ -37,7 +46,7 @@ abstract contract Initializable is InitializableStorageV1 {
     }
 
     modifier reinitializer(uint8 _version) {
-        require(!_initializing && _initialized < _version, "INITIALIZED");
+        if (_initializing || _initialized >= _version) revert ALREADY_INITIALIZED();
 
         _initialized = _version;
 
