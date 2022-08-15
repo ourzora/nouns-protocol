@@ -7,30 +7,35 @@ contract PausableStorageV1 {
     bool public paused;
 }
 
+/// @notice Modified from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/Pausable.sol
 abstract contract Pausable is Initializable, PausableStorageV1 {
+    event Paused(address user);
+
+    event Unpaused(address user);
+
+    error PAUSED();
+
+    error UNPAUSED();
+
     function __Pausable_init(bool _paused) internal onlyInitializing {
         paused = _paused;
     }
 
     modifier whenPaused() {
-        require(paused, "NOT_PAUSED");
+        if (!paused) revert UNPAUSED();
         _;
     }
 
     modifier whenNotPaused() {
-        require(!paused, "PAUSED");
+        if (paused) revert PAUSED();
         _;
     }
-
-    event Paused(address user);
 
     function _pause() internal virtual whenNotPaused {
         paused = true;
 
         emit Paused(msg.sender);
     }
-
-    event Unpaused(address user);
 
     function _unpause() internal virtual whenPaused {
         paused = false;

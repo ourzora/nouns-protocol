@@ -9,26 +9,32 @@ contract OwnableStorageV1 {
 }
 
 abstract contract Ownable is Initializable, OwnableStorageV1 {
-    event OwnerUpdated(address prevOwner, address newOwner);
+    event OwnerUpdated(address indexed prevOwner, address indexed newOwner);
 
-    event OwnerPending(address owner, address pendingOwner);
+    event OwnerPending(address indexed owner, address indexed pendingOwner);
 
-    event OwnerCanceled(address owner, address canceledOwner);
+    event OwnerCanceled(address indexed owner, address indexed canceledOwner);
+
+    error ONLY_OWNER();
+
+    error ONLY_PENDING_OWNER();
+
+    error INCORRECT_PENDING_OWNER();
+
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert ONLY_OWNER();
+        _;
+    }
+
+    modifier onlyPendingOwner() {
+        if (msg.sender != pendingOwner) revert ONLY_PENDING_OWNER();
+        _;
+    }
 
     function __Ownable_init(address _owner) internal onlyInitializing {
         owner = _owner;
 
         emit OwnerUpdated(address(0), _owner);
-    }
-
-    modifier onlyOwner() {
-        require(msg.sender == owner, "ONLY_OWNER");
-        _;
-    }
-
-    modifier onlyPendingOwner() {
-        require(msg.sender == pendingOwner, "ONLY_PENDING_OWNER");
-        _;
     }
 
     function transferOwnership(address _newOwner) public onlyOwner {
@@ -44,7 +50,7 @@ abstract contract Ownable is Initializable, OwnableStorageV1 {
     }
 
     function cancelOwnershipTransfer(address _pendingOwner) public onlyOwner {
-        require(_pendingOwner == pendingOwner, "INVALID_PENDING_OWNER");
+        if (_pendingOwner != pendingOwner) revert INCORRECT_PENDING_OWNER();
 
         emit OwnerCanceled(owner, _pendingOwner);
 
