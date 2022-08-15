@@ -21,53 +21,91 @@ contract ERC721StorageV1 {
 }
 
 abstract contract ERC721 is Initializable, ERC721StorageV1 {
+    ///                                                          ///
+    ///                            EVENTS                        ///
+    ///                                                          ///
+
     event Approval(address indexed owner, address indexed spender, uint256 indexed tokenId);
 
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
 
     event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
 
-    function __ERC721_init(string memory _name, string memory _symbol) internal onlyInitializing {
-        name = _name;
-        symbol = _symbol;
-    }
+    ///                                                          ///
+    ///                            ERRORS                        ///
+    ///                                                          ///
+
+    error INVALID_ADDRESS();
+
+    error NO_OWNER();
+
+    error NOT_AUTHORIZED();
+
+    error WRONG_OWNER();
+
+    error INVALID_RECIPIENT();
+
+    error ALREADY_MINTED();
+
+    error NOT_MINTED();
+
+    ///                                                          ///
+    ///                           FUNCTIONS                      ///
+    ///                                                          ///
 
     function tokenURI(uint256 _tokenId) public view virtual returns (string memory) {}
 
     function contractURI() public view virtual returns (string memory) {}
 
-    function supportsInterface(bytes4 _interfaceId) public view virtual returns (bool) {
+    function _beforeTokenTransfer(
+        address _from,
+        address _to,
+        uint256 _tokenId
+    ) internal virtual {}
+
+    function _afterTokenTransfer(
+        address _from,
+        address _to,
+        uint256 _tokenId
+    ) internal virtual {}
+
+    function __ERC721_init(string memory _name, string memory _symbol) internal onlyInitializing {
+        name = _name;
+        symbol = _symbol;
+    }
+
+    function supportsInterface(bytes4 _interfaceId) public pure returns (bool) {
         return
             _interfaceId == 0x01ffc9a7 || // ERC165 Interface ID
             _interfaceId == 0x80ac58cd || // ERC721 Interface ID
             _interfaceId == 0x5b5e139f; // ERC721Metadata Interface ID
     }
 
-    function balanceOf(address _owner) public view virtual returns (uint256) {
-        require(_owner != address(0), "ZERO_ADDRESS");
+    function balanceOf(address _owner) public view returns (uint256) {
+        if (_owner == address(0)) revert INVALID_ADDRESS();
 
         return _balanceOf[_owner];
     }
 
-    function ownerOf(uint256 _tokenId) public view virtual returns (address) {
+    function ownerOf(uint256 _tokenId) public view returns (address) {
         address owner = _ownerOf[_tokenId];
 
-        require(owner != address(0), "NO_OWNER");
+        if (owner == address(0)) revert NO_OWNER();
 
         return owner;
     }
 
-    function approve(address _to, uint256 _tokenId) public virtual {
+    function approve(address _to, uint256 _tokenId) public {
         address owner = _ownerOf[_tokenId];
 
-        require(msg.sender == owner || isApprovedForAll[owner][msg.sender], "NOT_AUTHORIZED");
+        if (msg.sender != owner && !isApprovedForAll[owner][msg.sender]) revert NOT_AUTHORIZED();
 
         getApproved[_tokenId] = _to;
 
         emit Approval(owner, _to, _tokenId);
     }
 
-    function setApprovalForAll(address _operator, bool _approved) public virtual {
+    function setApprovalForAll(address _operator, bool _approved) public {
         isApprovedForAll[msg.sender][_operator] = _approved;
 
         emit ApprovalForAll(msg.sender, _operator, _approved);
@@ -77,12 +115,12 @@ abstract contract ERC721 is Initializable, ERC721StorageV1 {
         address _from,
         address _to,
         uint256 _tokenId
-    ) public virtual {
-        require(_from == _ownerOf[_tokenId], "WRONG_FROM");
+    ) public {
+        if (_from != _ownerOf[_tokenId]) revert WRONG_OWNER();
 
-        require(_to != address(0), "INVALID_RECIPIENT");
+        if (_to == address(0)) revert INVALID_RECIPIENT();
 
-        require(msg.sender == _from || isApprovedForAll[_from][msg.sender] || msg.sender == getApproved[_tokenId], "NOT_AUTHORIZED");
+        if (msg.sender != _from && !isApprovedForAll[_from][msg.sender] && msg.sender != getApproved[_tokenId]) revert NOT_AUTHORIZED();
 
         _beforeTokenTransfer(_from, _to, _tokenId);
 
@@ -105,14 +143,13 @@ abstract contract ERC721 is Initializable, ERC721StorageV1 {
         address _from,
         address _to,
         uint256 _tokenId
-    ) public virtual {
+    ) public {
         transferFrom(_from, _to, _tokenId);
 
-        require(
-            !Address.isContract(_to) ||
-                ERC721TokenReceiver(_to).onERC721Received(msg.sender, _from, _tokenId, "") == ERC721TokenReceiver.onERC721Received.selector,
-            "UNSAFE_RECIPIENT"
-        );
+        if (
+            Address.isContract(_to) &&
+            ERC721TokenReceiver(_to).onERC721Received(msg.sender, _from, _tokenId, "") != ERC721TokenReceiver.onERC721Received.selector
+        ) revert INVALID_RECIPIENT();
     }
 
     function safeTransferFrom(
@@ -120,20 +157,19 @@ abstract contract ERC721 is Initializable, ERC721StorageV1 {
         address _to,
         uint256 _tokenId,
         bytes calldata _data
-    ) public virtual {
+    ) public {
         transferFrom(_from, _to, _tokenId);
 
-        require(
-            !Address.isContract(_to) ||
-                ERC721TokenReceiver(_to).onERC721Received(msg.sender, _from, _tokenId, _data) == ERC721TokenReceiver.onERC721Received.selector,
-            "UNSAFE_RECIPIENT"
-        );
+        if (
+            Address.isContract(_to) &&
+            ERC721TokenReceiver(_to).onERC721Received(msg.sender, _from, _tokenId, _data) != ERC721TokenReceiver.onERC721Received.selector
+        ) revert INVALID_RECIPIENT();
     }
 
     function _mint(address _to, uint256 _tokenId) internal virtual {
-        require(_to != address(0), "INVALID_RECIPIENT");
+        if (_to == address(0)) revert INVALID_RECIPIENT();
 
-        require(_ownerOf[_tokenId] == address(0), "ALREADY_MINTED");
+        if (_ownerOf[_tokenId] != address(0)) revert ALREADY_MINTED();
 
         _beforeTokenTransfer(address(0), _to, _tokenId);
 
@@ -151,7 +187,7 @@ abstract contract ERC721 is Initializable, ERC721StorageV1 {
     function _burn(uint256 _tokenId) internal virtual {
         address owner = _ownerOf[_tokenId];
 
-        require(owner != address(0), "NOT_MINTED");
+        if (owner == address(0)) revert NOT_MINTED();
 
         _beforeTokenTransfer(owner, address(0), _tokenId);
 
@@ -167,16 +203,4 @@ abstract contract ERC721 is Initializable, ERC721StorageV1 {
 
         _afterTokenTransfer(owner, address(0), _tokenId);
     }
-
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal virtual {}
-
-    function _afterTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal virtual {}
 }
