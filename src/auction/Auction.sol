@@ -1,80 +1,80 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.15;
 
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {PausableUpgradeable} from "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {UUPS} from "../lib/proxy/UUPS.sol";
+import {Ownable} from "../lib/utils/Ownable.sol";
+import {ReentrancyGuard} from "../lib/utils/ReentrancyGuard.sol";
+import {Pausable} from "../lib/utils/Pausable.sol";
+import {Cast} from "../lib/utils/Cast.sol";
 
 import {AuctionStorageV1} from "./storage/AuctionStorageV1.sol";
+import {Token} from "../token/Token.sol";
 import {IAuction} from "./IAuction.sol";
-import {IToken} from "../token/IToken.sol";
-import {IWETH} from "../token/external/IWETH.sol";
-import {IUpgradeManager} from "../upgrade/IUpgradeManager.sol";
+import {IERC20} from "../lib/interfaces/IERC20.sol";
+import {IWETH} from "../lib/interfaces/IWETH.sol";
 
-/// @title Nounish Auction
+import {IManager} from "../manager/IManager.sol";
+
+/// @title Auction
 /// @author Rohan Kulkarni
-/// @notice Modified version of NounsAuctionHouse.sol (commit 2cbe6c7) that Nouns licensed under the GPL-3.0 license
-contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradeable, PausableUpgradeable, AuctionStorageV1 {
+/// @notice This contract is
+contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
-    /// @notice The contract upgrade manager
-    IUpgradeManager private immutable upgradeManager;
-
-    /// @notice The WETH token address
-    address private immutable WETH;
-
-    /// @notice The Nouns DAO address
+    /// @notice The address of the Nouns DAO Treasury
     address public immutable nounsDAO;
 
-    /// @notice The Nouns Builder DAO address
-    address public immutable nounsBuilderDAO;
+    /// @notice The address of the Builder DAO Treasury
+    address public immutable builderDAO;
 
-    /// @notice The Nouns DAO Fee
-    uint256 public immutable nounsDAOFeeBPS;
+    /// @notice The address of the Zora DAO Treasury
+    address public immutable zoraDAO;
 
-    /// @notice The Nouns Builder DAO Fee
-    uint256 public immutable nounsBuilderDAOFeeBPS;
+    /// @notice The address of WETH
+    address private immutable WETH;
+
+    /// @notice The contract upgrade manager
+    IManager private immutable manager;
 
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
-    /// @param _upgradeManager The address of the contract upgrade manager
-    /// @param _weth The WETH token address
-    /// @param _nounsDAO The address of the Nouns Treasury
-    /// @param _nounsDAOFeeBPS The Nouns DAO Fee
-    /// @param _nounsBuilderDAO The address of the Nouns Builder
-    /// @param _nounsBuilderDAOFeeBPS The Nouns Builder DAO Fee
+    /// @param _manager The address of the contract upgrade manager
+    /// @param _weth The address of WETH
+    /// @param _nounsDAO The address of the Nouns DAO Treasury
+    /// @param _builderDAO The address of the Builder DAO Treasury
+    /// @param _zoraDAO The address of the Zora DAO Treausury
     constructor(
-        address _upgradeManager,
+        address _manager,
         address _weth,
         address _nounsDAO,
-        uint256 _nounsDAOFeeBPS,
-        address _nounsBuilderDAO,
-        uint256 _nounsBuilderDAOFeeBPS
+        address _builderDAO,
+        address _zoraDAO
     ) payable initializer {
-        upgradeManager = IUpgradeManager(_upgradeManager);
+        manager = IManager(_manager);
         WETH = _weth;
 
         nounsDAO = _nounsDAO;
-        nounsDAOFeeBPS = _nounsDAOFeeBPS;
-
-        nounsBuilderDAO = _nounsBuilderDAO;
-        nounsBuilderDAOFeeBPS = _nounsBuilderDAOFeeBPS;
+        builderDAO = _builderDAO;
+        zoraDAO = _zoraDAO;
     }
 
     ///                                                          ///
     ///                          INITIALIZER                     ///
     ///                                                          ///
 
-    ///
+    /// @notice Initializes a DAO's auction house
+    /// @param _token The ERC-721 token address
+    /// @param _founder The founder responsible for starting the first auction
+    /// @param _treasury The timelock address where ETH will be sent
+    /// @param _duration The duration of each auction
+    /// @param _reservePrice The reserve price of each auction
     function initialize(
         address _token,
-        address _foundersDAO,
+        address _founder,
         address _treasury,
         uint256 _duration,
         uint256 _reservePrice
@@ -82,99 +82,88 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         // Initialize the reentrancy guard
         __ReentrancyGuard_init();
 
-        // Initialize ownership of the contract
-        __Ownable_init();
+        // Grant initial ownership to a founder to unpause the auction house when ready
+        __Ownable_init(_founder);
 
-        // Pause the contract
-        _pause();
+        // Pause the contract until the first auction is ready to begin
+        __Pausable_init(true);
 
-        // Transfer initial ownership to the founders
-        transferOwnership(_foundersDAO);
+        // Store the address of the ERC-721 token that will be bid on
+        token = Token(_token);
 
-        // Store the associated token
-        token = IToken(_token);
-
-        // Store the auction house config
-        house.treasury = _treasury;
-        house.duration = uint40(_duration);
-        house.timeBuffer = 5 minutes;
-        house.minBidIncrementPercentage = 10;
-        house.reservePrice = _reservePrice;
+        // Store the auction house settings
+        settings.duration = Cast.toUint40(_duration);
+        settings.reservePrice = _reservePrice;
+        settings.treasury = _treasury;
+        settings.timeBuffer = 5 minutes;
+        settings.minBidIncrement = 10;
     }
 
     ///                                                          ///
     ///                          CREATE BID                      ///
     ///                                                          ///
 
-    /// @notice Emitted when a bid is placed
-    /// @param tokenId The ERC-721 token id
-    /// @param bidder The address of the bidder
-    /// @param amount The amount of ETH
-    /// @param extended If the bid extended the auction
-    /// @param endTime The end time of the auction
-    event AuctionBid(uint256 tokenId, address bidder, uint256 amount, bool extended, uint256 endTime);
-
     /// @notice Creates a bid for the current token
     /// @param _tokenId The ERC-721 token id
     function createBid(uint256 _tokenId) external payable nonReentrant {
-        // Get the auction in memory
-        IAuction.Auction memory _auction = auction;
+        // Get the current auction in memory
+        Auction memory _auction = auction;
 
-        // Ensure the bid is for the current token id
-        require(_auction.tokenId == _tokenId, "INVALID_TOKEN_ID");
+        // Ensure the bid is for the right token id
+        if (_auction.tokenId != _tokenId) revert INVALID_TOKEN_ID();
 
-        // Ensure the auction is active
-        require(block.timestamp < _auction.endTime, "AUCTION_EXPIRED");
+        // Ensure the auction is still active
+        if (block.timestamp >= _auction.endTime) revert AUCTION_OVER();
 
-        // Cache the highest bidder
-        address lastBidder = _auction.highestBidder;
+        // Cache the address of the highest bidder
+        address highestBidder = _auction.highestBidder;
 
         // If this is the first bid:
-        if (lastBidder == address(0)) {
+        if (highestBidder == address(0)) {
             // Ensure the bid meets the reserve price
-            require(msg.value >= house.reservePrice, "RESERVE_PRICE_NOT_MET");
+            if (msg.value < settings.reservePrice) revert RESERVE_PRICE_NOT_MET();
 
             // Else for a subsequent bid:
         } else {
-            // Cache the previous bid
+            // Cache the amount of the previous bid
             uint256 prevBid = _auction.highestBid;
 
-            // Used to store the next bid minimum
-            uint256 nextBidMin;
+            // Used to store the minimum amount required to place the current bid
+            uint256 currentBidMin;
 
-            // Calculate the amount of ETH required to place the next bid
+            // Compute the minimum amount
             unchecked {
-                nextBidMin = prevBid + ((prevBid * house.minBidIncrementPercentage) / 100);
+                currentBidMin = prevBid + ((prevBid * settings.minBidIncrement) / 100);
             }
 
-            // Ensure the bid meets the minimum
-            require(msg.value >= nextBidMin, "MIN_BID_NOT_MET");
+            // Ensure the bid meets the amount
+            if (msg.value < currentBidMin) revert MINIMUM_BID_NOT_MET();
 
             // Refund the previous bidder
-            _handleOutgoingTransfer(lastBidder, prevBid);
+            _handleOutgoingTransfer(highestBidder, prevBid);
         }
 
-        // Store the attached ETH as the highest bid
+        // Store the attached amount of ETH as the new highest bid
         auction.highestBid = msg.value;
 
-        // Store the caller as the highest bidder
+        // Store the caller as the new highest bidder
         auction.highestBidder = msg.sender;
 
         // Used to store if the auction will be extended
         bool extend;
 
-        // Cannot underflow as `block.timestamp` is ensured to be less than `_auction.endTime`
+        // Cannot underflow as the end time is ensured to be greater than the current time
         unchecked {
-            // Get if the bid was placed within the time buffer of the auction end
-            extend = (_auction.endTime - block.timestamp) < house.timeBuffer;
+            // Compute whether the bid was placed within the time buffer of the auction end
+            extend = (_auction.endTime - block.timestamp) < settings.timeBuffer;
         }
 
-        // If the auction will be extended:
+        // If the auction is valid to extend:
         if (extend) {
-            // Cannot overflow on human timescales
+            // Cannot realistically overflow
             unchecked {
-                // Add to the current time so that the time buffer remains
-                auction.endTime = _auction.endTime = uint40(block.timestamp + house.timeBuffer);
+                // Add the time buffer to the auction's previous end time
+                auction.endTime = _auction.endTime = uint40(block.timestamp + settings.timeBuffer);
             }
         }
 
@@ -182,14 +171,8 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     }
 
     ///                                                          ///
-    ///                         SETTLE AUCTION                   ///
+    ///                     SETTLE & CREATE AUCTION              ///
     ///                                                          ///
-
-    /// @notice Emitted when an auction is settled
-    /// @param tokenId The ERC-721 token id of the settled auction
-    /// @param winner The address of the winning bidder
-    /// @param amount The amount of ETH raised from the winning bid
-    event AuctionSettled(uint256 tokenId, address winner, uint256 amount);
 
     /// @notice Settles the current auction and creates the next one
     function settleCurrentAndCreateNewAuction() external nonReentrant whenNotPaused {
@@ -197,48 +180,39 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         _createAuction();
     }
 
-    /// @notice Settles the current auction when the contract is paused
-    function settleAuction() external nonReentrant whenPaused {
-        _settleAuction();
-    }
-
     /// @dev Settles the current auction
-    function _settleAuction() internal {
+    function _settleAuction() private {
         // Get the current auction in memory
-        IAuction.Auction memory _auction = auction;
+        Auction memory _auction = auction;
 
-        // Ensure the auction started
-        require(_auction.startTime != 0, "AUCTION_NOT_STARTED");
+        // Ensure the auction began
+        if (_auction.startTime == 0) revert AUCTION_NOT_STARTED();
 
         // Ensure the auction ended
-        require(block.timestamp >= _auction.endTime, "AUCTION_NOT_OVER");
+        if (block.timestamp < _auction.endTime) revert AUCTION_NOT_OVER();
 
         // Ensure the auction was not already settled
-        require(!_auction.settled, "AUCTION_SETTLED");
+        if (auction.settled) revert AUCTION_SETTLED();
 
         // Mark the auction as settled
         auction.settled = true;
 
         // If a bid was placed:
         if (_auction.highestBidder != address(0)) {
-            // Cache the highest bid amount
+            // Cache the amount of the highest bid
             uint256 highestBid = _auction.highestBid;
 
             // If the highest bid included ETH:
             if (highestBid > 0) {
-                // Calculate the profit after fees
-                uint256 remainingProfit = _handleNounsFees(highestBid);
+                // Compute the profit remaining after splits
+                uint256 remainingProfit = _handleSplits(highestBid);
 
                 // Transfer the profit to the DAO treasury
-                _handleOutgoingTransfer(house.treasury, remainingProfit);
+                _handleOutgoingTransfer(settings.treasury, remainingProfit);
             }
 
             // Transfer the token to the highest bidder
             token.transferFrom(address(this), _auction.highestBidder, _auction.tokenId);
-
-            // Delegate voting power to the winning bidder
-            // This removes the need for a user to self-delegate their vote
-            token.autoDelegate(_auction.highestBidder);
 
             // Else no bid was placed:
         } else {
@@ -249,45 +223,37 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
         emit AuctionSettled(_auction.tokenId, _auction.highestBidder, _auction.highestBid);
     }
 
-    ///                                                          ///
-    ///                         CREATE AUCTION                   ///
-    ///                                                          ///
-
-    /// @notice Emitted when an auction is created
-    /// @param tokenId The ERC-721 token id of the created auction
-    /// @param startTime The start time of the created auction
-    /// @param endTime The end time of the created auction
-    event AuctionCreated(uint256 tokenId, uint256 startTime, uint256 endTime);
-
-    /// @notice Creates an auction for the next token
-    function _createAuction() internal {
-        // Mint the next token either to this contract for bidding or to the founders if valid for vesting
+    /// @dev Creates an auction for the next token
+    function _createAuction() private {
+        // Get the next token available for bidding
         try token.mint() returns (uint256 tokenId) {
-            //
+            // Store the token id
             auction.tokenId = tokenId;
 
-            //
+            // Cache the current block time
             uint256 startTime = block.timestamp;
 
-            //
+            // Used to store the auction end time
             uint256 endTime;
 
-            //
+            // Cannot realistically overflow
             unchecked {
-                endTime = startTime + house.duration;
+                // Compute the auction end time
+                endTime = startTime + settings.duration;
             }
 
-            //
-            auction.startTime = uint40(startTime); // block.timestamp
-            auction.endTime = uint40(endTime); // block.timestamp + duration
+            // Store the auction start and end time
+            auction.startTime = uint40(startTime);
+            auction.endTime = uint40(endTime);
 
+            // Reset previous auction data
             auction.highestBid = 0;
             auction.highestBidder = address(0);
             auction.settled = false;
 
             emit AuctionCreated(tokenId, startTime, endTime);
 
-            // If the `auction` address on the `token` contract was updated without pausing this contract first:
+            // Pause the contract if token minting failed
         } catch Error(string memory) {
             _pause();
         }
@@ -297,164 +263,138 @@ contract Auction is UUPSUpgradeable, ReentrancyGuardUpgradeable, OwnableUpgradea
     ///                             PAUSE                        ///
     ///                                                          ///
 
-    /// @notice Pause the auction house
-    function pause() external onlyOwner {
-        _pause();
-    }
-
-    // TODO optimize logic
-    /// @notice Unpause the auction house
+    /// @notice Unpauses the auction house
     function unpause() external onlyOwner {
         _unpause();
 
         // If this is the first auction:
         if (auction.tokenId == 0) {
-            // Transfer ownership to the treasury
-            _transferOwnership(house.treasury);
+            // Transfer ownership of the contract to the DAO
+            transferOwnership(settings.treasury);
 
-            // Create a new auction
+            // Start the first auction
             _createAuction();
         }
-        // If the contract was paused and the previous auction was settled:
+        // Else if the contract was paused and the previous auction was settled:
         else if (auction.settled) {
-            // Create a new auction
+            // Start the next auction
             _createAuction();
         }
     }
 
+    /// @notice Pauses the auction house
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    /// @notice Settles the last auction when the contract is paused
+    function settleAuction() external nonReentrant whenPaused {
+        _settleAuction();
+    }
+
     ///                                                          ///
-    ///                        UPDATE DURATION                   ///
+    ///                       UPDATE SETTINGS                    ///
     ///                                                          ///
 
-    /// @notice Emitted when the auction duration is updated
-    /// @param duration The new auction duration
-    event DurationUpdated(uint256 duration);
-
-    /// @notice Updates the auction duration
+    /// @notice Updates the time duration of each auction
     /// @param _duration The duration to set
     function setDuration(uint256 _duration) external onlyOwner {
-        require(_duration < type(uint40).max, "INVALID_DURATION");
-
-        house.duration = uint40(_duration);
+        settings.duration = Cast.toUint40(_duration);
 
         emit DurationUpdated(_duration);
     }
 
-    ///                                                          ///
-    ///                     UPDATE RESERVE PRICE                 ///
-    ///                                                          ///
-
-    /// @notice Emitted when the reserve price is updated
-    /// @param reservePrice The new reserve price
-    event ReservePriceUpdated(uint256 reservePrice);
-
-    /// @notice Updates the reserve price
-    /// @param _reservePrice The new reserve price to set
+    /// @notice Updates the reserve price of each auction
+    /// @param _reservePrice The reserve price to set
     function setReservePrice(uint256 _reservePrice) external onlyOwner {
-        house.reservePrice = _reservePrice;
+        settings.reservePrice = _reservePrice;
 
         emit ReservePriceUpdated(_reservePrice);
     }
 
-    ///                                                          ///
-    ///                      UPDATE BID INCREMENT                ///
-    ///                                                          ///
+    /// @notice Updates the minimum percentage increment required of each bid
+    /// @param _percentage The percentage to set
+    function setMinimumBidIncrement(uint256 _percentage) external onlyOwner {
+        settings.minBidIncrement = Cast.toUint8(_percentage);
 
-    /// @notice Emitted when the min bid increment percentage is updated
-    /// @param minBidIncrementPercentage The new min bid increment percentage
-    event MinBidIncrementPercentageUpdated(uint256 minBidIncrementPercentage);
-
-    /// @notice Updates the minimum bid increment percentage
-    /// @param _minBidIncrementPercentage The new min bid increment percentage to set
-    function setMinBidIncrementPercentage(uint256 _minBidIncrementPercentage) external onlyOwner {
-        require(_minBidIncrementPercentage < type(uint16).max, "INVALID_BID_INCREMENT");
-
-        house.minBidIncrementPercentage = uint16(_minBidIncrementPercentage);
-
-        emit MinBidIncrementPercentageUpdated(_minBidIncrementPercentage);
+        emit MinBidIncrementPercentageUpdated(_percentage);
     }
 
-    ///                                                          ///
-    ///                       UPDATE TIME BUFFER                 ///
-    ///                                                          ///
-
-    /// @notice Emitted when the time buffer is updated
-    /// @param timeBuffer The new time buffer
-    event TimeBufferUpdated(uint256 timeBuffer);
-
-    /// @notice Updates the time buffer
-    /// @param _timeBuffer The new time buffer to set
+    /// @notice Updates the time buffer of each auction
+    /// @param _timeBuffer The time buffer to set
     function setTimeBuffer(uint256 _timeBuffer) external onlyOwner {
-        require(_timeBuffer < type(uint40).max, "INVALID_TIME_BUFFER");
-
-        house.timeBuffer = uint40(_timeBuffer);
+        settings.timeBuffer = Cast.toUint40(_timeBuffer);
 
         emit TimeBufferUpdated(_timeBuffer);
     }
 
     ///                                                          ///
-    ///                          ETH TRANSFER                    ///
+    ///                        TRANSFER UTILS                    ///
     ///                                                          ///
 
-    /// @notice Transfer ETH/WETH outbound from this contract
-    /// @param _dest The address of the destination
-    /// @param _amount The amount of ETH to transfer
-    function _handleOutgoingTransfer(address _dest, uint256 _amount) internal {
-        // Ensure the contract holds enough ETH
-        require(address(this).balance >= _amount, "INSOLVENT");
+    /// @notice Transfer ETH/WETH from the contract
+    /// @param _to The recipient address
+    /// @param _amount The amount transferring
+    function _handleOutgoingTransfer(address _to, uint256 _amount) private {
+        // Ensure the contract has enough balance
+        if (address(this).balance < _amount) revert INSOLVENT();
 
-        // Transfer the given amount of ETH to the given destination
-        (bool success, ) = _dest.call{value: _amount, gas: 50_000}("");
+        // Used to store if the transfer succeeded
+        bool success;
 
-        // If the transfer fails:
+        assembly {
+            // Transfer ETH to the recipient
+            // Limit the call to 50,000 gas
+            success := call(50000, _to, _amount, 0, 0, 0, 0)
+        }
+
+        // If the transfer failed:
         if (!success) {
-            // Wrap the ETH as WETH
+            // Wrap as WETH
             IWETH(WETH).deposit{value: _amount}();
 
-            // Transfer as WETH instead
-            IERC20(WETH).transfer(_dest, _amount);
+            // Transfer WETH instead
+            IERC20(WETH).transfer(_to, _amount);
         }
     }
 
-    /// @dev Handles payouts to Nouns DAO and Nouns Builder DAO
-    /// @param _bid The amount of ETH raised from the winning bid
-    function _handleNounsFees(uint256 _bid) private returns (uint256 remainingProfit) {
-        // Calculate the Nouns DAO fee from the winning bid
-        uint256 nounsDAOFee = _computeFee(_bid, nounsDAOFeeBPS);
-
-        // Calculate the Nouns Builder DAO fee from the winning bid
-        uint256 nounsBuilderDAOFee = _computeFee(_bid, nounsBuilderDAOFeeBPS);
-
+    /// @dev Handles splits of winning bids to Builder DAO, Nouns DAO, and Zora DAO
+    /// @param _amount The winning bid
+    function _handleSplits(uint256 _amount) private returns (uint256 remainingProfit) {
+        // Cannot realistically overflow
         unchecked {
-            // Get the remaining profit after fees
-            remainingProfit = _bid - nounsDAOFee - nounsBuilderDAOFee;
-        }
+            // Compute the 2% total fee of the winning bid
+            uint256 totalFee = (_amount * 2) / 100;
 
-        // Transfer the Nouns DAO fee to Nouns DAO
-        _handleOutgoingTransfer(nounsDAO, nounsDAOFee);
+            // Compute the profit after the fee
+            remainingProfit = _amount - totalFee;
 
-        // Transfer the Nouns Builder DAO fee to Nouns Builder DAO
-        _handleOutgoingTransfer(nounsBuilderDAO, nounsBuilderDAOFee);
-    }
+            // Compute the 34% split of the total fee to Builder DAO
+            uint256 builderDAOSplit = (totalFee * 34) / 100;
 
-    /// @dev Computes a fee
-    /// @param _amount The base amount
-    /// @param _bps The fee in basis points
-    function _computeFee(uint256 _amount, uint256 _bps) private pure returns (uint256 fee) {
-        assembly {
-            fee := div(mul(_amount, _bps), 10000)
+            // Compute the 33% split of the total fee to both Nouns DAO and Zora DAO
+            uint256 nounsDAOAndZoraDAOSplit = (totalFee * 33) / 100;
+
+            // Transfer the Builder DAO split
+            _handleOutgoingTransfer(builderDAO, builderDAOSplit);
+
+            // Transfer the Nouns DAO split
+            _handleOutgoingTransfer(nounsDAO, nounsDAOAndZoraDAOSplit);
+
+            // Transfer the Zora DAO split
+            _handleOutgoingTransfer(zoraDAO, nounsDAOAndZoraDAOSplit);
         }
     }
 
     ///                                                          ///
-    ///                         PROXY UPGRADE                    ///
+    ///                       CONTRACT UPGRADE                   ///
     ///                                                          ///
 
-    /// @notice Ensures the caller is authorized to upgrade the contract to a valid implementation
-    /// @dev This function is called in UUPS `upgradeTo` & `upgradeToAndCall`
+    /// @notice Ensures the caller is authorized to upgrade the contract and the new implementation is valid
+    /// @dev This function is called in `upgradeTo` & `upgradeToAndCall`
     /// @param _newImpl The address of the new implementation
-    function _authorizeUpgrade(address _newImpl) internal override onlyOwner {
-        // Ensure the implementation is valid
-        require(upgradeManager.isValidUpgrade(_getImplementation(), _newImpl), "INVALID_UPGRADE");
+    function _authorizeUpgrade(address _newImpl) internal view override onlyOwner {
+        // Ensure the new implementation is registered by the Builder DAO
+        if (!manager.isValidUpgrade(_getImplementation(), _newImpl)) revert INVALID_UPGRADE(_newImpl);
     }
 }

@@ -1,12 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.15;
 
-import {IGovernor} from "../IGovernor.sol";
+import {GovernorTypesV1} from "../types/GovernorTypesV1.sol";
 
-/// @title Governor Storage V1
-/// @author Rohan Kulkarni
-/// @notice Modified version of NounsDAOInterfaces.sol (commit 2cbe6c7) that NounsDAO licensed under the GPL-3.0 license
-contract GovernorStorageV1 {
-    /// @notice The metadata of the governor
-    IGovernor.GovMeta public govMeta;
+contract GovernorStorageV1 is GovernorTypesV1 {
+    /// @notice The DAO governor settings
+    Settings internal settings;
+
+    /// @dev Proposal Id => Proposal
+    mapping(uint256 => Proposal) public proposals;
+
+    /// @dev Proposal Id => User => Has Voted
+    mapping(uint256 => mapping(address => bool)) internal hasVoted;
 }
