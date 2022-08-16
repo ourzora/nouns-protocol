@@ -20,52 +20,62 @@ contract E2ETest is NounsBuilderTest {
     }
 
     function test_InitialOwnership() public {
-        assertEq(token.owner(), foundersDAO);
-        assertEq(metadataRenderer.owner(), foundersDAO);
+        assertEq(token.owner(), founder);
+        assertEq(metadataRenderer.owner(), founder);
+        assertEq(auction.owner(), founder);
 
-        assertEq(auction.owner(), foundersDAO);
-
-        assertEq(treasury.hasRole(treasury.TIMELOCK_ADMIN_ROLE(), address(governor)), true);
-        assertEq(treasury.hasRole(treasury.TIMELOCK_ADMIN_ROLE(), address(deployer)), false);
-
-        assertEq(governor.owner(), address(treasury));
-        assertEq(governor.timelock(), address(treasury));
+        assertEq(timelock.owner(), address(governor));
+        assertEq(governor.owner(), address(timelock));
+        assertEq(governor.timelock(), address(timelock));
     }
 
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
     function test_FirstAuction() public {
-        vm.prank(foundersDAO);
+        vm.prank(founder);
         auction.unpause();
 
         assertEq(token.totalSupply(), 2);
-        assertEq(token.ownerOf(0), foundersDAO);
+        assertEq(token.ownerOf(0), founder);
         assertEq(token.ownerOf(1), address(auction));
-        assertEq(auction.auction().tokenId, 1);
+
+        (uint256 tokenId, , , , , ) = auction.auction();
+
+        assertEq(tokenId, 1);
 
         vm.prank(bidder1);
-        auction.createBid{value: 0.420 ether}(1);
+        auction.createBid{value: 1 ether}(1);
 
-        vm.warp(auction.house().duration + 1 seconds);
+        (, uint40 duration, , , ) = auction.settings();
+
+        vm.warp(duration + 1 seconds);
 
         auction.settleCurrentAndCreateNewAuction();
 
         assertEq(token.ownerOf(1), bidder1);
         assertEq(token.ownerOf(2), address(auction));
 
-        assertEq(nounsDAO.balance, 0.0042 ether); // 1% Nouns
-        assertEq(nounsBuilderDAO.balance, 0.0042 ether); // 1% Nouns Builder
-        assertEq(address(treasury).balance, 0.4116 ether); // 98% Treasury
+        assertEq(nounsDAO.balance, 0.0066 ether);
+        assertEq(zoraDAO.balance, 0.0066 ether);
+        assertEq(builderDAO.balance, 0.0068 ether);
+
+        assertEq(address(timelock).balance, 0.98 ether);
     }
 
     function test_ProposalVoteQueueExecution() public {
-        vm.prank(foundersDAO);
+        vm.prank(founder);
         auction.unpause();
 
         // Create bid
         vm.prank(bidder1);
         auction.createBid{value: 0.420 ether}(1);
 
+        (, uint40 duration, , , ) = auction.settings();
+
         // Transfer token
-        vm.warp(auction.house().duration + 1 seconds);
+        vm.warp(duration + 1 seconds);
         auction.settleCurrentAndCreateNewAuction();
 
         // Proposal target
@@ -80,18 +90,20 @@ contract E2ETest is NounsBuilderTest {
         calldatas[0] = abi.encodeWithSignature("pause()");
 
         // Proposal description hash
-        bytes32 descriptionHash = keccak256(bytes("hol up"));
+        bytes32 descriptionHash = keccak256(bytes("hold up"));
+
+        vm.warp(1 days);
 
         // Propose tx
         vm.prank(bidder1);
-        governor.propose(targets, values, calldatas, "hol up");
+        governor.propose(targets, values, calldatas, "hold up");
 
         // Proposal id
         uint256 proposalId = governor.hashProposal(targets, values, calldatas, descriptionHash);
 
         // Voting delay
         uint256 votingDelay = governor.votingDelay();
-        vm.roll(block.number + votingDelay + 1);
+        vm.warp(block.timestamp + votingDelay + 1);
 
         // Cast vote
         vm.prank(bidder1);
@@ -99,18 +111,18 @@ contract E2ETest is NounsBuilderTest {
 
         // Voting period
         uint256 votingPeriod = governor.votingPeriod();
-        vm.roll(block.number + votingPeriod);
+        vm.warp(block.timestamp + votingPeriod);
 
-        // // Queue tx
-        // vm.prank(bidder1);
-        // governor.queue(targets, values, calldatas, descriptionHash);
+        // Queue tx
+        vm.prank(bidder1);
+        governor.queue(proposalId);
 
-        // // Timelock delay
-        // vm.warp(block.timestamp + 2 days);
+        // Timelock delay
+        vm.warp(block.timestamp + 2 days);
 
-        // // Execute tx
-        // governor.execute(targets, values, calldatas, descriptionHash);
+        // Execute tx
+        governor.execute(targets, values, calldatas, descriptionHash);
 
-        // assertEq(auction.paused(), true);
+        assertEq(auction.paused(), true);
     }
 }
