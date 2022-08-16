@@ -1,19 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.15;
 
-import {IMetadataRenderer} from "../metadata/IMetadataRenderer.sol";
-import {IToken} from "../IToken.sol";
+import {MetadataRenderer} from "../metadata/MetadataRenderer.sol";
+import {TokenTypesV1} from "../types/TokenTypesV1.sol";
 
-contract TokenStorageV1 {
-    /// @notice The metadata renderer of the token
-    IMetadataRenderer public metadataRenderer;
-
-    /// @notice The metadata of the founders DAO
-    IToken.Founders public founders;
+contract TokenStorageV1 is TokenTypesV1 {
+    /// @notice The total number of tokens minted
+    uint256 public totalSupply;
 
     /// @notice The minter of the token
     address public auction;
 
-    /// @notice The total number of tokens minted
-    uint256 public totalSupply;
+    /// @notice The metadata renderer of the token
+    MetadataRenderer public metadataRenderer;
+
+    /// @notice The founders of the DAO
+    Founder[] public founders;
 }

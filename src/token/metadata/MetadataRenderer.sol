@@ -1,393 +1,362 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.15;
 
-import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {StringsUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/StringsUpgradeable.sol";
 import {LibUintToString} from "sol2string/contracts/LibUintToString.sol";
 import {UriEncode} from "sol-uriencode/src/UriEncode.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
+import {UUPS} from "../../lib/proxy/UUPS.sol";
+import {Ownable} from "../../lib/utils/Ownable.sol";
+import {Strings} from "../../lib/utils/Strings.sol";
+
 import {MetadataRendererStorageV1} from "./storage/MetadataRendererStorageV1.sol";
-import {IToken} from "../IToken.sol";
 import {IMetadataRenderer} from "./IMetadataRenderer.sol";
-import {IUpgradeManager} from "../../upgrade/IUpgradeManager.sol";
+import {IManager} from "../../manager/IManager.sol";
 
 /// @title Metadata Renderer
 /// @author Iain Nash & Rohan Kulkarni
-/// @notice
-contract MetadataRenderer is IMetadataRenderer, UUPSUpgradeable, OwnableUpgradeable, MetadataRendererStorageV1 {
+/// @notice This contract stores, renders, and generates the attributes for an associated token contract
+contract MetadataRenderer is IMetadataRenderer, UUPS, Ownable, MetadataRendererStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
     /// @notice The contract upgrade manager
-    IUpgradeManager private immutable upgradeManager;
+    IManager private immutable manager;
 
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
-    /// @dev Don't allow factory contract to be initialized
-    constructor(address _upgradeManager) payable initializer {
-        upgradeManager = IUpgradeManager(_upgradeManager);
+    /// @param _manager The address of the contract upgrade manager
+    constructor(address _manager) payable initializer {
+        manager = IManager(_manager);
     }
 
     ///                                                          ///
     ///                          INITIALIZER                     ///
     ///                                                          ///
 
+    /// @notice Initializes an instance of a DAO's metadata renderer
+    /// @param _initStrings The encoded token and metadata init strings
+    /// @param _token The address of the ERC-721 token
+    /// @param _founder The address of the founder responsible for adding
     function initialize(
         bytes calldata _initStrings,
         address _token,
-        address _foundersDAO,
+        address _founder,
         address _treasury
     ) external initializer {
-        // Initialize ownership
-        __Ownable_init();
-
-        // Store the token contract
-        token = IToken(_token);
-
-        // Store the DAO treasury
-        treasury = _treasury;
-
-        // Decode the contract strings
+        // Decode the token initialization strings
         (string memory _name, , string memory _description, string memory _contractImage, string memory _rendererBase) = abi.decode(
             _initStrings,
             (string, string, string, string, string)
         );
 
-        // Store the renderer config
-        name = _name;
-        description = _description;
-        contractImage = _contractImage;
-        rendererBase = _rendererBase;
+        // Store the renderer settings
+        settings.name = _name;
+        settings.description = _description;
+        settings.contractImage = _contractImage;
+        settings.rendererBase = _rendererBase;
+        settings.token = _token;
+        settings.treasury = _treasury;
 
-        // Transfer initial ownership to the founders
-        transferOwnership(_foundersDAO);
-    }
-
-    /// @notice getter for description field
-    function getDescription() external view returns (string memory) {
-        return description;
+        // Initialize ownership to the founder
+        __Ownable_init(_founder);
     }
 
     ///                                                          ///
-    ///                                                          ///
+    ///                     PROPERTIES & ITEMS                   ///
     ///                                                          ///
 
-    /// @notice Get the number of properties
-    /// @return count of properties
+    /// @notice The number of properties
     function propertiesCount() external view returns (uint256) {
         return properties.length;
     }
 
-    /// @notice Get the number of items in a property
-    /// @param _propertyId ID of the property to get items for
+    /// @notice The number of items in a property
+    /// @param _propertyId The property id
     function itemsCount(uint256 _propertyId) external view returns (uint256) {
         return properties[_propertyId].items.length;
     }
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
-    /// @notice Emitted when a property is added
-    /// @param id The id of the added property
-    /// @param name The name of the added property
-    event PropertyAdded(uint256 id, string name);
-
-    /// @notice Emitted when an item for a property is added
-    /// @param propertyId The id of the associated property
-    /// @param index The index of the item in its property
-    event ItemAdded(uint256 propertyId, uint256 index);
-
+    /// @notice Adds properties and/or items to be pseudo-randomly chosen from for token generation to choose from attribute generations
+    /// @param _names The names of the properties to add
+    /// @param _items The items to add to each property
+    /// @param _ipfsGroup The IPFS base URI and extension
     function addProperties(
         string[] calldata _names,
         ItemParam[] calldata _items,
         IPFSGroup calldata _ipfsGroup
     ) external onlyOwner {
-        // Cache data length
-        uint256 dataLength = data.length;
+        // Cache the existing amount of IPFS data stored
+        uint256 dataLength = ipfsData.length;
 
-        // Add IPFS group information
-        data.push(_ipfsGroup);
+        // If this is the first time adding properties and/or items:
+        if (dataLength == 0) {
+            // Transfer ownership to the DAO treasury
+            transferOwnership(settings.treasury);
+        }
 
-        // Cache the number of properties that already exist
+        // Add the IPFS group information
+        ipfsData.push(_ipfsGroup);
+
+        // Cache the number of existing properties
         uint256 numStoredProperties = properties.length;
 
-        // Cache the number of new properties to add
+        // Cache the number of new properties adding
         uint256 numNewProperties = _names.length;
 
-        // Cache the number of new items to add
+        // Cache the number of new items adding
         uint256 numNewItems = _items.length;
 
-        // Used to store each new property id
-        uint256 propertyId;
+        unchecked {
+            // For each new property:
+            for (uint256 i = 0; i < numNewProperties; ++i) {
+                // Append storage space
+                properties.push();
 
-        // For each new property:
-        for (uint256 i = 0; i < numNewProperties; ) {
-            // Append one slot of storage space
-            properties.push();
-
-            unchecked {
                 // Compute the property id
-                propertyId = numStoredProperties + i;
+                uint256 propertyId = numStoredProperties + i;
+
+                // Store the property name
+                properties[propertyId].name = _names[i];
+
+                emit PropertyAdded(propertyId, _names[i]);
             }
 
-            // Store the property name
-            properties[propertyId].name = _names[i];
+            // For each new item:
+            for (uint256 i = 0; i < numNewItems; ++i) {
+                // Cache the associated property id
+                uint256 _propertyId = _items[i].propertyId;
 
-            emit PropertyAdded(propertyId, name);
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        // For each new item:
-        for (uint256 i = 0; i < numNewItems; ) {
-            // Cache its property id
-            uint256 _propertyId = _items[i].propertyId;
-
-            // 100 - x = uses only new properties x >= 100
-            // x = uses current properties where x < 100
-
-            // Offset the IDs for new properties
-            if (_items[i].isNewProperty) {
-                //
-                unchecked {
+                // Offset the IDs for new properties
+                if (_items[i].isNewProperty) {
                     _propertyId += numStoredProperties;
                 }
-            }
 
-            // Get the storage location of its property's items
-            // Property IDs under the hood are offset by 1
-            Item[] storage propertyItems = properties[_propertyId].items;
+                // Get the storage location of the other items for the property
+                // Property IDs under the hood are offset by 1
+                Item[] storage propertyItems = properties[_propertyId].items;
 
-            // Append one slot of storage space
-            propertyItems.push();
+                // Append storage space
+                propertyItems.push();
 
-            // Used to store the new item
-            Item storage newItem;
+                // Get the index of the
+                // Cannot underflow as the array push() ensures the length to be at least 1
+                uint256 newItemIndex = propertyItems.length - 1;
 
-            // Used to store the index of the new item
-            uint256 newItemIndex;
+                // Store the new item
+                Item storage newItem = propertyItems[newItemIndex];
 
-            // Cannot underflow as `propertyItems.length` is ensured to be at least 1
-            unchecked {
-                newItemIndex = propertyItems.length - 1;
-            }
+                // Store its associated metadata
+                newItem.name = _items[i].name;
+                newItem.referenceSlot = uint16(dataLength);
 
-            // Store the new item
-            newItem = propertyItems[newItemIndex];
-
-            // Store its associated metadata
-            newItem.name = _items[i].name;
-            newItem.referenceSlot = uint16(dataLength);
-
-            emit ItemAdded(_propertyId, newItemIndex);
-
-            unchecked {
-                ++i;
+                emit ItemAdded(_propertyId, newItemIndex);
             }
         }
     }
 
-    /// @notice Generates token information
-    /// @param _tokenId id of the token to generate
+    ///                                                          ///
+    ///                     ATTRIBUTE GENERATION                 ///
+    ///                                                          ///
+
+    /// @notice Generates attributes for a token
+    /// @dev Called by the token upon mint()
+    /// @param _tokenId The ERC-721 token id
     function generate(uint256 _tokenId) external {
         // Ensure the caller is the token contract
-        require(msg.sender == address(token), "ONLY_TOKEN");
+        if (msg.sender != settings.token) revert ONLY_TOKEN();
 
-        // Compute some randomness
-        uint256 entropy = _getEntropy(_tokenId);
+        // Compute some randomness for the token id
+        uint256 seed = _generateSeed(_tokenId);
 
-        // Get the storage location for the token attributes
+        // Get the location to where the attributes should be stored after generation
         uint16[16] storage tokenAttributes = attributes[_tokenId];
 
-        // Cache the number of properties to choose from
+        // Cache the number of total properties to choose from
         uint256 numProperties = properties.length;
 
-        // Store that number for future reference
+        // Store the number of properties in the first slot of the token's array for reference
         tokenAttributes[0] = uint16(numProperties);
 
-        // Used to store the number of items choosing from each property
+        // Used to store the number of items in each property
         uint256 numItems;
 
-        // For each property:
-        for (uint256 i = 0; i < numProperties; ) {
-            // Get the number of items
-            numItems = properties[i].items.length;
+        unchecked {
+            // For each property:
+            for (uint256 i = 0; i < numProperties; ++i) {
+                // Get the number of items to choose from
+                numItems = properties[i].items.length;
 
-            unchecked {
-                // Use the previously generated randomness to choose one item in the property
-                tokenAttributes[i + 1] = uint16(entropy % numItems);
+                // Use the token's seed to selec an item
+                tokenAttributes[i + 1] = uint16(seed % numItems);
 
                 // Adjust the randomness
-                entropy >>= 16;
-
-                ++i;
+                seed >>= 16;
             }
         }
     }
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
+    /// @notice The properties and query string for a generated token
+    /// @param _tokenId The ERC-721 token id
+    function getAttributes(uint256 _tokenId) public view returns (bytes memory aryAttributes, bytes memory queryString) {
+        // Compute its query string
+        queryString = abi.encodePacked(
+            "?contractAddress=",
+            Strings.toHexString(uint256(uint160(address(this))), 20),
+            "&tokenId=",
+            Strings.toString(_tokenId)
+        );
 
-    function _getEntropy(uint256 seed) private view returns (uint256) {
-        return uint256(keccak256(abi.encode(seed, blockhash(block.number), block.coinbase, block.timestamp)));
+        // Get the attributes for the given token
+        uint16[16] memory tokenAttributes = attributes[_tokenId];
+
+        // Cache the number of properties stored when the token was minted
+        uint256 numProperties = tokenAttributes[0];
+
+        // Ensure the token
+        if (numProperties == 0) revert TOKEN_NOT_MINTED(_tokenId);
+
+        unchecked {
+            uint256 lastProperty = numProperties - 1;
+
+            // For each of the token's properties:
+            for (uint256 i = 0; i < numProperties; ++i) {
+                // Check if this is the last iteration
+                bool isLast = i == lastProperty;
+
+                // Get the property data
+                Property memory property = properties[i];
+
+                // Get the index of its generated attribute for this property
+                uint256 attribute = tokenAttributes[i + 1];
+
+                // Get the associated item data
+                Item memory item = property.items[attribute];
+
+                aryAttributes = abi.encodePacked(aryAttributes, '"', property.name, '": "', item.name, '"', isLast ? "" : ",");
+                queryString = abi.encodePacked(queryString, "&images=", _getItemImage(item, property.name));
+            }
+        }
     }
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
-    function encodeAsJson(bytes memory jsonBlob) internal pure returns (string memory) {
-        return string(abi.encodePacked("data:application/json;base64,", Base64.encode(jsonBlob)));
+    /// @dev Generates a psuedo-random seed for a token id
+    function _generateSeed(uint256 _tokenId) private view returns (uint256) {
+        return uint256(keccak256(abi.encode(_tokenId, blockhash(block.number), block.coinbase, block.timestamp)));
     }
 
-    function contractURI() external view returns (string memory) {
-        return encodeAsJson(abi.encodePacked('{"name": "', name, '", "description": "', description, '", "image": "', contractImage, '"}'));
-    }
-
-    function tokenURI(uint256 _tokenId) external view returns (string memory) {
-        (bytes memory propertiesAry, bytes memory propertiesQuery) = getProperties(_tokenId);
+    /// @dev Encodes the string from an item in a property
+    function _getItemImage(Item memory _item, string memory _propertyName) private view returns (string memory) {
         return
-            encodeAsJson(
-                abi.encodePacked(
-                    '{"name": "',
-                    name,
-                    " #",
-                    LibUintToString.toString(_tokenId),
-                    '", "description": "',
-                    description,
-                    '", "image": "',
-                    rendererBase,
-                    propertiesQuery,
-                    '", "properties": {',
-                    propertiesAry,
-                    "}}"
+            UriEncode.uriEncode(
+                string(
+                    abi.encodePacked(ipfsData[_item.referenceSlot].baseUri, _propertyName, "/", _item.name, ipfsData[_item.referenceSlot].extension)
                 )
             );
     }
 
     ///                                                          ///
+    ///                            URIs                          ///
     ///                                                          ///
-    ///                                                          ///
 
-    function getProperties(uint256 _tokenId) public view returns (bytes memory aryAttributes, bytes memory queryString) {
-        // Get the attributes for the given token
-        uint16[16] memory tokenAttributes = attributes[_tokenId];
-
-        // Compute its query string
-        queryString = abi.encodePacked(
-            "?contractAddress=",
-            StringsUpgradeable.toHexString(uint256(uint160(address(this))), 20),
-            "&tokenId=",
-            StringsUpgradeable.toString(_tokenId)
-        );
-
-        // Cache its number of properties
-        uint256 numProperties = tokenAttributes[0];
-
-        // Used to hold the property and item data during
-        Property memory property;
-        Item memory item;
-
-        // Used to cache the property and item names
-        string memory propertyName;
-        string memory itemName;
-
-        // Used to get the item data of each generated attribute
-        uint256 attribute;
-
-        // Used to
-        bool isLast;
-
-        // For each of the token's properties:
-        for (uint256 i = 0; i < numProperties; ) {
-            unchecked {
-                // Check if this is the last iteration
-                isLast = i == (numProperties - 1);
-            }
-
-            // Get the property data
-            property = properties[i];
-
-            unchecked {
-                // Get the index of its generated attribute for this property
-                attribute = tokenAttributes[i + 1];
-            }
-
-            // Get the associated item data
-            item = property.items[attribute];
-
-            // Cache the names of the property and item
-            propertyName = property.name;
-            itemName = item.name;
-
-            aryAttributes = abi.encodePacked(aryAttributes, '"', propertyName, '": "', itemName, '"', isLast ? "" : ",");
-            queryString = abi.encodePacked(queryString, "&images=", _getImageForItem(item, propertyName));
-
-            unchecked {
-                ++i;
-            }
-        }
-    }
-
-    function _getImageForItem(Item memory _item, string memory _propertyName) internal view returns (string memory) {
+    /// @notice The contract URI
+    function contractURI() external view returns (string memory) {
         return
-            UriEncode.uriEncode(
-                string(abi.encodePacked(data[_item.referenceSlot].baseUri, _propertyName, "/", _item.name, data[_item.referenceSlot].extension))
+            _encodeAsJson(
+                abi.encodePacked(
+                    '{"name": "',
+                    settings.name,
+                    '", "description": "',
+                    settings.description,
+                    '", "image": "',
+                    settings.contractImage,
+                    '"}'
+                )
             );
     }
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
-    event DescriptionUpdated(string);
-
-    function updateDescription(string memory newDescription) external onlyOwner {
-        description = newDescription;
-
-        emit DescriptionUpdated(newDescription);
+    /// @notice The token URI
+    /// @param _tokenId The ERC-721 token id
+    function tokenURI(uint256 _tokenId) external view returns (string memory) {
+        (bytes memory aryAttributes, bytes memory queryString) = getAttributes(_tokenId);
+        return
+            _encodeAsJson(
+                abi.encodePacked(
+                    '{"name": "',
+                    settings.name,
+                    " #",
+                    LibUintToString.toString(_tokenId),
+                    '", "description": "',
+                    settings.description,
+                    '", "image": "',
+                    settings.rendererBase,
+                    queryString,
+                    '", "properties": {',
+                    aryAttributes,
+                    "}}"
+                )
+            );
     }
 
-    event RendererBaseUpdated(string);
+    /// @notice Encodes s
+    function _encodeAsJson(bytes memory _jsonBlob) private pure returns (string memory) {
+        return string(abi.encodePacked("data:application/json;base64,", Base64.encode(_jsonBlob)));
+    }
 
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
+    function token() external view returns (address) {
+        return settings.token;
+    }
+
+    function treasury() external view returns (address) {
+        return settings.treasury;
+    }
+
+    function contractImage() external view returns (string memory) {
+        return settings.contractImage;
+    }
+
+    function rendererBase() external view returns (string memory) {
+        return settings.rendererBase;
+    }
+
+    function description() external view returns (string memory) {
+        return settings.description;
+    }
+
+    ///                                                          ///
+    ///                       UPDATE SETTINGS                    ///
+    ///                                                          ///
+
+    /// @notice Updates the contract image
+    /// @param _newImage The new contract image
+    function updateContractImage(string memory _newImage) external onlyOwner {
+        emit ContractImageUpdated(settings.contractImage, _newImage);
+
+        settings.contractImage = _newImage;
+    }
+
+    /// @notice Updates the renderer base
+    /// @param _newRendererBase The new renderer base
     function updateRendererBase(string memory _newRendererBase) external onlyOwner {
-        rendererBase = _newRendererBase;
+        emit RendererBaseUpdated(settings.rendererBase, _newRendererBase);
 
-        emit RendererBaseUpdated(_newRendererBase);
+        settings.rendererBase = _newRendererBase;
     }
 
     ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
-    /// @notice The owner of the token and metadata renderer contracts
-    function owner() public view override(IMetadataRenderer, OwnableUpgradeable) returns (address) {
-        return super.owner();
-    }
-
-    /// @notice Transfers ownership of the token and metadata renderer contracts
-    /// @param _newOwner The address to set as the new owner
-    function transferOwnership(address _newOwner) public override(IMetadataRenderer, OwnableUpgradeable) {
-        return super.transferOwnership(_newOwner);
-    }
-
-    ///                                                          ///
-    ///                         PROXY UPGRADE                    ///
+    ///                        UPGRADE CONTRACT                  ///
     ///                                                          ///
 
     /// @notice Ensures the caller is authorized to upgrade the contract to a valid implementation
     /// @dev This function is called in UUPS `upgradeTo` & `upgradeToAndCall`
     /// @param _impl The address of the new implementation
-    function _authorizeUpgrade(address _impl) internal override onlyOwner {
-        require(upgradeManager.isValidUpgrade(_getImplementation(), _impl), "INVALID_UPGRADE");
+    function _authorizeUpgrade(address _impl) internal view override onlyOwner {
+        if (!manager.isValidUpgrade(_getImplementation(), _impl)) revert INVALID_UPGRADE(_impl);
     }
 }

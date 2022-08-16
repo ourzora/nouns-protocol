@@ -1,16 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.15;
 
-import {IToken} from "../../token/IToken.sol";
-import {IAuction} from "../IAuction.sol";
+import {Token} from "../../token/Token.sol";
+import {AuctionTypesV1} from "../types/AuctionTypesV1.sol";
 
-contract AuctionStorageV1 {
+/// @title AuctionStorageV1
+/// @author Rohan Kulkarni
+/// @notice The
+contract AuctionStorageV1 is AuctionTypesV1 {
     /// @notice The ERC-721 token contract
-    IToken public token;
+    Token public token;
 
-    /// @notice The metadata of the latest auction
-    IAuction.Auction public auction;
+    /// @notice The DAO auction house settings
+    Settings public settings;
 
-    /// @notice The metadata of the auction house
-    IAuction.House public house;
+    /// @notice The current auction state
+    Auction public auction;
 }

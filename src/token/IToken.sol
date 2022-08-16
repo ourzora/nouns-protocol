@@ -1,139 +1,106 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.15;
 
+import {IManager} from "../manager/IManager.sol";
 import {IMetadataRenderer} from "./metadata/IMetadataRenderer.sol";
-import {IUpgradeManager} from "../upgrade/IUpgradeManager.sol";
 
 interface IToken {
     ///                                                          ///
     ///                                                          ///
     ///                                                          ///
 
+    error ONLY_OWNER();
+
+    error ONLY_AUCTION();
+
+    ///                                                          ///
+    ///                                                          ///
+    ///                                                          ///
+
     function initialize(
-        bytes calldata init,
+        IManager.FounderParams[] calldata founders,
+        bytes calldata tokenInitStrings,
         address metadataRenderer,
-        address foundersDAO,
-        uint256 foundersMaxAllocation,
-        uint256 foundersAllocationFrequency,
         address auction
     ) external;
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
+    // function metadataRenderer() external view returns (IMetadataRenderer);
 
-    struct Founders {
-        address DAO;
-        uint32 maxAllocation;
-        uint32 allocationFrequency;
-        uint32 currentAllocation;
-    }
+    // function auction() external view returns (address);
 
-    function founders() external view returns (Founders calldata);
+    // function totalSupply() external view returns (uint256);
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
+    // function name() external view returns (string memory);
 
-    function totalSupply() external view returns (uint256);
+    // function symbol() external view returns (string memory);
 
-    function auction() external view returns (address);
+    // function contractURI() external view returns (string memory);
 
-    function mint() external returns (uint256);
+    // function tokenURI(uint256 tokenId) external view returns (string memory);
 
-    function burn(uint256 tokenId) external;
+    // function balanceOf(address owner) external view returns (uint256);
 
-    function setAuction(address auction) external;
+    // function ownerOf(uint256 tokenId) external view returns (address);
 
-    function setFoundersDAO(address foundersDAO) external;
+    // function isApprovedForAll(address owner, address operator) external view returns (bool);
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
+    // function getApproved(uint256 tokenId) external view returns (address);
 
-    function metadataRenderer() external view returns (IMetadataRenderer);
+    // function getVotes(address account) external view returns (uint256);
 
-    function name() external view returns (string memory);
+    // function getPastVotes(address account, uint256 timestamp) external view returns (uint256);
 
-    function symbol() external view returns (string memory);
+    // function delegates(address account) external view returns (address);
 
-    function contractURI() external view returns (string memory);
+    // function nonces(address owner) external view returns (uint256);
 
-    function tokenURI(uint256 tokenId) external view returns (string memory);
-
-    function balanceOf(address owner) external view returns (uint256);
-
-    function ownerOf(uint256 tokenId) external view returns (address);
-
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId,
-        bytes calldata data
-    ) external;
-
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) external;
-
-    function transferFrom(
-        address from,
-        address to,
-        uint256 tokenId
-    ) external;
-
-    function approve(address to, uint256 tokenId) external;
-
-    function setApprovalForAll(address operator, bool approved) external;
-
-    function isApprovedForAll(address owner, address operator) external view returns (bool);
-
-    function getApproved(uint256 tokenId) external view returns (address);
+    // function DOMAIN_SEPARATOR() external view returns (bytes32);
 
     ///                                                          ///
     ///                                                          ///
     ///                                                          ///
 
-    function owner() external view returns (address);
+    // function getVotes(address user) external view returns (uint256);
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
+    // function getPastVotes(address user, uint256 timestamp) external view returns (uint256);
 
-    function getVotes(address account) external view returns (uint256);
+    // function delegates(address _user) external view returns (address);
 
-    function getPastVotes(address account, uint256 blockNumber) external view returns (uint256);
+    // function delegate(address to) external;
 
-    function getPastTotalSupply(uint256 blockNumber) external view returns (uint256);
+    // function delegateBySig(
+    //     address to,
+    //     uint256 nonce,
+    //     uint256 expiry,
+    //     uint8 v,
+    //     bytes32 r,
+    //     bytes32 s
+    // ) external;
 
-    function autoDelegate(address user) external;
+    // function mint() external returns (uint256);
 
-    function delegates(address account) external view returns (address);
+    // function burn(uint256 tokenId) external;
 
-    function delegate(address delegatee) external;
+    // function approve(address to, uint256 tokenId) external;
 
-    function delegateBySig(
-        address delegatee,
-        uint256 nonce,
-        uint256 expiry,
-        uint8 v,
-        bytes32 r,
-        bytes32 s
-    ) external;
+    // function setApprovalForAll(address operator, bool approved) external;
 
-    function nonces(address owner) external view returns (uint256);
+    // function safeTransferFrom(
+    //     address from,
+    //     address to,
+    //     uint256 tokenId,
+    //     bytes calldata data
+    // ) external;
 
-    function DOMAIN_SEPARATOR() external view returns (bytes32);
+    // function safeTransferFrom(
+    //     address from,
+    //     address to,
+    //     uint256 tokenId
+    // ) external;
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
-    function upgradeManager() external view returns (IUpgradeManager);
-
-    function upgradeTo(address newImplementation) external;
-
-    function upgradeToAndCall(address newImplementation, bytes memory data) external payable;
+    // function transferFrom(
+    //     address from,
+    //     address to,
+    //     uint256 tokenId
+    // ) external;
 }
