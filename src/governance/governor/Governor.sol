@@ -110,6 +110,19 @@ contract Governor is UUPSUpgradeable, OwnableUpgradeable, GovernorTimelockContro
         super._execute(_proposalId, _targets, _values, _calldatas, _descriptionHash);
     }
 
+    // /// @notice Allows for *.
+    // function vetoProposal(
+    //     address[] memory _targets,
+    //     uint256[] memory _values,
+    //     bytes[] memory _calldatas,
+    //     bytes32 _descriptionHash
+    // ) public external returns (uint256) {
+    //     if (msg.sender != govMeta.token.DAO.foundersDAO) {
+    //         revert FoundersDAORequired();
+    //     }
+    //     return _cancel(_targets, _values, _calldatas, _descriptionHash);
+    // }
+
     function _cancel(
         address[] memory _targets,
         uint256[] memory _values,
