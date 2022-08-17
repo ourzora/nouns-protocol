@@ -23,15 +23,6 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
-    /// @notice The address of the Nouns DAO Treasury
-    address public immutable nounsDAO;
-
-    /// @notice The address of the Builder DAO Treasury
-    address public immutable builderDAO;
-
-    /// @notice The address of the Zora DAO Treasury
-    address public immutable zoraDAO;
-
     /// @notice The address of WETH
     address private immutable WETH;
 
@@ -44,22 +35,9 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
 
     /// @param _manager The address of the contract upgrade manager
     /// @param _weth The address of WETH
-    /// @param _nounsDAO The address of the Nouns DAO Treasury
-    /// @param _builderDAO The address of the Builder DAO Treasury
-    /// @param _zoraDAO The address of the Zora DAO Treausury
-    constructor(
-        address _manager,
-        address _weth,
-        address _nounsDAO,
-        address _builderDAO,
-        address _zoraDAO
-    ) payable initializer {
+    constructor(address _manager, address _weth) payable initializer {
         manager = IManager(_manager);
         WETH = _weth;
-
-        nounsDAO = _nounsDAO;
-        builderDAO = _builderDAO;
-        zoraDAO = _zoraDAO;
     }
 
     ///                                                          ///
@@ -204,11 +182,7 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
 
             // If the highest bid included ETH:
             if (highestBid > 0) {
-                // Compute the profit remaining after splits
-                uint256 remainingProfit = _handleSplits(highestBid);
-
-                // Transfer the profit to the DAO treasury
-                _handleOutgoingTransfer(settings.treasury, remainingProfit);
+                _handleOutgoingTransfer(settings.treasury, highestBid);
             }
 
             // Transfer the token to the highest bidder
@@ -355,34 +329,6 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
 
             // Transfer WETH instead
             IERC20(WETH).transfer(_to, _amount);
-        }
-    }
-
-    /// @dev Handles splits of winning bids to Builder DAO, Nouns DAO, and Zora DAO
-    /// @param _amount The winning bid
-    function _handleSplits(uint256 _amount) private returns (uint256 remainingProfit) {
-        // Cannot realistically overflow
-        unchecked {
-            // Compute the 2% total fee of the winning bid
-            uint256 totalFee = (_amount * 2) / 100;
-
-            // Compute the profit after the fee
-            remainingProfit = _amount - totalFee;
-
-            // Compute the 34% split of the total fee to Builder DAO
-            uint256 builderDAOSplit = (totalFee * 34) / 100;
-
-            // Compute the 33% split of the total fee to both Nouns DAO and Zora DAO
-            uint256 nounsDAOAndZoraDAOSplit = (totalFee * 33) / 100;
-
-            // Transfer the Builder DAO split
-            _handleOutgoingTransfer(builderDAO, builderDAOSplit);
-
-            // Transfer the Nouns DAO split
-            _handleOutgoingTransfer(nounsDAO, nounsDAOAndZoraDAOSplit);
-
-            // Transfer the Zora DAO split
-            _handleOutgoingTransfer(zoraDAO, nounsDAOAndZoraDAOSplit);
         }
     }
 
