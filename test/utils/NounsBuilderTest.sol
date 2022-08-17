@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.15;
 
-import "forge-std/test.sol";
+import "forge-std/Test.sol";
 
 import {Deployer} from "../../src/Deployer.sol";
 import {IDeployer} from "../../src/IDeployer.sol";
