@@ -11,7 +11,8 @@ import {IManager, Manager} from "../../src/manager/Manager.sol";
 // import {BuilderAuction} from "../../src/builderDAO/BuilderAuction.sol";
 
 import {IToken, Token} from "../../src/token/Token.sol";
-import {IMetadataRenderer, MetadataRenderer} from "../../src/token/metadata/MetadataRenderer.sol";
+import {MetadataRenderer} from "../../src/token/metadata/MetadataRenderer.sol";
+import {INounsMetadata} from "../../src/token/metadata/INounsMetadata.sol";
 import {IAuction, Auction} from "../../src/auction/Auction.sol";
 import {IGovernor, Governor} from "../../src/governance/governor/Governor.sol";
 import {ITimelock, Timelock} from "../../src/governance/timelock/Timelock.sol";

@@ -2,8 +2,10 @@
 pragma solidity 0.8.15;
 
 import {MetadataRendererTypesV1} from "./types/MetadataRendererTypesV1.sol";
+import {INounsMetadata} from "./INounsMetadata.sol";
 
-interface IMetadataRenderer is MetadataRendererTypesV1 {
+
+interface IPropertyIPFSMetadataRenderer is MetadataRendererTypesV1, INounsMetadata {
     ///                                                          ///
     ///                                                          ///
     ///                                                          ///
@@ -49,13 +51,7 @@ interface IMetadataRenderer is MetadataRendererTypesV1 {
 
     function itemsCount(uint256 propertyId) external view returns (uint256);
 
-    function generate(uint256 tokenId) external;
-
     function getAttributes(uint256 tokenId) external view returns (bytes memory aryAttributes, bytes memory queryString);
-
-    function tokenURI(uint256 tokenId) external view returns (string memory);
-
-    function contractURI() external view returns (string memory);
 
     function token() external view returns (address);
 
