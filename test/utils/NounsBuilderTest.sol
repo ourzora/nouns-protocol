@@ -68,7 +68,7 @@ contract NounsBuilderTest is Test {
 
         // builderDAO = deployBuilderDAO();
 
-        tokenImpl = address(new Token(address(manager), builderDAO));
+        tokenImpl = address(new Token(address(manager)));
         auctionImpl = address(new Auction(address(manager), weth));
 
         managerImpl3 = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, timelockImpl, governorImpl));
