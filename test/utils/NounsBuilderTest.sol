@@ -35,23 +35,16 @@ contract NounsBuilderTest is Test {
     address internal timelockImpl;
     address internal governorImpl;
 
-    address internal nounsDAO;
-    address internal zoraDAO;
     address internal builderDAO;
-
     address internal founder;
     address internal weth;
 
     function setUp() public virtual {
         weth = address(new WETH());
 
-        nounsDAO = vm.addr(0xA11CE);
-        zoraDAO = vm.addr(0xB0B);
         founder = vm.addr(0xCAB);
         builderDAO = vm.addr(0xB3D);
 
-        vm.label(zoraDAO, "ZORA_DAO");
-        vm.label(nounsDAO, "NOUNS_DAO");
         vm.label(founder, "FOUNDER");
         vm.label(builderDAO, "BUILDER_DAO");
 
@@ -75,8 +68,8 @@ contract NounsBuilderTest is Test {
 
         // builderDAO = deployBuilderDAO();
 
-        tokenImpl = address(new Token(address(manager), builderDAO));
-        auctionImpl = address(new Auction(address(manager), weth, nounsDAO, builderDAO, zoraDAO));
+        tokenImpl = address(new Token(address(manager)));
+        auctionImpl = address(new Auction(address(manager), weth));
 
         managerImpl3 = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, timelockImpl, governorImpl));
 

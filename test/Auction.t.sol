@@ -196,11 +196,7 @@ contract AuctionTest is NounsBuilderTest {
         assertEq(token.ownerOf(1), bidder2);
         assertEq(token.getVotes(bidder2), 1);
 
-        assertEq(address(timelock).balance, 0.98 ether);
-
-        assertEq(nounsDAO.balance, 0.0066 ether);
-        assertEq(zoraDAO.balance, 0.0066 ether);
-        assertEq(builderDAO.balance, 0.0068 ether);
+        assertEq(address(timelock).balance, 1 ether);
     }
 
     function testRevert_CannotSettleWhenAuctionStillActive() public {

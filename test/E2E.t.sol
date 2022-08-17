@@ -57,11 +57,7 @@ contract E2ETest is NounsBuilderTest {
         assertEq(token.ownerOf(1), bidder1);
         assertEq(token.ownerOf(2), address(auction));
 
-        assertEq(nounsDAO.balance, 0.0066 ether);
-        assertEq(zoraDAO.balance, 0.0066 ether);
-        assertEq(builderDAO.balance, 0.0068 ether);
-
-        assertEq(address(timelock).balance, 0.98 ether);
+        assertEq(address(timelock).balance, 1 ether);
     }
 
     function test_ProposalVoteQueueExecution() public {

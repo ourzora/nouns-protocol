@@ -19,9 +19,6 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
-    /// @notice The Builder DAO address
-    address public immutable builderDAO;
-
     /// @notice The contract upgrade manager
     IManager private immutable manager;
 
@@ -30,10 +27,8 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     ///                                                          ///
 
     /// @param _manager The address of the contract upgrade manager
-    /// @param _builderDAO The address of the Builder DAO Treasury
-    constructor(address _manager, address _builderDAO) payable initializer {
+    constructor(address _manager) payable initializer {
         manager = IManager(_manager);
-        builderDAO = _builderDAO;
     }
 
     ///                                                          ///
@@ -113,15 +108,7 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     /// @dev Checks if a token is elgible to vest, and mints to the recipient if so
     /// @param _tokenId The ERC-721 token id
     function _isVest(uint256 _tokenId) private returns (bool) {
-        // If the token is for the Builder DAO:
-        if (_isForBuilderDAO(_tokenId)) {
-            // Mint the token to the Builder DAO
-            _mint(builderDAO, _tokenId);
-
-            return true;
-        }
-
-        // Otherwise, cache the number of founders
+        // Cache the number of founders
         uint256 numFounders = founders.length;
 
         // Cannot realistically overflow
@@ -141,14 +128,6 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
             }
 
             return false;
-        }
-    }
-
-    /// @dev If a token is for the Builder DAO
-    /// @param _tokenId The ERC-721 token id
-    function _isForBuilderDAO(uint256 _tokenId) private pure returns (bool) {
-        unchecked {
-            return (_tokenId + 1) % 100 == 0;
         }
     }
 
