@@ -9,8 +9,6 @@ interface IToken {
     ///                                                          ///
     ///                                                          ///
 
-    error ONLY_OWNER();
-
     error ONLY_AUCTION();
 
     ///                                                          ///
@@ -19,9 +17,8 @@ interface IToken {
 
     function initialize(
         IManager.FounderParams[] calldata founders,
-        bytes calldata tokenInitStrings,
-        address metadataRenderer,
-        address auction
+        address founder,
+        bytes calldata tokenInitStrings
     ) external;
 
     // function metadataRenderer() external view returns (IMetadataRenderer);

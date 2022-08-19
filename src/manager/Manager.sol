@@ -22,19 +22,19 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
     ///                                                          ///
 
     /// @notice The address of the token implementation
-    address public immutable tokenImpl;
+    IToken public immutable tokenImpl;
 
     /// @notice The address of the metadata renderer implementation
-    address public immutable metadataImpl;
+    IMetadataRenderer public immutable metadataImpl;
 
     /// @notice The address of the auction house implementation
-    address public immutable auctionImpl;
+    IAuction public immutable auctionImpl;
 
     /// @notice The address of the timelock implementation
-    address public immutable timelockImpl;
+    ITimelock public immutable timelockImpl;
 
     /// @notice The address of the governor implementation
-    address public immutable governorImpl;
+    IGovernor public immutable governorImpl;
 
     /// @notice The hash of the metadata renderer bytecode to be deployed
     bytes32 private immutable metadataHash;
@@ -53,11 +53,11 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
     ///                                                          ///
 
     constructor(
-        address _tokenImpl,
-        address _metadataImpl,
-        address _auctionImpl,
-        address _timelockImpl,
-        address _governorImpl
+        IToken _tokenImpl,
+        IMetadataRenderer _metadataImpl,
+        IAuction _auctionImpl,
+        ITimelock _timelockImpl,
+        IGovernor _governorImpl
     ) payable initializer {
         tokenImpl = _tokenImpl;
         metadataImpl = _metadataImpl;
@@ -102,11 +102,11 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
     )
         external
         returns (
-            address token,
-            address metadata,
-            address auction,
-            address timelock,
-            address governor
+            IToken token,
+            IMetadataRenderer metadata,
+            IAuction auction,
+            ITimelock timelock,
+            IGovernor governor
         )
     {
         // Used to store the founder responsible for adding token properties and kicking off the first auction
@@ -116,23 +116,31 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
         if (((founder = _founderParams[0].wallet)) == address(0)) revert FOUNDER_REQUIRED();
 
         // Deploy an instance of the DAO's ERC-721 token
-        token = address(new ERC1967Proxy(tokenImpl, ""));
+        token = IToken(address(new ERC1967Proxy(address(tokenImpl), "")));
 
         // Use the token address as a salt for the remaining deploys
-        bytes32 salt = bytes32(uint256(uint160(token)));
+        bytes32 salt = bytes32(uint256(uint160(address(token))));
 
         // Deploy the remaining contracts
-        metadata = address(new ERC1967Proxy{salt: salt}(metadataImpl, ""));
-        auction = address(new ERC1967Proxy{salt: salt}(auctionImpl, ""));
-        timelock = address(new ERC1967Proxy{salt: salt}(timelockImpl, ""));
-        governor = address(new ERC1967Proxy{salt: salt}(governorImpl, ""));
+        metadata = IMetadataRenderer(
+            address(
+                new ERC1967Proxy{salt: salt}(
+                    address(metadataImpl),
+                    abi.encodeWithSelector(IToken.initialize.selector, _founderParams, _tokenParams.initStrings)
+                )
+            )
+        );
+        auction = IAuction(address(new ERC1967Proxy{salt: salt}(address(auctionImpl), "")));
+        timelock = ITimelock(address(new ERC1967Proxy{salt: salt}(address(timelockImpl), "")));
+        governor = IGovernor(address(new ERC1967Proxy{salt: salt}(address(governorImpl), "")));
 
         // Initialize each with the given settings
-        IToken(token).initialize(_founderParams, _tokenParams.initStrings, metadata, auction);
-        IMetadataRenderer(metadata).initialize(_tokenParams.initStrings, token, founder, timelock);
-        IAuction(auction).initialize(token, founder, timelock, _auctionParams.duration, _auctionParams.reservePrice);
-        ITimelock(timelock).initialize(governor, _govParams.timelockDelay);
-        IGovernor(governor).initialize(
+        token.initialize(_founderParams, founder, _tokenParams.initStrings);
+        metadata.initialize(_tokenParams.initStrings, address(token));
+
+        auction.initialize(token, founder, _auctionParams.duration, _auctionParams.reservePrice);
+        timelock.initialize(governor, _govParams.timelockDelay);
+        governor.initialize(
             timelock,
             token,
             founder,
@@ -155,10 +163,10 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
         external
         view
         returns (
-            address metadata,
-            address auction,
-            address timelock,
-            address governor
+            IMetadataRenderer metadata,
+            IAuction auction,
+            ITimelock timelock,
+            IGovernor governor
         )
     {
         bytes32 salt = bytes32(uint256(uint160(_token)));

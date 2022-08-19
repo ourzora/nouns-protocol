@@ -6,23 +6,31 @@ import {UriEncode} from "sol-uriencode/src/UriEncode.sol";
 import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
 
 import {UUPS} from "../../lib/proxy/UUPS.sol";
-import {Ownable} from "../../lib/utils/Ownable.sol";
 import {Strings} from "../../lib/utils/Strings.sol";
+import {Initializable} from "../../lib/proxy/Initializable.sol";
 
 import {MetadataRendererStorageV1} from "./storage/MetadataRendererStorageV1.sol";
 import {IMetadataRenderer} from "./IMetadataRenderer.sol";
 import {IManager} from "../../manager/IManager.sol";
+import {Token} from "../Token.sol";
 
 /// @title Metadata Renderer
 /// @author Iain Nash & Rohan Kulkarni
 /// @notice This contract stores, renders, and generates the attributes for an associated token contract
-contract MetadataRenderer is IMetadataRenderer, UUPS, Ownable, MetadataRendererStorageV1 {
+contract MetadataRenderer is IMetadataRenderer, Initializable, UUPS, MetadataRendererStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
     /// @notice The contract upgrade manager
     IManager private immutable manager;
+
+    modifier onlyOwner() {
+        if (msg.sender != Token(address(settings.token)).owner()) {
+            revert ONLY_OWNER();
+        }
+        _;
+    }
 
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
@@ -40,12 +48,9 @@ contract MetadataRenderer is IMetadataRenderer, UUPS, Ownable, MetadataRendererS
     /// @notice Initializes an instance of a DAO's metadata renderer
     /// @param _initStrings The encoded token and metadata init strings
     /// @param _token The address of the ERC-721 token
-    /// @param _founder The address of the founder responsible for adding
     function initialize(
         bytes calldata _initStrings,
-        address _token,
-        address _founder,
-        address _treasury
+        address _token
     ) external initializer {
         // Decode the token initialization strings
         (string memory _name, , string memory _description, string memory _contractImage, string memory _rendererBase) = abi.decode(
@@ -59,10 +64,6 @@ contract MetadataRenderer is IMetadataRenderer, UUPS, Ownable, MetadataRendererS
         settings.contractImage = _contractImage;
         settings.rendererBase = _rendererBase;
         settings.token = _token;
-        settings.treasury = _treasury;
-
-        // Initialize ownership to the founder
-        __Ownable_init(_founder);
     }
 
     ///                                                          ///
@@ -91,12 +92,6 @@ contract MetadataRenderer is IMetadataRenderer, UUPS, Ownable, MetadataRendererS
     ) external onlyOwner {
         // Cache the existing amount of IPFS data stored
         uint256 dataLength = ipfsData.length;
-
-        // If this is the first time adding properties and/or items:
-        if (dataLength == 0) {
-            // Transfer ownership to the DAO treasury
-            transferOwnership(settings.treasury);
-        }
 
         // Add the IPFS group information
         ipfsData.push(_ipfsGroup);

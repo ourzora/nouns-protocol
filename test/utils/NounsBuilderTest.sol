@@ -25,22 +25,22 @@ contract NounsBuilderTest is Test {
 
     Manager internal manager;
 
-    address internal managerImpl1;
-    address internal managerImpl2;
-    address internal managerImpl3;
+    IManager internal managerImpl1;
+    IManager internal managerImpl2;
+    IManager internal managerImpl3;
 
-    address internal tokenImpl;
-    address internal metadataRendererImpl;
-    address internal auctionImpl;
-    address internal timelockImpl;
-    address internal governorImpl;
+    IToken internal tokenImpl;
+    IMetadataRenderer internal metadataRendererImpl;
+    IAuction internal auctionImpl;
+    ITimelock internal timelockImpl;
+    IGovernor internal governorImpl;
 
     address internal builderDAO;
     address internal founder;
-    address internal weth;
+    WETH internal weth;
 
     function setUp() public virtual {
-        weth = address(new WETH());
+        weth = new WETH();
 
         founder = vm.addr(0xCAB);
         builderDAO = vm.addr(0xB3D);
@@ -49,16 +49,17 @@ contract NounsBuilderTest is Test {
         vm.label(builderDAO, "BUILDER_DAO");
 
         // Initial manager
-        managerImpl1 = address(new Manager(address(0), address(0), address(0), address(0), address(0)));
-        manager = Manager(address(new ERC1967Proxy(managerImpl1, abi.encodeWithSignature("initialize(address)", builderDAO))));
+        managerImpl1 = 
+            new Manager(IToken(address(0)), IMetadataRenderer(address(0)), IAuction(address(0)), ITimelock(address(0)), IGovernor(address(0)));
+        manager = Manager(address(new ERC1967Proxy(address(managerImpl1), abi.encodeWithSignature("initialize(address)", builderDAO))));
 
         // Deploy builder impl
         // builderTokenImpl = address(new BuilderToken(address(manager)));
         // builderAuctionImpl = address(new BuilderAuction(address(manager), weth, nounsDAO, zoraDAO));
 
-        metadataRendererImpl = address(new MetadataRenderer(address(manager)));
-        timelockImpl = address(new Timelock(address(manager)));
-        governorImpl = address(new Governor(address(manager)));
+        metadataRendererImpl = new MetadataRenderer(manager);
+        timelockImpl = new Timelock(manager);
+        governorImpl = new Governor(manager);
 
         // Deploy builder manager
         // // managerImpl2 = address(new Manager(builderTokenImpl, metadataRendererImpl, builderAuctionImpl, timelockImpl, governorImpl));
@@ -68,8 +69,8 @@ contract NounsBuilderTest is Test {
 
         // builderDAO = deployBuilderDAO();
 
-        tokenImpl = address(new Token(address(manager)));
-        auctionImpl = address(new Auction(address(manager), weth));
+        tokenImpl = new Token(manager);
+        auctionImpl = new Auction(manager, weth);
 
         managerImpl3 = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, timelockImpl, governorImpl));
 

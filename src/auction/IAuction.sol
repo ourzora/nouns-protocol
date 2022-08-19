@@ -69,9 +69,8 @@ interface IAuction {
     ///                                                          ///
 
     function initialize(
-        address token,
+        IToken token,
         address founder,
-        address treasury,
         uint256 duration,
         uint256 reservePrice
     ) external;

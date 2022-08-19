@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.15;
 
+import {IToken} from "../token/IToken.sol";
+import {IMetadataRenderer} from "../token/metadata/IMetadataRenderer.sol";
+import {IAuction} from "../auction/IAuction.sol";
+import {ITimelock} from "../governance/timelock/ITimelock.sol";
+import {IGovernor} from "../governance/governor/IGovernor.sol";
+
+
 /// @title IManager
 /// @author Rohan Kulkarni
 /// @notice The Manager external interface
@@ -78,20 +85,20 @@ interface IManager {
     )
         external
         returns (
-            address token,
-            address metadataRenderer,
-            address auction,
-            address timelock,
-            address governor
+            IToken token,
+            IMetadataRenderer metadataRenderer,
+            IAuction auction,
+            ITimelock timelock,
+            IGovernor governor
         );
 
     function getAddresses(address token)
         external
         returns (
-            address metadataRenderer,
-            address auction,
-            address timelock,
-            address governor
+            IMetadataRenderer metadataRenderer,
+            IAuction auction,
+            ITimelock timelock,
+            IGovernor governor
         );
 
     function isValidUpgrade(address _baseImpl, address _upgradeImpl) external view returns (bool);

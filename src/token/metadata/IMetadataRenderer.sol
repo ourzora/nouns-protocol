@@ -4,6 +4,7 @@ pragma solidity 0.8.15;
 import {MetadataRendererTypesV1} from "./types/MetadataRendererTypesV1.sol";
 
 interface IMetadataRenderer is MetadataRendererTypesV1 {
+    error ONLY_OWNER();
     ///                                                          ///
     ///                                                          ///
     ///                                                          ///
@@ -30,9 +31,7 @@ interface IMetadataRenderer is MetadataRendererTypesV1 {
 
     function initialize(
         bytes calldata initStrings,
-        address token,
-        address founders,
-        address treasury
+        address token
     ) external;
 
     function addProperties(

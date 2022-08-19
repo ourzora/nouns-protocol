@@ -9,7 +9,9 @@ import {Cast} from "../lib/utils/Cast.sol";
 
 import {AuctionStorageV1} from "./storage/AuctionStorageV1.sol";
 import {Token} from "../token/Token.sol";
+import {IToken} from "../token/IToken.sol";
 import {IAuction} from "./IAuction.sol";
+import {ITimelock} from "../governance/timelock/ITimelock.sol";
 import {IERC20} from "../lib/interfaces/IERC20.sol";
 import {IWETH} from "../lib/interfaces/IWETH.sol";
 
@@ -24,10 +26,15 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
     ///                                                          ///
 
     /// @notice The address of WETH
-    address private immutable WETH;
+    IWETH private immutable weth;
 
     /// @notice The contract upgrade manager
     IManager private immutable manager;
+
+    function getTimelock() internal returns (address payable) {
+        (, , ITimelock timelock,) = manager.getAddresses(address(token));
+        return payable(address(timelock));
+    }
 
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
@@ -35,9 +42,9 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
 
     /// @param _manager The address of the contract upgrade manager
     /// @param _weth The address of WETH
-    constructor(address _manager, address _weth) payable initializer {
-        manager = IManager(_manager);
-        WETH = _weth;
+    constructor(IManager _manager, IWETH _weth) payable initializer {
+        manager = _manager;
+        weth = _weth;
     }
 
     ///                                                          ///
@@ -47,13 +54,11 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
     /// @notice Initializes a DAO's auction house
     /// @param _token The ERC-721 token address
     /// @param _founder The founder responsible for starting the first auction
-    /// @param _treasury The timelock address where ETH will be sent
     /// @param _duration The duration of each auction
     /// @param _reservePrice The reserve price of each auction
     function initialize(
-        address _token,
+        IToken _token,
         address _founder,
-        address _treasury,
         uint256 _duration,
         uint256 _reservePrice
     ) external initializer {
@@ -67,12 +72,11 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         __Pausable_init(true);
 
         // Store the address of the ERC-721 token that will be bid on
-        token = Token(_token);
+        token = Token(address(_token));
 
         // Store the auction house settings
         settings.duration = Cast.toUint40(_duration);
         settings.reservePrice = _reservePrice;
-        settings.treasury = _treasury;
         settings.timeBuffer = 5 minutes;
         settings.minBidIncrement = 10;
     }
@@ -182,7 +186,7 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
 
             // If the highest bid included ETH:
             if (highestBid > 0) {
-                _handleOutgoingTransfer(settings.treasury, highestBid);
+                _handleOutgoingTransfer(getTimelock(), highestBid);
             }
 
             // Transfer the token to the highest bidder
@@ -244,7 +248,7 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         // If this is the first auction:
         if (auction.tokenId == 0) {
             // Transfer ownership of the contract to the DAO
-            transferOwnership(settings.treasury);
+            transferOwnership(getTimelock());
 
             // Start the first auction
             _createAuction();
@@ -325,10 +329,10 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         // If the transfer failed:
         if (!success) {
             // Wrap as WETH
-            IWETH(WETH).deposit{value: _amount}();
+            weth.deposit{value: _amount}();
 
             // Transfer WETH instead
-            IERC20(WETH).transfer(_to, _amount);
+            IERC20(address(weth)).transfer(_to, _amount);
         }
     }
 

@@ -8,13 +8,15 @@ import {ERC721Votes} from "../lib/token/ERC721Votes.sol";
 
 import {TokenStorageV1} from "./storage/TokenStorageV1.sol";
 import {MetadataRenderer} from "./metadata/MetadataRenderer.sol";
+import {IMetadataRenderer} from "./metadata/IMetadataRenderer.sol";
 import {IManager} from "../manager/IManager.sol";
+import {IAuction} from "../auction/IAuction.sol";
 import {IToken} from "./IToken.sol";
 
 /// @title Token
 /// @author Rohan Kulkarni
 /// @notice A DAO's ERC-721 token contract
-contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
+contract Token is Ownable, IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -27,8 +29,25 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     ///                                                          ///
 
     /// @param _manager The address of the contract upgrade manager
-    constructor(address _manager) payable initializer {
-        manager = IManager(_manager);
+    constructor(IManager _manager) payable initializer {
+        manager = _manager;
+    }
+
+    modifier onlyFromAuction() {
+        // Ensure the caller is the auction house
+        (, IAuction auction, , ) = manager.getAddresses(address(this));
+        if (msg.sender != address(auction)) {
+            revert ONLY_AUCTION();
+        }
+
+        _;
+    }
+
+    function getMetadataRenderer() internal view returns (IMetadataRenderer) {
+        // Get renderer address
+        (IMetadataRenderer renderer, , ,) = manager.getAddresses(address(this));
+        // return
+        return renderer;
     }
 
     ///                                                          ///
@@ -38,13 +57,10 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     /// @notice Initializes an instance of a DAO's ERC-721 token
     /// @param _founders The members of the DAO with scheduled token allocations
     /// @param _initStrings The encoded token and metadata initialization strings
-    /// @param _metadataRenderer The token's metadata renderer
-    /// @param _auction The token's auction house
     function initialize(
         IManager.FounderParams[] calldata _founders,
-        bytes calldata _initStrings,
-        address _metadataRenderer,
-        address _auction
+        address founder,
+        bytes calldata _initStrings
     ) external initializer {
         // Initialize the reentrancy guard
         __ReentrancyGuard_init();
@@ -52,28 +68,22 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
         // Store the vesting schedules of each founder
         _storeFounders(_founders);
 
+        __Ownable_init(founder);
+
         // Get the token name and symbol from the encoded strings
         (string memory _name, string memory _symbol, , , ) = abi.decode(_initStrings, (string, string, string, string, string));
 
         // Initialize the ERC-721 token
         __ERC721_init(_name, _symbol);
-
-        // Store the associated auction house
-        auction = _auction;
-
-        // Store the associated metadata renderer
-        metadataRenderer = MetadataRenderer(_metadataRenderer);
     }
 
     ///                                                          ///
     ///                              MINT                        ///
     ///                                                          ///
 
-    /// @notice Mints tokens to the auction house for bidding and handles vesting to the founders & Builder DAO
-    function mint() public nonReentrant returns (uint256 tokenId) {
-        // Ensure the caller is the auction house
-        if (msg.sender != auction) revert ONLY_AUCTION();
 
+    /// @notice Mints tokens to the auction house for bidding and handles vesting to the founders & Builder DAO
+    function mint() public nonReentrant onlyFromAuction returns (uint256 tokenId) {
         // Cannot realistically overflow
         unchecked {
             do {
@@ -85,7 +95,7 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
         }
 
         // Mint the next token to the auction house for bidding
-        _mint(auction, tokenId);
+        _mint(address(auction), tokenId);
 
         return tokenId;
     }
@@ -98,8 +108,9 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
         super._mint(_to, _tokenId);
 
         // Generate the token attributes
-        metadataRenderer.generate(_tokenId);
+        getMetadataRenderer().generate(_tokenId);
     }
+
 
     ///                                                          ///
     ///                           VESTING                        ///
@@ -161,10 +172,7 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
 
     /// @notice Burns a token that did not see any bids
     /// @param _tokenId The ERC-721 token id
-    function burn(uint256 _tokenId) public {
-        // Ensure the caller is the auction house
-        if (msg.sender != auction) revert ONLY_AUCTION();
-
+    function burn(uint256 _tokenId) public onlyFromAuction {
         // Burn the token
         _burn(_tokenId);
     }
@@ -176,21 +184,12 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     /// @notice The URI for a given token
     /// @param _tokenId The ERC-721 token id
     function tokenURI(uint256 _tokenId) public view override returns (string memory) {
-        return metadataRenderer.tokenURI(_tokenId);
+        return getMetadataRenderer().tokenURI(_tokenId);
     }
 
     /// @notice The URI for the contract
     function contractURI() public view override returns (string memory) {
-        return metadataRenderer.contractURI();
-    }
-
-    ///                                                          ///
-    ///                             OWNER                        ///
-    ///                                                          ///
-
-    /// @notice The shared owner of the token and metadata contracts
-    function owner() public view returns (address) {
-        return metadataRenderer.owner();
+        return getMetadataRenderer().contractURI();
     }
 
     ///                                                          ///
@@ -202,9 +201,13 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     /// @param _newImpl The address of the new implementation
     function _authorizeUpgrade(address _newImpl) internal view override {
         // Ensure the caller is the shared owner of the token and metadata renderer
-        if (msg.sender != owner()) revert ONLY_OWNER();
+        if (msg.sender != owner) {
+            revert ONLY_OWNER();
+        }
 
         // Ensure the implementation is valid
-        if (!manager.isValidUpgrade(_getImplementation(), _newImpl)) revert INVALID_UPGRADE(_newImpl);
+        if (!manager.isValidUpgrade(_getImplementation(), _newImpl)) {
+            revert INVALID_UPGRADE(_newImpl);
+        }
     }
 }
