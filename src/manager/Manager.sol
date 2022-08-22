@@ -8,7 +8,7 @@ import {ERC1967Proxy} from "../lib/proxy/ERC1967Proxy.sol";
 import {ManagerStorageV1} from "./storage/ManagerStorageV1.sol";
 import {IManager} from "./IManager.sol";
 import {IToken} from "../token/IToken.sol";
-import {IMetadataRenderer} from "../token/metadata/IMetadataRenderer.sol";
+import {INounsMetadata} from "../token/metadata/INounsMetadata.sol";
 import {IAuction} from "../auction/IAuction.sol";
 import {ITimelock} from "../governance/timelock/ITimelock.sol";
 import {IGovernor} from "../governance/governor/IGovernor.sol";
@@ -129,7 +129,7 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
 
         // Initialize each with the given settings
         IToken(token).initialize(_founderParams, _tokenParams.initStrings, metadata, auction);
-        IMetadataRenderer(metadata).initialize(_tokenParams.initStrings, token, founder, timelock);
+        INounsMetadata(metadata).initialize(_tokenParams.initStrings, token, founder, timelock);
         IAuction(auction).initialize(token, founder, timelock, _auctionParams.duration, _auctionParams.reservePrice);
         ITimelock(timelock).initialize(governor, _govParams.timelockDelay);
         IGovernor(governor).initialize(

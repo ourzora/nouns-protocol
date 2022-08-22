@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.15;
 
-import {MetadataRenderer} from "../metadata/MetadataRenderer.sol";
+import {INounsMetadata} from "../metadata/INounsMetadata.sol";
 import {TokenTypesV1} from "../types/TokenTypesV1.sol";
 
 contract TokenStorageV1 is TokenTypesV1 {
@@ -12,7 +12,7 @@ contract TokenStorageV1 is TokenTypesV1 {
     address public auction;
 
     /// @notice The metadata renderer of the token
-    MetadataRenderer public metadataRenderer;
+    INounsMetadata public metadataRenderer;
 
     /// @notice The founders of the DAO
     Founder[] public founders;

@@ -10,13 +10,14 @@ import {Ownable} from "../../lib/utils/Ownable.sol";
 import {Strings} from "../../lib/utils/Strings.sol";
 
 import {MetadataRendererStorageV1} from "./storage/MetadataRendererStorageV1.sol";
-import {IMetadataRenderer} from "./IMetadataRenderer.sol";
+import {IPropertyIPFSMetadataRenderer} from "./IPropertyIPFSMEtadataRenderer.sol";
+import {INounsMetadata} from "./INounsMetadata.sol";
 import {IManager} from "../../manager/IManager.sol";
 
 /// @title Metadata Renderer
 /// @author Iain Nash & Rohan Kulkarni
 /// @notice This contract stores, renders, and generates the attributes for an associated token contract
-contract MetadataRenderer is IMetadataRenderer, UUPS, Ownable, MetadataRendererStorageV1 {
+contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, MetadataRendererStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -165,7 +166,7 @@ contract MetadataRenderer is IMetadataRenderer, UUPS, Ownable, MetadataRendererS
     /// @notice Generates attributes for a token
     /// @dev Called by the token upon mint()
     /// @param _tokenId The ERC-721 token id
-    function generate(uint256 _tokenId) external {
+    function onMinted(uint256 _tokenId) external returns (bool) {
         // Ensure the caller is the token contract
         if (msg.sender != settings.token) revert ONLY_TOKEN();
 
@@ -197,6 +198,8 @@ contract MetadataRenderer is IMetadataRenderer, UUPS, Ownable, MetadataRendererS
                 seed >>= 16;
             }
         }
+
+        return true;
     }
 
     /// @notice The properties and query string for a generated token
@@ -358,5 +361,9 @@ contract MetadataRenderer is IMetadataRenderer, UUPS, Ownable, MetadataRendererS
     /// @param _impl The address of the new implementation
     function _authorizeUpgrade(address _impl) internal view override onlyOwner {
         if (!manager.isValidUpgrade(_getImplementation(), _impl)) revert INVALID_UPGRADE(_impl);
+    }
+
+    function owner() public view override (Ownable, INounsMetadata) returns (address) {
+        return super.owner();
     }
 }

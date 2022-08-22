@@ -4,8 +4,8 @@ pragma solidity ^0.8.15;
 import {Initializable} from "../proxy/Initializable.sol";
 
 contract OwnableStorageV1 {
-    address public owner;
-    address public pendingOwner;
+    address internal _owner;
+    address internal _pendingOwner;
 }
 
 abstract contract Ownable is Initializable, OwnableStorageV1 {
@@ -22,46 +22,50 @@ abstract contract Ownable is Initializable, OwnableStorageV1 {
     error INCORRECT_PENDING_OWNER();
 
     modifier onlyOwner() {
-        if (msg.sender != owner) revert ONLY_OWNER();
+        if (msg.sender != _owner) revert ONLY_OWNER();
         _;
     }
 
     modifier onlyPendingOwner() {
-        if (msg.sender != pendingOwner) revert ONLY_PENDING_OWNER();
+        if (msg.sender != _pendingOwner) revert ONLY_PENDING_OWNER();
         _;
     }
 
-    function __Ownable_init(address _owner) internal onlyInitializing {
-        owner = _owner;
+    function __Ownable_init(address newOwner) internal onlyInitializing {
+        _owner = newOwner;
 
         emit OwnerUpdated(address(0), _owner);
     }
 
     function transferOwnership(address _newOwner) public onlyOwner {
-        emit OwnerUpdated(owner, _newOwner);
+        emit OwnerUpdated(_owner, _newOwner);
 
-        owner = _newOwner;
+        _owner = _newOwner;
     }
 
     function safeTransferOwnership(address _newOwner) public onlyOwner {
-        pendingOwner = _newOwner;
+        _pendingOwner = _newOwner;
 
-        emit OwnerPending(owner, _newOwner);
+        emit OwnerPending(_owner, _newOwner);
     }
 
-    function cancelOwnershipTransfer(address _pendingOwner) public onlyOwner {
-        if (_pendingOwner != pendingOwner) revert INCORRECT_PENDING_OWNER();
+    function cancelOwnershipTransfer(address _newPendingOwner) public onlyOwner {
+        if (_pendingOwner != _newPendingOwner) revert INCORRECT_PENDING_OWNER();
 
-        emit OwnerCanceled(owner, _pendingOwner);
+        emit OwnerCanceled(_owner, _newPendingOwner);
 
-        delete pendingOwner;
+        delete _pendingOwner;
     }
 
     function acceptOwnership() public onlyPendingOwner {
-        emit OwnerUpdated(owner, msg.sender);
+        emit OwnerUpdated(_owner, _pendingOwner);
 
-        owner = pendingOwner;
+        _owner = _pendingOwner;
 
-        delete pendingOwner;
+        delete _pendingOwner;
+    }
+
+    function owner() public virtual view returns (address) {
+        return _owner;
     }
 }

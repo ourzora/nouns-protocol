@@ -2,7 +2,7 @@
 pragma solidity 0.8.15;
 
 import {IManager} from "../manager/IManager.sol";
-import {IMetadataRenderer} from "./metadata/IMetadataRenderer.sol";
+import {INounsMetadata} from "./metadata/INounsMetadata.sol";
 
 interface IToken {
     ///                                                          ///
@@ -12,6 +12,8 @@ interface IToken {
     error ONLY_OWNER();
 
     error ONLY_AUCTION();
+
+    error NO_METADATA_GENERATED();
 
     ///                                                          ///
     ///                                                          ///
@@ -24,7 +26,7 @@ interface IToken {
         address auction
     ) external;
 
-    // function metadataRenderer() external view returns (IMetadataRenderer);
+    // function metadataRenderer() external view returns (INounsMetadata);
 
     // function auction() external view returns (address);
 

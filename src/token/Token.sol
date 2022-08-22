@@ -7,7 +7,7 @@ import {ReentrancyGuard} from "../lib/utils/ReentrancyGuard.sol";
 import {ERC721Votes} from "../lib/token/ERC721Votes.sol";
 
 import {TokenStorageV1} from "./storage/TokenStorageV1.sol";
-import {MetadataRenderer} from "./metadata/MetadataRenderer.sol";
+import {INounsMetadata} from "./metadata/INounsMetadata.sol";
 import {IManager} from "../manager/IManager.sol";
 import {IToken} from "./IToken.sol";
 
@@ -62,7 +62,7 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
         auction = _auction;
 
         // Store the associated metadata renderer
-        metadataRenderer = MetadataRenderer(_metadataRenderer);
+        metadataRenderer = INounsMetadata(_metadataRenderer);
     }
 
     ///                                                          ///
@@ -98,7 +98,9 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
         super._mint(_to, _tokenId);
 
         // Generate the token attributes
-        metadataRenderer.generate(_tokenId);
+        if (!metadataRenderer.onMinted(_tokenId)) {
+            revert NO_METADATA_GENERATED();
+        }
     }
 
     ///                                                          ///
