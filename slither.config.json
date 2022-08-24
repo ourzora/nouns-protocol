@@ -1,0 +1,9 @@
+{
+  "filter_paths": "lib",
+  "solc_remaps": [
+    "forge-std/=lib/forge-std/src/",
+    "@openzeppelin/=node_modules/@openzeppelin/",
+    "sol2string/=node_modules/sol2string/",
+    "sol-uriencode/=node_modules/sol-uriencode/"
+  ]
+}
