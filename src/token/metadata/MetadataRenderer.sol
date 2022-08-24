@@ -10,7 +10,7 @@ import {Ownable} from "../../lib/utils/Ownable.sol";
 import {Strings} from "../../lib/utils/Strings.sol";
 
 import {MetadataRendererStorageV1} from "./storage/MetadataRendererStorageV1.sol";
-import {IPropertyIPFSMetadataRenderer} from "./IPropertyIPFSMEtadataRenderer.sol";
+import {IPropertyIPFSMetadataRenderer} from "./IPropertyIPFSMetadataRenderer.sol";
 import {INounsMetadata} from "./INounsMetadata.sol";
 import {IManager} from "../../manager/IManager.sol";
 
@@ -363,7 +363,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         if (!manager.isValidUpgrade(_getImplementation(), _impl)) revert INVALID_UPGRADE(_impl);
     }
 
-    function owner() public view override (Ownable, INounsMetadata) returns (address) {
+    function owner() public view override(Ownable, INounsMetadata) returns (address) {
         return super.owner();
     }
 }
