@@ -5,13 +5,17 @@ import "forge-std/Script.sol";
 import {IManager} from "../src/manager/IManager.sol";
 
 import {Auction} from "../src/auction/Auction.sol";
+import {IManager} from "../src/manager/IManager.sol";
+import {IToken} from "../src/token/Token.sol";
 
 contract SetupDaoScript is Script {
     IManager manager;
+    IToken token;
     address founder;
 
     function setUp() public {
         manager = IManager(vm.envAddress("MANAGER"));
+        token = IToken(vm.envAddress("TOKEN"));
         founder = vm.envAddress("FOUNDERS_DAO");
     }
 
@@ -30,7 +34,7 @@ contract SetupDaoScript is Script {
             )
         });
 
-        IManager.AuctionParams memory auctionParams = IManager.AuctionParams({reservePrice: 0.01 ether, duration: 10});
+        IManager.AuctionParams memory auctionParams = IManager.AuctionParams({reservePrice: 0.01 ether, duration: 40});
 
         IManager.FounderParams[] memory founderParams = new IManager.FounderParams[](1);
         founderParams[0] = IManager.FounderParams({
@@ -64,21 +68,21 @@ contract SetupDaoScript is Script {
         // create auction
         auction.createBid{value: 0.01 ether}(1);
 
-        // string[] memory ffiArgs = new string[](2);
-        // ffiArgs[0] = 'sleep';
-        // ffiArgs[1] = '20';
-        // vm.ffi(ffiArgs);
-        // vm.warp(block.timestamp+20);
+        string[] memory ffiArgs = new string[](2);
+        ffiArgs[0] = 'sleep';
+        ffiArgs[1] = '20';
+        vm.ffi(ffiArgs);
+        vm.warp(block.timestamp+20);
 
-        // auction.settleCurrentAndCreateNewAuction();
+        auction.settleCurrentAndCreateNewAuction();
 
-        // // create another auction
-        // auction.createBid{value: 0.01 ether}(3);
+        // create another auction
+        auction.createBid{value: 0.01 ether}(3);
 
-        // vm.ffi(ffiArgs);
-        // vm.warp(block.timestamp+50);
+        vm.ffi(ffiArgs);
+        vm.warp(block.timestamp+50);
 
-        // auction.settleCurrentAndCreateNewAuction();
+        auction.settleCurrentAndCreateNewAuction();
 
         vm.stopBroadcast();
     }
