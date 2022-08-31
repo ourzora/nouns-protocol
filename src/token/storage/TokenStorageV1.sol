@@ -1,19 +1,16 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {INounsMetadata} from "../metadata/INounsMetadata.sol";
-import {TokenTypesV1} from "../types/TokenTypesV1.sol";
+import { TokenTypesV1 } from "../types/TokenTypesV1.sol";
 
+/// @title TokenStorageV1
+/// @author Rohan Kulkarni
+/// @notice The Token storage contract
 contract TokenStorageV1 is TokenTypesV1 {
-    /// @notice The total number of tokens minted
-    uint256 public totalSupply;
+    /// @notice The token settings
+    Settings internal settings;
 
-    /// @notice The minter of the token
-    address public auction;
+    mapping(uint256 => Founder) public founder;
 
-    /// @notice The metadata renderer of the token
-    INounsMetadata public metadataRenderer;
-
-    /// @notice The founders of the DAO
-    Founder[] public founders;
+    mapping(uint256 => Founder) internal tokenRecipient;
 }
