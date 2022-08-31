@@ -1,51 +1,51 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {UUPS} from "../lib/proxy/UUPS.sol";
-import {Ownable} from "../lib/utils/Ownable.sol";
-import {ERC1967Proxy} from "../lib/proxy/ERC1967Proxy.sol";
+import { UUPS } from "../lib/proxy/UUPS.sol";
+import { Ownable } from "../lib/utils/Ownable.sol";
+import { ERC1967Proxy } from "../lib/proxy/ERC1967Proxy.sol";
 
-import {ManagerStorageV1} from "./storage/ManagerStorageV1.sol";
-import {IManager} from "./IManager.sol";
-import {IToken} from "../token/IToken.sol";
-import {INounsMetadata} from "../token/metadata/INounsMetadata.sol";
-import {IAuction} from "../auction/IAuction.sol";
-import {ITimelock} from "../governance/timelock/ITimelock.sol";
-import {IGovernor} from "../governance/governor/IGovernor.sol";
+import { ManagerStorageV1 } from "./storage/ManagerStorageV1.sol";
+import { IManager } from "./IManager.sol";
+import { IToken } from "../token/IToken.sol";
+import { IBaseMetadata } from "../token/metadata/interfaces/IBaseMetadata.sol";
+import { IAuction } from "../auction/IAuction.sol";
+import { ITreasury } from "../governance/treasury/ITreasury.sol";
+import { IGovernor } from "../governance/governor/IGovernor.sol";
 
 /// @title Manager
 /// @author Rohan Kulkarni
-/// @notice This contract manages DAO deployments and opt-in contract upgrades.
+/// @notice The DAO deployer and upgrade manager
 contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
-    /// @notice The address of the token implementation
+    /// @notice The token implementation address
     address public immutable tokenImpl;
 
-    /// @notice The address of the metadata renderer implementation
+    /// @notice The metadata renderer implementation address
     address public immutable metadataImpl;
 
-    /// @notice The address of the auction house implementation
+    /// @notice The auction house implementation address
     address public immutable auctionImpl;
 
-    /// @notice The address of the timelock implementation
-    address public immutable timelockImpl;
+    /// @notice The treasury implementation address
+    address public immutable treasuryImpl;
 
-    /// @notice The address of the governor implementation
+    /// @notice The governor implementation address
     address public immutable governorImpl;
 
-    /// @notice The hash of the metadata renderer bytecode to be deployed
+    /// @notice The metadata renderer bytecode hash
     bytes32 private immutable metadataHash;
 
-    /// @notice The hash of the auction bytecode to be deployed
+    /// @notice The auction bytecode hash
     bytes32 private immutable auctionHash;
 
-    /// @notice The hash of the timelock bytecode to be deployed
-    bytes32 private immutable timelockHash;
+    /// @notice The treasury bytecode hash
+    bytes32 private immutable treasuryHash;
 
-    /// @notice The hash of the governor bytecode to be deployed
+    /// @notice The governor bytecode hash
     bytes32 private immutable governorHash;
 
     ///                                                          ///
@@ -56,18 +56,18 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
         address _tokenImpl,
         address _metadataImpl,
         address _auctionImpl,
-        address _timelockImpl,
+        address _treasuryImpl,
         address _governorImpl
     ) payable initializer {
         tokenImpl = _tokenImpl;
         metadataImpl = _metadataImpl;
         auctionImpl = _auctionImpl;
-        timelockImpl = _timelockImpl;
+        treasuryImpl = _treasuryImpl;
         governorImpl = _governorImpl;
 
         metadataHash = keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(_metadataImpl, "")));
         auctionHash = keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(_auctionImpl, "")));
-        timelockHash = keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(_timelockImpl, "")));
+        treasuryHash = keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(_treasuryImpl, "")));
         governorHash = keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(_governorImpl, "")));
     }
 
@@ -75,25 +75,25 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
     ///                          INITIALIZER                     ///
     ///                                                          ///
 
-    /// @notice Initializes ownership of the manager contract
-    /// @param _owner The address of the owner to set
+    /// @notice Grants ownership to the Builder DAO
+    /// @param _owner The Builder DAO treasury address
     function initialize(address _owner) external initializer {
         // Ensure an owner is specified
         if (_owner == address(0)) revert ADDRESS_ZERO();
 
-        // Set the given address as the owner
+        // Set the contract owner
         __Ownable_init(_owner);
     }
 
     ///                                                          ///
-    ///                          DAO DEPLOY                      ///
+    ///                           DAO DEPLOY                     ///
     ///                                                          ///
 
-    /// @notice Deploys a DAO with custom nounish settings
-    /// @param _founderParams The founders allocation
-    /// @param _tokenParams The token configuration
-    /// @param _auctionParams The auction configuration
-    /// @param _govParams The governance configuration
+    /// @notice Deploys a DAO with custom token, auction, and governance settings
+    /// @param _founderParams The DAO founder(s)
+    /// @param _tokenParams The ERC-721 token settings
+    /// @param _auctionParams The auction settings
+    /// @param _govParams The governance settings
     function deploy(
         FounderParams[] calldata _founderParams,
         TokenParams calldata _tokenParams,
@@ -105,51 +105,51 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
             address token,
             address metadata,
             address auction,
-            address timelock,
+            address treasury,
             address governor
         )
     {
-        // Used to store the founder responsible for adding token properties and kicking off the first auction
+        // Used to store the founder responsible for adding token artwork and kicking off the first auction
         address founder;
 
-        // Ensure at least one founder address is provided
-        if (((founder = _founderParams[0].wallet)) == address(0)) revert FOUNDER_REQUIRED();
+        // Ensure at least one founder is provided
+        if ((founder = _founderParams[0].wallet) == address(0)) revert FOUNDER_REQUIRED();
 
-        // Deploy an instance of the DAO's ERC-721 token
+        // Deploy the DAO's ERC-721 token
         token = address(new ERC1967Proxy(tokenImpl, ""));
 
-        // Use the token address as a salt for the remaining deploys
-        bytes32 salt = bytes32(uint256(uint160(token)));
+        // Use the token address as a salt to precompute remaining DAO contract addresses
+        bytes32 salt = bytes32(uint256(uint160(token)) << 96);
 
-        // Deploy the remaining contracts
-        metadata = address(new ERC1967Proxy{salt: salt}(metadataImpl, ""));
-        auction = address(new ERC1967Proxy{salt: salt}(auctionImpl, ""));
-        timelock = address(new ERC1967Proxy{salt: salt}(timelockImpl, ""));
-        governor = address(new ERC1967Proxy{salt: salt}(governorImpl, ""));
+        // Deploy the remaining DAO contracts
+        metadata = address(new ERC1967Proxy{ salt: salt }(metadataImpl, ""));
+        auction = address(new ERC1967Proxy{ salt: salt }(auctionImpl, ""));
+        treasury = address(new ERC1967Proxy{ salt: salt }(treasuryImpl, ""));
+        governor = address(new ERC1967Proxy{ salt: salt }(governorImpl, ""));
 
-        // Initialize each with the given settings
+        // Initialize each instance with the provided settings
         IToken(token).initialize(_founderParams, _tokenParams.initStrings, metadata, auction);
-        INounsMetadata(metadata).initialize(_tokenParams.initStrings, token, founder, timelock);
-        IAuction(auction).initialize(token, founder, timelock, _auctionParams.duration, _auctionParams.reservePrice);
-        ITimelock(timelock).initialize(governor, _govParams.timelockDelay);
+        IBaseMetadata(metadata).initialize(_tokenParams.initStrings, token, founder, treasury);
+        IAuction(auction).initialize(token, founder, treasury, _auctionParams.duration, _auctionParams.reservePrice);
+        ITreasury(treasury).initialize(governor, _govParams.timelockDelay);
         IGovernor(governor).initialize(
-            timelock,
+            treasury,
             token,
             founder,
             _govParams.votingDelay,
             _govParams.votingPeriod,
-            _govParams.proposalThresholdBPS,
-            _govParams.quorumVotesBPS
+            _govParams.proposalThresholdBps,
+            _govParams.quorumThresholdBps
         );
 
-        emit DAODeployed(token, metadata, auction, timelock, governor);
+        emit DAODeployed(token, metadata, auction, treasury, governor);
     }
 
     ///                                                          ///
-    ///                        DAO ADDRESSES                     ///
+    ///                         DAO ADDRESSES                    ///
     ///                                                          ///
 
-    /// @notice The addresses of a DAO's contracts from
+    /// @notice A DAO's remaining contract addresses from its token address
     /// @param _token The ERC-721 token address
     function getAddresses(address _token)
         external
@@ -157,55 +157,53 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
         returns (
             address metadata,
             address auction,
-            address timelock,
+            address treasury,
             address governor
         )
     {
-        bytes32 salt = bytes32(uint256(uint160(_token)));
+        bytes32 salt = bytes32(uint256(uint160(_token)) << 96);
 
         metadata = address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, metadataHash)))));
         auction = address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, auctionHash)))));
-        timelock = address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, timelockHash)))));
+        treasury = address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, treasuryHash)))));
         governor = address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, governorHash)))));
     }
 
     ///                                                          ///
-    ///                         DAO UPGRADES                     ///
+    ///                          DAO UPGRADES                    ///
     ///                                                          ///
 
-    /// @notice Registers an implementation as a valid upgrade
-    /// @param _baseImpl The address of the base implementation
-    /// @param _upgradeImpl The address of the upgrade implementation to register
+    /// @notice If an implementation is registered by the Builder DAO as an optional upgrade
+    /// @param _baseImpl The base implementation address
+    /// @param _upgradeImpl The upgrade implementation address
+    function isRegisteredUpgrade(address _baseImpl, address _upgradeImpl) external view returns (bool) {
+        return isUpgrade[_baseImpl][_upgradeImpl];
+    }
+
+    /// @notice Called by the Builder DAO to offer opt-in implementation upgrades for all other DAOs
+    /// @param _baseImpl The base implementation address
+    /// @param _upgradeImpl The upgrade implementation address
     function registerUpgrade(address _baseImpl, address _upgradeImpl) external onlyOwner {
-        // Register the upgrade
         isUpgrade[_baseImpl][_upgradeImpl] = true;
 
         emit UpgradeRegistered(_baseImpl, _upgradeImpl);
     }
 
-    /// @notice Unregisters an implementation
-    /// @param _baseImpl The address of the base implementation
-    /// @param _upgradeImpl The address of the upgrade implementation to unregister
+    /// @notice Called by the Builder DAO to remove an upgrade
+    /// @param _baseImpl The base implementation address
+    /// @param _upgradeImpl The upgrade implementation address
     function unregisterUpgrade(address _baseImpl, address _upgradeImpl) external onlyOwner {
-        // Remove the upgrade
         delete isUpgrade[_baseImpl][_upgradeImpl];
 
         emit UpgradeUnregistered(_baseImpl, _upgradeImpl);
     }
 
-    /// @notice If an upgraded implementation has been registered for its original implementation
-    /// @param _baseImpl The address of the original implementation
-    /// @param _upgradeImpl The address of the upgrade implementation
-    function isValidUpgrade(address _baseImpl, address _upgradeImpl) external view returns (bool) {
-        return isUpgrade[_baseImpl][_upgradeImpl];
-    }
-
     ///                                                          ///
-    ///                        CONTRACT UPGRADE                  ///
+    ///                         MANAGER UPGRADE                  ///
     ///                                                          ///
 
-    /// @notice Allows the default DAO implementations to be updated via Builder DAO governance
+    /// @notice Ensures the caller is the Builder DAO
     /// @dev This function is called in `upgradeTo` & `upgradeToAndCall`
-    /// @param _newImpl The address of the new implementation
+    /// @param _newImpl The new implementation address
     function _authorizeUpgrade(address _newImpl) internal override onlyOwner {}
 }

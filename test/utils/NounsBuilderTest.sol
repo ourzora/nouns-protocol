@@ -1,153 +1,85 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.15;
 
-import "forge-std/Test.sol";
+import { Test } from "forge-std/Test.sol";
 
-import {ERC1967Proxy} from "../../src/lib/proxy/ERC1967Proxy.sol";
+import { IManager, Manager } from "../../src/manager/Manager.sol";
+import { IToken, Token } from "../../src/token/Token.sol";
+import { MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol";
+import { IAuction, Auction } from "../../src/auction/Auction.sol";
+import { IGovernor, Governor } from "../../src/governance/governor/Governor.sol";
+import { ITreasury, Treasury } from "../../src/governance/treasury/Treasury.sol";
 
-import {IManager, Manager} from "../../src/manager/Manager.sol";
+import { ERC1967Proxy } from "../../src/lib/proxy/ERC1967Proxy.sol";
+import { WETH } from ".././utils/WETH.sol";
 
-// import {BuilderToken} from "../../src/builderDAO/BuilderToken.sol";
-// import {BuilderAuction} from "../../src/builderDAO/BuilderAuction.sol";
-
-import {IToken, Token} from "../../src/token/Token.sol";
-import {MetadataRenderer} from "../../src/token/metadata/MetadataRenderer.sol";
-import {INounsMetadata} from "../../src/token/metadata/INounsMetadata.sol";
-import {IAuction, Auction} from "../../src/auction/Auction.sol";
-import {IGovernor, Governor} from "../../src/governance/governor/Governor.sol";
-import {ITimelock, Timelock} from "../../src/governance/timelock/Timelock.sol";
-
-import {WETH} from ".././utils/WETH.sol";
+import { MockERC721 } from "../utils/mocks/MockERC721.sol";
+import { MockERC1155 } from "../utils/mocks/MockERC1155.sol";
 
 contract NounsBuilderTest is Test {
     ///                                                          ///
-    ///                        DEPLOYER SETUP                    ///
+    ///                          BASE SETUP                      ///
     ///                                                          ///
 
     Manager internal manager;
 
-    address internal managerImpl1;
-    address internal managerImpl2;
-    address internal managerImpl3;
+    address internal managerImpl0;
+    address internal managerImpl;
 
     address internal tokenImpl;
     address internal metadataRendererImpl;
     address internal auctionImpl;
-    address internal timelockImpl;
+    address internal treasuryImpl;
     address internal governorImpl;
 
+    address internal nounsDAO;
+    address internal zoraDAO;
     address internal builderDAO;
+
     address internal founder;
+    address internal founder2;
     address internal weth;
+
+    MockERC721 internal mock721;
+    MockERC1155 internal mock1155;
 
     function setUp() public virtual {
         weth = address(new WETH());
 
+        mock721 = new MockERC721();
+        mock1155 = new MockERC1155();
+
+        nounsDAO = vm.addr(0xA11CE);
+        zoraDAO = vm.addr(0xB0B);
+
         founder = vm.addr(0xCAB);
+        founder2 = vm.addr(0xDAD);
+
         builderDAO = vm.addr(0xB3D);
 
+        vm.label(zoraDAO, "ZORA_DAO");
+        vm.label(nounsDAO, "NOUNS_DAO");
         vm.label(founder, "FOUNDER");
         vm.label(builderDAO, "BUILDER_DAO");
 
-        // Initial manager
-        managerImpl1 = address(new Manager(address(0), address(0), address(0), address(0), address(0)));
-        manager = Manager(address(new ERC1967Proxy(managerImpl1, abi.encodeWithSignature("initialize(address)", builderDAO))));
-
-        // Deploy builder impl
-        // builderTokenImpl = address(new BuilderToken(address(manager)));
-        // builderAuctionImpl = address(new BuilderAuction(address(manager), weth, nounsDAO, zoraDAO));
-
-        metadataRendererImpl = address(new MetadataRenderer(address(manager)));
-        timelockImpl = address(new Timelock(address(manager)));
-        governorImpl = address(new Governor(address(manager)));
-
-        // Deploy builder manager
-        // // managerImpl2 = address(new Manager(builderTokenImpl, metadataRendererImpl, builderAuctionImpl, timelockImpl, governorImpl));
-
-        // vm.prank(zoraDAO);
-        // manager.upgradeTo(managerImpl2);
-
-        // builderDAO = deployBuilderDAO();
+        //
+        managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0)));
+        manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", builderDAO))));
 
         tokenImpl = address(new Token(address(manager)));
+        metadataRendererImpl = address(new MetadataRenderer(address(manager)));
+        treasuryImpl = address(new Treasury(address(manager)));
+        governorImpl = address(new Governor(address(manager)));
         auctionImpl = address(new Auction(address(manager), weth));
 
-        managerImpl3 = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, timelockImpl, governorImpl));
+        managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
 
         vm.prank(builderDAO);
-        manager.upgradeTo(managerImpl3);
+        manager.upgradeTo(managerImpl);
     }
 
     ///                                                          ///
-    ///                       BUILDER DAO DEPLOY                 ///
-    ///                                                          ///
-
-    // address internal builderTokenImpl;
-    // address internal builderAuctionImpl;
-
-    // bytes internal builderInitStrings;
-
-    // IManager.FounderParams[] internal builderFounderParamsArr;
-    // IManager.TokenParams internal builderTokenParams;
-    // IManager.AuctionParams internal builderAuctionParams;
-    // IManager.GovParams internal builderGovParams;
-
-    // BuilderToken internal builderToken;
-    // BuilderAuction internal builderAuction;
-    // MetadataRenderer internal builderMetadataRenderer;
-    // Timelock internal builderTimelock;
-    // Governor internal builderGovernor;
-
-    // function deployBuilderDAO() internal returns (address) {
-    //     builderInitStrings = abi.encode(
-    //         "Mock Token",
-    //         "MOCK",
-    //         "This is a mock token",
-    //         "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
-    //         "http://localhost:5000/render"
-    //     );
-
-    //     builderFounderParamsArr.push();
-    //     builderFounderParamsArr.push();
-
-    //     builderFounderParamsArr[0] = IManager.FounderParams({wallet: zoraDAO, allocationFrequency: 11, vestingEnd: 4 weeks});
-    //     builderFounderParamsArr[1] = IManager.FounderParams({wallet: nounsDAO, allocationFrequency: 20, vestingEnd: 4 weeks});
-
-    //     builderTokenParams = IManager.TokenParams({initStrings: tokenInitStrings});
-    //     builderAuctionParams = IManager.AuctionParams({reservePrice: 0.0 ether, duration: 1 days});
-
-    //     builderGovParams = IManager.GovParams({
-    //         timelockDelay: 2 days,
-    //         votingDelay: 1,
-    //         votingPeriod: 1 days,
-    //         proposalThresholdBPS: 500,
-    //         quorumVotesBPS: 1000
-    //     });
-
-    //     (address _token, address _metadata, address _auction, address _timelock, address _governor) = manager.deploy(
-    //         builderFounderParamsArr,
-    //         builderTokenParams,
-    //         builderAuctionParams,
-    //         builderGovParams
-    //     );
-
-    //     builderToken = BuilderToken(_token);
-    //     builderMetadataRenderer = MetadataRenderer(_metadata);
-    //     builderAuction = BuilderAuction(_auction);
-    //     builderTimelock = Timelock(payable(_timelock));
-    //     builderGovernor = Governor(_governor);
-
-    //     vm.label(address(builderToken), "BUILDER_TOKEN");
-    //     vm.label(address(builderMetadataRenderer), "BUILDER_METADATA_RENDERER");
-    //     vm.label(address(builderAuction), "BUILDER_AUCTION");
-    //     vm.label(address(builderTimelock), "BUILDER_TIMELOCK");
-    //     vm.label(address(builderGovernor), "BUILDER_GOVERNOR");
-
-    //     return _timelock;
-    // }
-
-    ///                                                          ///
-    ///                        MOCK DAO DEPLOY                   ///
+    ///                          DEPLOY UTILS                    ///
     ///                                                          ///
 
     bytes internal tokenInitStrings;
@@ -160,7 +92,7 @@ contract NounsBuilderTest is Test {
     Token internal token;
     MetadataRenderer internal metadataRenderer;
     Auction internal auction;
-    Timelock internal timelock;
+    Treasury internal treasury;
     Governor internal governor;
 
     function deploy() public virtual {
@@ -175,18 +107,18 @@ contract NounsBuilderTest is Test {
         founderParamsArr.push();
         founderParamsArr.push();
 
-        founderParamsArr[0] = IManager.FounderParams({wallet: founder, allocationFrequency: 10, vestingEnd: 4 weeks});
-        founderParamsArr[1] = IManager.FounderParams({wallet: address(this), allocationFrequency: 20, vestingEnd: 4 weeks});
+        founderParamsArr[0] = IManager.FounderParams({ wallet: founder, percentage: 10, vestingEnd: 4 weeks });
+        founderParamsArr[1] = IManager.FounderParams({ wallet: founder2, percentage: 20, vestingEnd: 4 weeks });
 
-        tokenParams = IManager.TokenParams({initStrings: tokenInitStrings});
-        auctionParams = IManager.AuctionParams({reservePrice: 0.01 ether, duration: 10 minutes});
+        tokenParams = IManager.TokenParams({ initStrings: tokenInitStrings });
+        auctionParams = IManager.AuctionParams({ reservePrice: 0.01 ether, duration: 10 minutes });
 
         govParams = IManager.GovParams({
             timelockDelay: 2 days,
             votingDelay: 1,
             votingPeriod: 1 days,
-            proposalThresholdBPS: 500,
-            quorumVotesBPS: 1000
+            proposalThresholdBps: 50,
+            quorumThresholdBps: 1000
         });
 
         deploy(founderParamsArr, tokenParams, auctionParams, govParams);
@@ -198,7 +130,7 @@ contract NounsBuilderTest is Test {
         IManager.AuctionParams memory _auctionParams,
         IManager.GovParams memory _govParams
     ) public {
-        (address _token, address _metadata, address _auction, address _timelock, address _governor) = manager.deploy(
+        (address _token, address _metadata, address _auction, address _treasury, address _governor) = manager.deploy(
             _founderParams,
             _tokenParams,
             _auctionParams,
@@ -208,13 +140,31 @@ contract NounsBuilderTest is Test {
         token = Token(_token);
         metadataRenderer = MetadataRenderer(_metadata);
         auction = Auction(_auction);
-        timelock = Timelock(payable(_timelock));
+        treasury = Treasury(payable(_treasury));
         governor = Governor(_governor);
 
         vm.label(address(token), "TOKEN");
         vm.label(address(metadataRenderer), "METADATA_RENDERER");
         vm.label(address(auction), "AUCTION");
-        vm.label(address(timelock), "TIMELOCK");
+        vm.label(address(treasury), "TREASURY");
         vm.label(address(governor), "GOVERNOR");
+    }
+
+    ///                                                          ///
+    ///                           USER UTILS                     ///
+    ///                                                          ///
+
+    address[] internal users;
+
+    function createUsers(uint256 _numUsers) internal {
+        users = new address[](_numUsers + 1);
+
+        for (uint256 i = 1; i <= _numUsers; ++i) {
+            address user = vm.addr(i);
+
+            vm.deal(user, i);
+
+            users[i] = user;
+        }
     }
 }

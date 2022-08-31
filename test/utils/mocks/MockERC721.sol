@@ -1,0 +1,14 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity 0.8.15;
+
+import { ERC721 } from "../../../src/lib/token/ERC721.sol";
+
+contract MockERC721 is ERC721 {
+    constructor() initializer {
+        __ERC721_init("Mock NFT", "MOCK");
+    }
+
+    function mint(address _to, uint256 _tokenId) public {
+        _mint(_to, _tokenId);
+    }
+}

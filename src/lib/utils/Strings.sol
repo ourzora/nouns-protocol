@@ -1,12 +1,15 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.15;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.4;
 
-/// @notice Modified from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/Strings.sol
+/// @notice Modified from OpenZeppelin Contracts v4.7.3 (utils/Strings.sol)
+/// - Uses custom error `INSUFFICIENT_HEX_LENGTH()`
+/// - Unchecks both overflow (unrealistic) and underflow (protected)
 library Strings {
     bytes16 private constant _HEX_SYMBOLS = "0123456789abcdef";
 
     error INSUFFICIENT_HEX_LENGTH();
 
+    /// @dev Converts a `uint256` to its ASCII `string` decimal representation.
     function toString(uint256 _value) internal pure returns (string memory) {
         unchecked {
             if (_value == 0) {
@@ -17,7 +20,7 @@ library Strings {
             uint256 digits;
 
             while (temp != 0) {
-                digits++;
+                ++digits;
 
                 temp /= 10;
             }
@@ -25,7 +28,7 @@ library Strings {
             bytes memory buffer = new bytes(digits);
 
             while (_value != 0) {
-                digits -= 1;
+                --digits;
 
                 buffer[digits] = bytes1(uint8(48 + uint256(_value % 10)));
 
@@ -36,6 +39,7 @@ library Strings {
         }
     }
 
+    /// @dev Converts a `uint256` to its ASCII `string` hexadecimal representation.
     function toHexString(uint256 _value) internal pure returns (string memory) {
         unchecked {
             if (_value == 0) {
@@ -43,11 +47,10 @@ library Strings {
             }
 
             uint256 temp = _value;
-
-            uint256 length = 0;
+            uint256 length;
 
             while (temp != 0) {
-                length++;
+                ++length;
 
                 temp >>= 8;
             }
@@ -55,9 +58,10 @@ library Strings {
         }
     }
 
-    function toHexString(uint256 _value, uint256 length) internal pure returns (string memory) {
+    /// @dev Converts a `uint256` to its ASCII `string` hexadecimal representation with fixed length.
+    function toHexString(uint256 _value, uint256 _length) internal pure returns (string memory) {
         unchecked {
-            uint256 bufferSize = 2 * length + 2;
+            uint256 bufferSize = 2 * _length + 2;
 
             bytes memory buffer = new bytes(bufferSize);
 
@@ -78,6 +82,7 @@ library Strings {
         }
     }
 
+    /// @dev Converts an `address` with fixed length of 20 bytes to its not checksummed ASCII `string` hexadecimal representation.
     function toHexString(address _addr) internal pure returns (string memory) {
         return toHexString(uint256(uint160(_addr)), 20);
     }
