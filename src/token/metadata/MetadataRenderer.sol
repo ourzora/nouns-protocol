@@ -1,22 +1,21 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {LibUintToString} from "sol2string/contracts/LibUintToString.sol";
-import {UriEncode} from "sol-uriencode/src/UriEncode.sol";
-import {Base64} from "@openzeppelin/contracts/utils/Base64.sol";
+import { LibUintToString } from "sol2string/contracts/LibUintToString.sol";
+import { UriEncode } from "sol-uriencode/src/UriEncode.sol";
+import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
 
-import {UUPS} from "../../lib/proxy/UUPS.sol";
-import {Ownable} from "../../lib/utils/Ownable.sol";
-import {Strings} from "../../lib/utils/Strings.sol";
+import { UUPS } from "../../lib/proxy/UUPS.sol";
+import { Ownable } from "../../lib/utils/Ownable.sol";
+import { Strings } from "../../lib/utils/Strings.sol";
 
-import {MetadataRendererStorageV1} from "./storage/MetadataRendererStorageV1.sol";
-import {IPropertyIPFSMetadataRenderer} from "./IPropertyIPFSMetadataRenderer.sol";
-import {INounsMetadata} from "./INounsMetadata.sol";
-import {IManager} from "../../manager/IManager.sol";
+import { MetadataRendererStorageV1 } from "./storage/MetadataRendererStorageV1.sol";
+import { IPropertyIPFSMetadataRenderer } from "./interfaces/IPropertyIPFSMetadataRenderer.sol";
+import { IManager } from "../../manager/IManager.sol";
 
 /// @title Metadata Renderer
 /// @author Iain Nash & Rohan Kulkarni
-/// @notice This contract stores, renders, and generates the attributes for an associated token contract
+/// @notice DAO token metadata renderer
 contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, MetadataRendererStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
@@ -38,16 +37,20 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
     ///                          INITIALIZER                     ///
     ///                                                          ///
 
-    /// @notice Initializes an instance of a DAO's metadata renderer
-    /// @param _initStrings The encoded token and metadata init strings
-    /// @param _token The address of the ERC-721 token
-    /// @param _founder The address of the founder responsible for adding
+    /// @notice Initializes a DAO's token metadata renderer
+    /// @param _initStrings The encoded token and metadata initialization strings
+    /// @param _token The ERC-721 token address
+    /// @param _founder The founder address responsible for adding initial properties
+    /// @param _treasury The DAO treasury that will own the contract
     function initialize(
         bytes calldata _initStrings,
         address _token,
         address _founder,
         address _treasury
     ) external initializer {
+        // Ensure the caller is the contract manager
+        if (msg.sender != address(manager)) revert ONLY_MANAGER();
+
         // Decode the token initialization strings
         (string memory _name, , string memory _description, string memory _contractImage, string memory _rendererBase) = abi.decode(
             _initStrings,
@@ -62,7 +65,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         settings.token = _token;
         settings.treasury = _treasury;
 
-        // Initialize ownership to the founder
+        // Grant initial ownership to a founder
         __Ownable_init(_founder);
     }
 
@@ -81,7 +84,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         return properties[_propertyId].items.length;
     }
 
-    /// @notice Adds properties and/or items to be pseudo-randomly chosen from for token generation to choose from attribute generations
+    /// @notice Adds properties and/or items to be pseudo-randomly chosen from during token minting
     /// @param _names The names of the properties to add
     /// @param _items The items to add to each property
     /// @param _ipfsGroup The IPFS base URI and extension
@@ -117,7 +120,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
                 // Append storage space
                 properties.push();
 
-                // Compute the property id
+                // Get the new property id
                 uint256 propertyId = numStoredProperties + i;
 
                 // Store the property name
@@ -128,16 +131,16 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
 
             // For each new item:
             for (uint256 i = 0; i < numNewItems; ++i) {
-                // Cache the associated property id
+                // Cache the id of the associated property
                 uint256 _propertyId = _items[i].propertyId;
 
-                // Offset the IDs for new properties
+                // Offset the id if the item is for a new property
                 if (_items[i].isNewProperty) {
                     _propertyId += numStoredProperties;
                 }
 
-                // Get the storage location of the other items for the property
-                // Property IDs under the hood are offset by 1
+                // Get the pointer to the  of the other items for the property
+                // Note: Property ids under the hood are offset by 1
                 Item[] storage propertyItems = properties[_propertyId].items;
 
                 // Append storage space
@@ -163,8 +166,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
     ///                     ATTRIBUTE GENERATION                 ///
     ///                                                          ///
 
-    /// @notice Generates attributes for a token
-    /// @dev Called by the token upon mint()
+    /// @notice Generates attributes for a token upon mint
     /// @param _tokenId The ERC-721 token id
     function onMinted(uint256 _tokenId) external returns (bool) {
         // Ensure the caller is the token contract
@@ -191,7 +193,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
                 // Get the number of items to choose from
                 numItems = properties[i].items.length;
 
-                // Use the token's seed to selec an item
+                // Use the token's seed to select an item
                 tokenAttributes[i + 1] = uint16(seed % numItems);
 
                 // Adjust the randomness
@@ -223,6 +225,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         if (numProperties == 0) revert TOKEN_NOT_MINTED(_tokenId);
 
         unchecked {
+            // Cache the index of the last property
             uint256 lastProperty = numProperties - 1;
 
             // For each of the token's properties:
@@ -230,7 +233,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
                 // Check if this is the last iteration
                 bool isLast = i == lastProperty;
 
-                // Get the property data
+                // Get a copy of the property
                 Property memory property = properties[i];
 
                 // Get the index of its generated attribute for this property
@@ -303,31 +306,36 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
             );
     }
 
-    /// @notice Encodes s
+    /// @dev Converts JSON bytes to Bytes64
     function _encodeAsJson(bytes memory _jsonBlob) private pure returns (string memory) {
         return string(abi.encodePacked("data:application/json;base64,", Base64.encode(_jsonBlob)));
     }
 
     ///                                                          ///
-    ///                                                          ///
+    ///                       METADATA SETTINGS                  ///
     ///                                                          ///
 
+    /// @notice The DAO governance token
     function token() external view returns (address) {
         return settings.token;
     }
 
+    /// @notice The DAO treasury
     function treasury() external view returns (address) {
         return settings.treasury;
     }
 
+    /// @notice The contract image
     function contractImage() external view returns (string memory) {
         return settings.contractImage;
     }
 
+    /// @notice The renderer base
     function rendererBase() external view returns (string memory) {
         return settings.rendererBase;
     }
 
+    /// @notice The collection description
     function description() external view returns (string memory) {
         return settings.description;
     }
@@ -352,18 +360,22 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         settings.rendererBase = _newRendererBase;
     }
 
+    /// @notice Updates the collection description
+    /// @param _newDescription The new description
+    function updateDescription(string memory _newDescription) external onlyOwner {
+        emit DescriptionUpdated(settings.description, _newDescription);
+
+        settings.description = _newDescription;
+    }
+
     ///                                                          ///
-    ///                        UPGRADE CONTRACT                  ///
+    ///                        METADATA UPGRADE                  ///
     ///                                                          ///
 
     /// @notice Ensures the caller is authorized to upgrade the contract to a valid implementation
     /// @dev This function is called in UUPS `upgradeTo` & `upgradeToAndCall`
     /// @param _impl The address of the new implementation
     function _authorizeUpgrade(address _impl) internal view override onlyOwner {
-        if (!manager.isValidUpgrade(_getImplementation(), _impl)) revert INVALID_UPGRADE(_impl);
-    }
-
-    function owner() public view override(Ownable, INounsMetadata) returns (address) {
-        return super.owner();
+        if (!manager.isRegisteredUpgrade(_getImplementation(), _impl)) revert INVALID_UPGRADE(_impl);
     }
 }
