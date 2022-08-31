@@ -1,9 +1,9 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
 /// @notice Manager Storage V1
 /// @author Rohan Kulkarni
-/// @notice Stores upgrade paths registered by the Builder DAO
+/// @notice The Manager storage contract
 contract ManagerStorageV1 {
     /// @notice If a contract has been registered as an upgrade
     /// @dev Base impl => Upgrade impl
