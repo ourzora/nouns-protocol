@@ -37,6 +37,7 @@ contract NounsBuilderTest is Test {
     address internal builderDAO;
 
     address internal founder;
+    address internal founder2;
     address internal weth;
 
     MockERC721 internal mock721;
@@ -50,7 +51,10 @@ contract NounsBuilderTest is Test {
 
         nounsDAO = vm.addr(0xA11CE);
         zoraDAO = vm.addr(0xB0B);
+
         founder = vm.addr(0xCAB);
+        founder2 = vm.addr(0xDAD);
+
         builderDAO = vm.addr(0xB3D);
 
         vm.label(zoraDAO, "ZORA_DAO");
@@ -103,8 +107,8 @@ contract NounsBuilderTest is Test {
         founderParamsArr.push();
         founderParamsArr.push();
 
-        founderParamsArr[0] = IManager.FounderParams({ wallet: founder, allocationFrequency: 10, vestingEnd: 4 weeks });
-        founderParamsArr[1] = IManager.FounderParams({ wallet: address(this), allocationFrequency: 20, vestingEnd: 4 weeks });
+        founderParamsArr[0] = IManager.FounderParams({ wallet: founder, percentage: 10, vestingEnd: 4 weeks });
+        founderParamsArr[1] = IManager.FounderParams({ wallet: founder2, percentage: 20, vestingEnd: 4 weeks });
 
         tokenParams = IManager.TokenParams({ initStrings: tokenInitStrings });
         auctionParams = IManager.AuctionParams({ reservePrice: 0.01 ether, duration: 10 minutes });
@@ -153,26 +157,14 @@ contract NounsBuilderTest is Test {
     address[] internal users;
 
     function createUsers(uint256 _numUsers) internal {
-        users = new address[](_numUsers);
+        users = new address[](_numUsers + 1);
 
         for (uint256 i = 1; i <= _numUsers; ++i) {
             address user = vm.addr(i);
 
             vm.deal(user, i);
 
-            users[i - 1] = user;
+            users[i] = user;
         }
-    }
-
-    function test_ManagerUpgrade() public {
-        tokenImpl = address(new Token(address(manager)));
-        metadataRendererImpl = address(new MetadataRenderer(address(manager)));
-        treasuryImpl = address(new Treasury(address(manager)));
-        governorImpl = address(new Governor(address(manager)));
-        auctionImpl = address(new Auction(address(manager), weth));
-
-        managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
-
-        manager.upgradeTo(managerImpl);
     }
 }

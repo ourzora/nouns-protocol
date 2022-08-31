@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.15;
 
-import {NounsBuilderTest} from "./utils/NounsBuilderTest.sol";
+import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 
 contract TokenTest is NounsBuilderTest {
     function setUp() public virtual override {
@@ -27,12 +27,7 @@ contract TokenTest is NounsBuilderTest {
     // should return the token uri and contract uri generated in the metadata renderer
 
     /** should handle all vesting scenarios
-
-        If Tyson way:
-        - make sure array of tokenId index to founder address is generated correctly
-        - 
-    
-    */
+     */
 
     /** should handle all token gov
         

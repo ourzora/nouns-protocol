@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.15;
 
-import {NounsBuilderTest} from "./utils/NounsBuilderTest.sol";
+import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 
-import {IManager, Manager} from "../src/manager/Manager.sol";
+import { IManager, Manager } from "../src/manager/Manager.sol";
 
 contract ManagerTest is NounsBuilderTest {
     function setUp() public virtual override {
@@ -17,7 +17,7 @@ contract ManagerTest is NounsBuilderTest {
 
         assertEq(address(metadataRenderer), _metadata);
         assertEq(address(auction), _auction);
-        assertEq(address(timelock), _treasury);
+        assertEq(address(treasury), _treasury);
         assertEq(address(governor), _governor);
     }
 
@@ -39,29 +39,26 @@ contract ManagerTest is NounsBuilderTest {
         deploy();
 
         assertEq(auction.owner(), founder);
-
-        (address _timelock, uint40 _duration, uint40 _timeBuffer, uint16 _minBidIncrementPercentage, uint256 _reservePrice) = auction.settings();
-
-        assertEq(_timelock, address(timelock));
-        assertEq(_duration, auctionParams.duration);
-        assertEq(_reservePrice, auctionParams.reservePrice);
-        assertEq(_timeBuffer, 5 minutes);
-        assertEq(_minBidIncrementPercentage, 10);
-
         assertTrue(auction.paused());
+
+        assertEq(auction.treasury(), address(treasury));
+        assertEq(auction.duration(), auctionParams.duration);
+        assertEq(auction.reservePrice(), auctionParams.reservePrice);
+        assertEq(auction.timeBuffer(), 5 minutes);
+        assertEq(auction.minBidIncrement(), 10);
     }
 
     function test_TreasuryInitialized() public {
         deploy();
 
-        assertEq(timelock.owner(), address(governor));
-        assertEq(timelock.delay(), govParams.timelockDelay);
+        assertEq(treasury.owner(), address(governor));
+        assertEq(treasury.delay(), govParams.timelockDelay);
     }
 
     function test_GovernorInitialized() public {
         deploy();
 
-        assertEq(governor.owner(), address(timelock));
+        assertEq(governor.owner(), address(treasury));
         assertEq(governor.votingDelay(), govParams.votingDelay);
         assertEq(governor.votingPeriod(), govParams.votingPeriod);
     }
@@ -77,15 +74,15 @@ contract ManagerTest is NounsBuilderTest {
 
         founderParamsArr.push();
 
-        tokenParams = IManager.TokenParams({initStrings: tokenInitStrings});
-        auctionParams = IManager.AuctionParams({reservePrice: 0.01 ether, duration: 10 minutes});
+        tokenParams = IManager.TokenParams({ initStrings: tokenInitStrings });
+        auctionParams = IManager.AuctionParams({ reservePrice: 0.01 ether, duration: 10 minutes });
 
         govParams = IManager.GovParams({
             timelockDelay: 2 days,
             votingDelay: 1,
             votingPeriod: 1 days,
-            proposalThresholdBPS: 500,
-            quorumVotesBPS: 1000
+            proposalThresholdBps: 500,
+            quorumThresholdBps: 1000
         });
 
         vm.expectRevert(abi.encodeWithSignature("FOUNDER_REQUIRED()"));

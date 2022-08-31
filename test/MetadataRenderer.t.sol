@@ -54,7 +54,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         assertEq(metadataRenderer.itemsCount(0), 4);
         assertEq(metadataRenderer.itemsCount(1), 3);
 
-        assertEq(metadataRenderer.owner(), address(timelock));
+        assertEq(metadataRenderer.owner(), address(treasury));
     }
 
     // function test_UpdateDescription() public {
