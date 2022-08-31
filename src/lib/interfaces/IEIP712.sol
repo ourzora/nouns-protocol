@@ -9,10 +9,10 @@ interface IEIP712 {
     ///                            ERRORS                        ///
     ///                                                          ///
 
-    /// @dev Reverts when the deadline has passed to submit a signature
+    /// @dev Reverts if the deadline has passed to submit a signature
     error EXPIRED_SIGNATURE();
 
-    /// @dev Reverts when the recovered signature is invalid
+    /// @dev Reverts if the recovered signature is invalid
     error INVALID_SIGNER();
 
     ///                                                          ///

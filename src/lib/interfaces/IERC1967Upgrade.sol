@@ -17,13 +17,13 @@ interface IERC1967Upgrade {
     ///                            ERRORS                        ///
     ///                                                          ///
 
-    /// @dev Reverts when an implementation is an invalid upgrade
+    /// @dev Reverts if an implementation is an invalid upgrade
     /// @param impl The address of the invalid implementation
     error INVALID_UPGRADE(address impl);
 
-    /// @dev Reverts when an implementation upgrade is not stored at the storage slot of the original
+    /// @dev Reverts if an implementation upgrade is not stored at the storage slot of the original
     error UNSUPPORTED_UUID();
 
-    /// @dev Reverts when an implementation does not support ERC1822 proxiableUUID()
+    /// @dev Reverts if an implementation does not support ERC1822 proxiableUUID()
     error ONLY_UUPS();
 }

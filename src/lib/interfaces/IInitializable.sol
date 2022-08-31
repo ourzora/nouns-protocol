@@ -16,15 +16,15 @@ interface IInitializable {
     ///                            ERRORS                        ///
     ///                                                          ///
 
-    /// @dev Reverts when address(0) is passed during initialization
+    /// @dev Reverts if address(0) is incorrectly passed
     error ADDRESS_ZERO();
 
-    /// @dev Reverts when attempting to disable initializers during initialization
+    /// @dev Reverts if attempting to disable initializers during initialization
     error INITIALIZING();
 
-    /// @dev Reverts when calling an initialization function outside of initialization
+    /// @dev Reverts if calling an initialization function outside of initialization
     error NOT_INITIALIZING();
 
-    /// @dev Reverts when attempting to reinitialize incorrectly
+    /// @dev Reverts if attempting to reinitialize incorrectly
     error ALREADY_INITIALIZED();
 }
