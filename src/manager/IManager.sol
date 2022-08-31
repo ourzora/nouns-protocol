@@ -1,77 +1,110 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
+
+import { IUUPS } from "../lib/interfaces/IUUPS.sol";
+import { IOwnable } from "../lib/interfaces/IOwnable.sol";
 
 /// @title IManager
 /// @author Rohan Kulkarni
-/// @notice The Manager external interface
-interface IManager {
+/// @notice The external Manager events, errors, structs and functions
+interface IManager is IUUPS, IOwnable {
     ///                                                          ///
-    ///                                                          ///
+    ///                            EVENTS                        ///
     ///                                                          ///
 
     /// @notice Emitted when a DAO is deployed
-    /// @param token The address of the token
-    /// @param metadata The address of the metadata renderer
-    /// @param auction The address of the auction
-    /// @param timelock The address of the timelock
-    /// @param governor The address of the governor
-    event DAODeployed(address token, address metadata, address auction, address timelock, address governor);
+    /// @param token The ERC-721 token address
+    /// @param metadata The metadata renderer address
+    /// @param auction The auction address
+    /// @param treasury The treasury address
+    /// @param governor The governor address
+    event DAODeployed(address token, address metadata, address auction, address treasury, address governor);
 
-    /// @notice Emitted when an upgrade is registered
-    /// @param baseImpl The address of the previous implementation
-    /// @param upgradeImpl The address of the registered upgrade
+    /// @notice Emitted when an upgrade is registered by the Builder DAO
+    /// @param baseImpl The base implementation address
+    /// @param upgradeImpl The upgrade implementation address
     event UpgradeRegistered(address baseImpl, address upgradeImpl);
 
-    /// @notice Emitted when an upgrade is unregistered
-    /// @param baseImpl The address of the base contract
-    /// @param upgradeImpl The address of the upgrade
+    /// @notice Emitted when an upgrade is unregistered by the Builder DAO
+    /// @param baseImpl The base implementation address
+    /// @param upgradeImpl The upgrade implementation address
     event UpgradeUnregistered(address baseImpl, address upgradeImpl);
 
     ///                                                          ///
-    ///                                                          ///
+    ///                            ERRORS                        ///
     ///                                                          ///
 
+    /// @dev Reverts if at least one founder is not provided upon deploy
     error FOUNDER_REQUIRED();
 
     ///                                                          ///
-    ///                                                          ///
+    ///                            STRUCTS                       ///
     ///                                                          ///
 
-    /// @notice The ownership config for each founder
-    /// @param wallet A wallet or multisig address
-    /// @param allocationFrequency The frequency of tokens minted to them (eg. Every 10 tokens to Nounders)
+    /// @notice The founder parameters
+    /// @param wallet The wallet address
+    /// @param percentage The percent ownership
     /// @param vestingEnd The timestamp that their vesting will end
     struct FounderParams {
         address wallet;
-        uint256 allocationFrequency;
+        uint256 percentage;
         uint256 vestingEnd;
     }
 
-    /// @notice The DAO's ERC-721 token and metadata config
-    /// @param initStrings The encoded
+    /// @notice The ERC-721 token parameters
+    /// @param initStrings The encoded token name, symbol, description, contract image, renderer base
     struct TokenParams {
-        bytes initStrings; // name, symbol, description, contract image, renderer base
+        bytes initStrings;
     }
 
+    /// @notice The auction parameters
+    /// @param reservePrice The reserve price of each auction
+    /// @param duration The duration of each auction
     struct AuctionParams {
         uint256 reservePrice;
         uint256 duration;
     }
 
+    /// @notice The governance parameters
+    /// @param timelockDelay The amount of time a queued proposal is delayed until execution
+    /// @param votingDelay The amount of time after a submitted proposal until voting begins
+    /// @param votingPeriod The amount of time voting takes place for an active proposal
+    /// @param proposalThresholdBps The minimum votes (in basis points of the total supply) required to submit a proposal
+    /// @param quorumThresholdBps The minimum votes (in basis points of total supply) required to reach quorum
     struct GovParams {
-        uint256 timelockDelay; // The time between a proposal and its execution
-        uint256 votingDelay; // The number of blocks after a proposal that voting is delayed
-        uint256 votingPeriod; // The number of blocks that voting for a proposal will take place
-        uint256 proposalThresholdBPS; // The number of votes required for a voter to become a proposer
-        uint256 quorumVotesBPS; // The number of votes required to support a proposal
+        uint256 timelockDelay;
+        uint256 votingDelay;
+        uint256 votingPeriod;
+        uint256 proposalThresholdBps;
+        uint256 quorumThresholdBps;
     }
 
     ///                                                          ///
-    ///                                                          ///
+    ///                           FUNCTIONS                      ///
     ///                                                          ///
 
+    /// @notice The token implementation address
+    function tokenImpl() external view returns (address);
+
+    /// @notice The metadata renderer implementation address
+    function metadataImpl() external view returns (address);
+
+    /// @notice The auction house implementation address
+    function auctionImpl() external view returns (address);
+
+    /// @notice The treasury implementation address
+    function treasuryImpl() external view returns (address);
+
+    /// @notice The governor implementation address
+    function governorImpl() external view returns (address);
+
+    /// @notice Deploys a DAO with custom token, auction, and governance settings
+    /// @param founderParams The DAO founder(s)
+    /// @param tokenParams The ERC-721 token settings
+    /// @param auctionParams The auction settings
+    /// @param govParams The governance settings
     function deploy(
-        FounderParams[] calldata _founderParams,
+        FounderParams[] calldata founderParams,
         TokenParams calldata tokenParams,
         AuctionParams calldata auctionParams,
         GovParams calldata govParams
@@ -81,18 +114,33 @@ interface IManager {
             address token,
             address metadataRenderer,
             address auction,
-            address timelock,
+            address treasury,
             address governor
         );
 
+    /// @notice A DAO's remaining contract addresses from its token address
+    /// @param token The ERC-721 token address
     function getAddresses(address token)
         external
         returns (
             address metadataRenderer,
             address auction,
-            address timelock,
+            address treasury,
             address governor
         );
 
-    function isValidUpgrade(address _baseImpl, address _upgradeImpl) external view returns (bool);
+    /// @notice If an implementation is registered by the Builder DAO as an optional upgrade
+    /// @param baseImpl The base implementation address
+    /// @param upgradeImpl The upgrade implementation address
+    function isRegisteredUpgrade(address baseImpl, address upgradeImpl) external view returns (bool);
+
+    /// @notice Called by the Builder DAO to offer opt-in implementation upgrades for all other DAOs
+    /// @param baseImpl The base implementation address
+    /// @param upgradeImpl The upgrade implementation address
+    function registerUpgrade(address baseImpl, address upgradeImpl) external;
+
+    /// @notice Called by the Builder DAO to remove an upgrade
+    /// @param baseImpl The base implementation address
+    /// @param upgradeImpl The upgrade implementation address
+    function unregisterUpgrade(address baseImpl, address upgradeImpl) external;
 }
