@@ -2,14 +2,21 @@
 pragma solidity ^0.8.4;
 
 import { IInitializable } from "../interfaces/IInitializable.sol";
-import { InitializableStorageV1 } from "../storage/InitializableStorageV1.sol";
 import { Address } from "../utils/Address.sol";
 
-/// @title Initializable
-/// @author Rohan Kulkarni
 /// @notice Modified from OpenZeppelin Contracts v4.7.3 (proxy/utils/Initializable.sol)
 /// - Uses custom errors declared in IInitializable
-abstract contract Initializable is IInitializable, InitializableStorageV1 {
+abstract contract Initializable is IInitializable {
+    ///                                                          ///
+    ///                           STORAGE                        ///
+    ///                                                          ///
+
+    /// @dev Indicates the contract has been initialized
+    uint8 internal _initialized;
+
+    /// @dev Indicates the contract is being initialized
+    bool internal _initializing;
+
     ///                                                          ///
     ///                          MODIFIERS                       ///
     ///                                                          ///

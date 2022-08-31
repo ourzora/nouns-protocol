@@ -2,16 +2,43 @@
 pragma solidity ^0.8.4;
 
 import { IEIP712 } from "../interfaces/IEIP712.sol";
-import { EIP712StorageV1 } from "../storage/EIP712StorageV1.sol";
 import { Initializable } from "../utils/Initializable.sol";
 
-/// @notice Modified from OpenZeppelin Contracts Upgradeable v4.7.3 (utils/cryptography/draft-EIP712Upgradeable.sol)
+/// @notice Modified from OpenZeppelin Contracts v4.7.3 (utils/cryptography/draft-EIP712Upgradeable.sol)
 /// - Uses custom errors declared in IEIP712
-/// - Adds a `nonces` mapping to EIP712StorageV1
+/// - Adds `nonces` mapping
 /// - Caches `INITIAL_CHAIN_ID` and `INITIAL_DOMAIN_SEPARATOR` upon initialization
-abstract contract EIP712 is IEIP712, Initializable, EIP712StorageV1 {
+abstract contract EIP712 is IEIP712, Initializable {
+    ///                                                          ///
+    ///                          CONSTANTS                       ///
+    ///                                                          ///
+
     /// @dev The EIP-712 domain typehash
     bytes32 internal constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)");
+
+    ///                                                          ///
+    ///                           STORAGE                        ///
+    ///                                                          ///
+
+    /// @notice The hash of the EIP-712 domain name
+    bytes32 internal HASHED_NAME;
+
+    /// @notice The hash of the EIP-712 domain version
+    bytes32 internal HASHED_VERSION;
+
+    /// @notice The domain separator computed upon initialization
+    bytes32 internal INITIAL_DOMAIN_SEPARATOR;
+
+    /// @notice The chain id upon initialization
+    uint256 internal INITIAL_CHAIN_ID;
+
+    /// @notice The account nonces
+    /// @dev Account => Nonce
+    mapping(address => uint256) internal nonces;
+
+    ///                                                          ///
+    ///                           FUNCTIONS                      ///
+    ///                                                          ///
 
     /// @dev Initializes EIP-712 support
     /// @param _name The EIP-712 domain name

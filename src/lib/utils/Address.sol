@@ -9,10 +9,10 @@ library Address {
     ///                            ERRORS                        ///
     ///                                                          ///
 
-    /// @dev Reverts when the target of a delegatecall is not a contract
+    /// @dev Reverts if the target of a delegatecall is not a contract
     error INVALID_TARGET();
 
-    /// @dev Reverts when a delegatecall has failed
+    /// @dev Reverts if a delegatecall has failed
     error DELEGATE_CALL_FAILED();
 
     ///                                                          ///

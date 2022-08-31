@@ -1,71 +1,90 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.15;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.4;
 
-import {Initializable} from "../proxy/Initializable.sol";
+import { IOwnable } from "../interfaces/IOwnable.sol";
+import { Initializable } from "../utils/Initializable.sol";
 
-contract OwnableStorageV1 {
+/// @notice Modified from OpenZeppelin Contracts v4.7.3 (access/OwnableUpgradeable.sol)
+/// - Uses custom errors declared in IOwnable
+/// - Adds optional two-step ownership transfer (`safeTransferOwnership` + `acceptOwnership`)
+abstract contract Ownable is IOwnable, Initializable {
+    ///                                                          ///
+    ///                            STORAGE                       ///
+    ///                                                          ///
+
+    /// @dev The address of the owner
     address internal _owner;
+
+    /// @dev The address of the pending owner
     address internal _pendingOwner;
-}
 
-abstract contract Ownable is Initializable, OwnableStorageV1 {
-    event OwnerUpdated(address indexed prevOwner, address indexed newOwner);
+    ///                                                          ///
+    ///                           MODIFIERS                      ///
+    ///                                                          ///
 
-    event OwnerPending(address indexed owner, address indexed pendingOwner);
-
-    event OwnerCanceled(address indexed owner, address indexed canceledOwner);
-
-    error ONLY_OWNER();
-
-    error ONLY_PENDING_OWNER();
-
-    error INCORRECT_PENDING_OWNER();
-
+    /// @dev Ensures the caller is the owner
     modifier onlyOwner() {
         if (msg.sender != _owner) revert ONLY_OWNER();
         _;
     }
 
+    /// @dev Ensures the caller is the pending owner
     modifier onlyPendingOwner() {
         if (msg.sender != _pendingOwner) revert ONLY_PENDING_OWNER();
         _;
     }
 
-    function __Ownable_init(address newOwner) internal onlyInitializing {
-        _owner = newOwner;
+    ///                                                          ///
+    ///                           FUNCTIONS                      ///
+    ///                                                          ///
 
-        emit OwnerUpdated(address(0), _owner);
+    /// @dev Initializes contract ownership
+    /// @param _initialOwner The initial owner address
+    function __Ownable_init(address _initialOwner) internal onlyInitializing {
+        _owner = _initialOwner;
+
+        emit OwnerUpdated(address(0), _initialOwner);
     }
 
+    /// @notice The address of the owner
+    function owner() public view returns (address) {
+        return _owner;
+    }
+
+    /// @notice The address of the pending owner
+    function pendingOwner() public view returns (address) {
+        return _pendingOwner;
+    }
+
+    /// @notice Forces an ownership transfer
+    /// @param _newOwner The new owner address
     function transferOwnership(address _newOwner) public onlyOwner {
         emit OwnerUpdated(_owner, _newOwner);
 
         _owner = _newOwner;
     }
 
+    /// @notice Initiates a two-step ownership transfer
+    /// @param _newOwner The new owner address
     function safeTransferOwnership(address _newOwner) public onlyOwner {
         _pendingOwner = _newOwner;
 
         emit OwnerPending(_owner, _newOwner);
     }
 
-    function cancelOwnershipTransfer(address _newPendingOwner) public onlyOwner {
-        if (_pendingOwner != _newPendingOwner) revert INCORRECT_PENDING_OWNER();
-
-        emit OwnerCanceled(_owner, _newPendingOwner);
-
-        delete _pendingOwner;
-    }
-
+    /// @notice Accepts an ownership transfer
     function acceptOwnership() public onlyPendingOwner {
-        emit OwnerUpdated(_owner, _pendingOwner);
+        emit OwnerUpdated(_owner, msg.sender);
 
         _owner = _pendingOwner;
 
         delete _pendingOwner;
     }
 
-    function owner() public virtual view returns (address) {
-        return _owner;
+    /// @notice Cancels a pending ownership transfer
+    function cancelOwnershipTransfer() public onlyOwner {
+        emit OwnerCanceled(_owner, _pendingOwner);
+
+        delete _pendingOwner;
     }
 }
