@@ -1,23 +1,41 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.15;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.4;
 
-import {Initializable} from "../proxy/Initializable.sol";
+import { Initializable } from "../utils/Initializable.sol";
 
-contract ReentrancyGuardStorageV1 {
-    uint256 internal _status;
-}
+/// @notice Modified from OpenZeppelin Contracts v4.7.3 (security/ReentrancyGuardUpgradeable.sol)
+/// - Uses custom error `REENTRANCY()`
+abstract contract ReentrancyGuard is Initializable {
+    ///                                                          ///
+    ///                            STORAGE                       ///
+    ///                                                          ///
 
-/// @notice Modified from https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/ReentrancyGuard.sol
-abstract contract ReentrancyGuard is Initializable, ReentrancyGuardStorageV1 {
+    /// @dev Indicates that a function has not been entered
     uint256 internal constant _NOT_ENTERED = 1;
+
+    /// @dev Indicates that a function has been entered
     uint256 internal constant _ENTERED = 2;
 
+    /// @notice The reentrancy status of a function
+    uint256 internal _status;
+
+    ///                                                          ///
+    ///                            ERRORS                        ///
+    ///                                                          ///
+
+    /// @dev Reverts if attempted reentrancy
     error REENTRANCY();
 
+    ///                                                          ///
+    ///                           FUNCTIONS                      ///
+    ///                                                          ///
+
+    /// @dev Initializes the reentrancy guard
     function __ReentrancyGuard_init() internal onlyInitializing {
         _status = _NOT_ENTERED;
     }
 
+    /// @dev Ensures a function cannot be reentered
     modifier nonReentrant() {
         if (_status == _ENTERED) revert REENTRANCY();
 

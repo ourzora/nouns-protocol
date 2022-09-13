@@ -1,9 +1,14 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
-import {IToken} from "../token/IToken.sol";
+import { IUUPS } from "../lib/interfaces/IUUPS.sol";
+import { IOwnable } from "../lib/interfaces/IOwnable.sol";
+import { IPausable } from "../lib/interfaces/IPausable.sol";
 
-interface IAuction {
+/// @title IAuction
+/// @author Rohan Kulkarni
+/// @notice The external Auction events, errors, and functions
+interface IAuction is IUUPS, IOwnable, IPausable {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///
@@ -48,26 +53,43 @@ interface IAuction {
     ///                           ERRORS                         ///
     ///                                                          ///
 
+    /// @dev Reverts if a bid is placed for the wrong token
     error INVALID_TOKEN_ID();
 
+    /// @dev Reverts if a bid is placed for an auction thats over
     error AUCTION_OVER();
 
-    error RESERVE_PRICE_NOT_MET();
-
-    error MINIMUM_BID_NOT_MET();
-
+    /// @dev Reverts if a bid is placed for an auction that hasn't started
     error AUCTION_NOT_STARTED();
 
-    error AUCTION_NOT_OVER();
+    /// @dev Reverts if attempting to settle an active auction
+    error AUCTION_ACTIVE();
 
+    /// @dev Reverts if attempting to settle an auction that was already settled
     error AUCTION_SETTLED();
 
+    /// @dev Reverts if a bid does not meet the reserve price
+    error RESERVE_PRICE_NOT_MET();
+
+    /// @dev Reverts if a bid does not meet the minimum bid
+    error MINIMUM_BID_NOT_MET();
+
+    /// @dev Reverts if the contract does not have enough ETH
     error INSOLVENT();
+
+    /// @dev Reverts if the caller was not the contract manager
+    error ONLY_MANAGER();
 
     ///                                                          ///
     ///                          FUNCTIONS                       ///
     ///                                                          ///
 
+    /// @notice Initializes a DAO's auction house
+    /// @param token The ERC-721 token address
+    /// @param founder The founder responsible for starting the first auction
+    /// @param treasury The treasury address where ETH will be sent
+    /// @param duration The duration of each auction
+    /// @param reservePrice The reserve price of each auction
     function initialize(
         address token,
         address founder,
@@ -76,21 +98,47 @@ interface IAuction {
         uint256 reservePrice
     ) external;
 
+    /// @notice Creates a bid for the current token
+    /// @param tokenId The ERC-721 token id
     function createBid(uint256 tokenId) external payable;
 
+    /// @notice Settles the current auction and creates the next one
     function settleCurrentAndCreateNewAuction() external;
 
+    /// @notice Settles the latest auction when the contract is paused
     function settleAuction() external;
 
-    function setDuration(uint256 duration) external;
-
-    function setReservePrice(uint256 reservePrice) external;
-
-    function setMinimumBidIncrement(uint256 percentage) external;
-
-    function setTimeBuffer(uint256 timeBuffer) external;
-
+    /// @notice Pauses the auction house
     function pause() external;
 
+    /// @notice Unpauses the auction house
     function unpause() external;
+
+    /// @notice The time duration of each auction
+    function duration() external view returns (uint256);
+
+    /// @notice The reserve price of each auction
+    function reservePrice() external view returns (uint256);
+
+    /// @notice The minimum amount of time to place a bid during an active auction
+    function timeBuffer() external view returns (uint256);
+
+    /// @notice The minimum percentage of the highest bid that a subsequent bid must beat
+    function minBidIncrement() external view returns (uint256);
+
+    /// @notice Updates the time duration of each auction
+    /// @param duration The new time duration
+    function setDuration(uint256 duration) external;
+
+    /// @notice Updates the reserve price of each auction
+    /// @param reservePrice The new reserve price
+    function setReservePrice(uint256 reservePrice) external;
+
+    /// @notice Updates the time buffer of each auction
+    /// @param timeBuffer The new time buffer
+    function setTimeBuffer(uint256 timeBuffer) external;
+
+    /// @notice Updates the minimum bid increment of each subsequent bid
+    /// @param percentage The new percentage
+    function setMinimumBidIncrement(uint256 percentage) external;
 }

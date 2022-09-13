@@ -1,8 +1,16 @@
 [profile.default]
 auto_detect_solc = true
+fuzz_runs = 500
 libs = ['lib']
 optimizer = true
 optimizer_runs = 500000
 out = 'dist/artifacts'
 src = 'src'
 test = 'test'
+
+[fmt]
+bracket_spacing = true
+int_types = "long"
+line_length = 150
+quote_style = "double"
+tab_width = 4
