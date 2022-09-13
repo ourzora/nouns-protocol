@@ -39,7 +39,7 @@ contract SetupDaoScript is Script {
         IManager.FounderParams[] memory founderParams = new IManager.FounderParams[](1);
         founderParams[0] = IManager.FounderParams({
             wallet: founder,
-            allocationFrequency: 2,
+            percentage: 2,
             vestingEnd: block.timestamp + (2 * 60 * 60 * 30 * 12)
         });
 
@@ -47,8 +47,8 @@ contract SetupDaoScript is Script {
             timelockDelay: 0,
             votingDelay: 0, // 1 block
             votingPeriod: 10,
-            proposalThresholdBPS: 10,
-            quorumVotesBPS: 100
+            proposalThresholdBps: 10,
+            quorumThresholdBps: 100
         });
 
         (address _token, address _metadata, address _auction, address _treasury, address _governor) = manager.deploy(

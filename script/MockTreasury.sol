@@ -4,6 +4,11 @@ pragma solidity ^0.8.13;
 contract MockTreasury {
     address owner;
 
+    modifier onlyOwner() {
+        require(owner == msg.sender, "Not owner");
+        _;
+    }
+
     constructor(address _owner) {
         owner = _owner;
     }
@@ -12,8 +17,7 @@ contract MockTreasury {
         // do nothing
     }
 
-    function execute(address target, bytes calldata data) public {
-        // require(msg.sender == owner, "only owner");
+    function execute(address target, bytes calldata data) public onlyOwner {
         target.call(data);
     }
 }
