@@ -82,14 +82,14 @@ contract DeployContracts is Script {
         address tokenImpl = address(new Token(address(manager)));
         address auctionImpl = address(new Auction(address(manager), weth));
 
-        address deployerV2Impl = address(new Manager(tokenImpl, _metadata, auctionImpl, correctTreasury, _governor));
+        address managerV2Impl = address(new Manager(tokenImpl, _metadata, auctionImpl, correctTreasury, _governor));
 
-        manager.upgradeTo(deployerV2Impl);
+        manager.upgradeTo(managerV2Impl);
         manager.transferOwnership(correctTreasury);
 
         console2.log("Manager: ");
         console2.log(address(manager));
-        console2.log("Deployer: ");
-        console2.log(deployerV2Impl);
+        console2.log("Manager impl: ");
+        console2.log(managerV2Impl);
     }
 }

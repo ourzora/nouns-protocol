@@ -61,24 +61,6 @@ contract SetupDaoScript is Script {
 
         auction.unpause();
 
-        // create auction
-        auction.createBid{value: 0.01 ether}(1);
-
-        // string[] memory ffiArgs = new string[](2);
-        // ffiArgs[0] = 'sleep';
-        // ffiArgs[1] = '20';
-        // vm.ffi(ffiArgs);
-        // vm.warp(block.timestamp+20);
-
-        // auction.settleCurrentAndCreateNewAuction();
-
-        // // create another auction
-        // auction.createBid{value: 0.01 ether}(3);
-
-        // vm.ffi(ffiArgs);
-        // vm.warp(block.timestamp+50);
-
-        // auction.settleCurrentAndCreateNewAuction();
 
         vm.stopBroadcast();
     }
