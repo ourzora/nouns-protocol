@@ -14,13 +14,18 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1 {
     ///                            EVENTS                        ///
     ///                                                          ///
 
+    /// @notice Emitted when a token is scheduled to be allocated
+    /// @param baseTokenId The
+    /// @param founderId The founder's id
+    /// @param founder The founder's vesting details
     event MintScheduled(uint256 baseTokenId, uint256 founderId, Founder founder);
 
     ///                                                          ///
     ///                            ERRORS                        ///
     ///                                                          ///
 
-    error INVALID_FOUNDER_PERCENTAGE();
+    /// @dev Reverts if the founder ownership exceeds 100 percent
+    error INVALID_FOUNDER_OWNERSHIP();
 
     /// @dev Reverts if the caller was not the contract owner
     error ONLY_OWNER();
@@ -64,12 +69,23 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1 {
     /// @notice The URI for the contract
     function contractURI() external view returns (string memory);
 
-    /// @notice One of the DAO founders
-    /// @param index The array index of founder
-    function getFounder(uint256 index) external view returns (Founder memory);
+    /// @notice The number of founders
+    function totalFounders() external view returns (uint256);
 
-    /// @notice All of the DAO founders
+    /// @notice The founders total percent ownership
+    function totalFounderOwnership() external view returns (uint256);
+
+    /// @notice The vesting details of a founder
+    /// @param founderId The founder id
+    function getFounder(uint256 founderId) external view returns (Founder memory);
+
+    /// @notice The vesting details of all founders
     function getFounders() external view returns (Founder[] memory);
+
+    /// @notice The founder scheduled to receive the given token id
+    /// NOTE: If a founder is returned, there's no guarantee they'll receive the token as vesting expiration is not considered
+    /// @param tokenId The ERC-721 token id
+    function getScheduledRecipient(uint256 tokenId) external view returns (Founder memory);
 
     /// @notice The total supply of tokens
     function totalSupply() external view returns (uint256);

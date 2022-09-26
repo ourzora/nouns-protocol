@@ -123,7 +123,7 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @notice The minimum amount of time to place a bid during an active auction
     function timeBuffer() external view returns (uint256);
 
-    /// @notice The minimum percentage of the highest bid that a subsequent bid must beat
+    /// @notice The minimum percentage an incoming bid must raise the highest bid
     function minBidIncrement() external view returns (uint256);
 
     /// @notice Updates the time duration of each auction

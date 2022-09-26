@@ -28,7 +28,7 @@ interface IManager is IUUPS, IOwnable {
     /// @notice Emitted when an upgrade is unregistered by the Builder DAO
     /// @param baseImpl The base implementation address
     /// @param upgradeImpl The upgrade implementation address
-    event UpgradeUnregistered(address baseImpl, address upgradeImpl);
+    event UpgradeRemoved(address baseImpl, address upgradeImpl);
 
     ///                                                          ///
     ///                            ERRORS                        ///
@@ -43,16 +43,16 @@ interface IManager is IUUPS, IOwnable {
 
     /// @notice The founder parameters
     /// @param wallet The wallet address
-    /// @param percentage The percent ownership
-    /// @param vestingEnd The timestamp that their vesting will end
+    /// @param ownershipPct The percent ownership of the token
+    /// @param vestExpiry The timestamp that vesting expires
     struct FounderParams {
         address wallet;
-        uint256 percentage;
-        uint256 vestingEnd;
+        uint256 ownershipPct;
+        uint256 vestExpiry;
     }
 
     /// @notice The ERC-721 token parameters
-    /// @param initStrings The encoded token name, symbol, description, contract image, renderer base
+    /// @param initStrings The encoded token name, symbol, collection description, collection image uri, renderer base uri
     struct TokenParams {
         bytes initStrings;
     }
@@ -66,11 +66,11 @@ interface IManager is IUUPS, IOwnable {
     }
 
     /// @notice The governance parameters
-    /// @param timelockDelay The amount of time a queued proposal is delayed until execution
-    /// @param votingDelay The amount of time after a submitted proposal until voting begins
-    /// @param votingPeriod The amount of time voting takes place for an active proposal
-    /// @param proposalThresholdBps The minimum votes (in basis points of the total supply) required to submit a proposal
-    /// @param quorumThresholdBps The minimum votes (in basis points of total supply) required to reach quorum
+    /// @param timelockDelay The time delay to execute a queued transaction
+    /// @param votingDelay The time delay to vote on a created proposal
+    /// @param votingPeriod The time period to vote on a proposal
+    /// @param proposalThresholdBps The basis points of the token supply required to create a proposal
+    /// @param quorumThresholdBps The basis points of the token supply required to reach quorum
     struct GovParams {
         uint256 timelockDelay;
         uint256 votingDelay;
@@ -142,5 +142,5 @@ interface IManager is IUUPS, IOwnable {
     /// @notice Called by the Builder DAO to remove an upgrade
     /// @param baseImpl The base implementation address
     /// @param upgradeImpl The upgrade implementation address
-    function unregisterUpgrade(address baseImpl, address upgradeImpl) external;
+    function removeUpgrade(address baseImpl, address upgradeImpl) external;
 }

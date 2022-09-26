@@ -12,7 +12,10 @@ import { IManager } from "../../manager/IManager.sol";
 
 /// @title Treasury
 /// @author Rohan Kulkarni
-/// @notice DAO treasury and transaction executor
+/// @notice A DAO's treasury and transaction executor
+/// Modified from:
+/// - OpenZeppelin Contracts v4.7.3 (governance/TimelockController.sol)
+/// - NounsDAOExecutor.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
 contract Treasury is ITreasury, UUPS, Ownable, TreasuryStorageV1 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
@@ -25,7 +28,7 @@ contract Treasury is ITreasury, UUPS, Ownable, TreasuryStorageV1 {
     ///                         CONSTRUCTOR                      ///
     ///                                                          ///
 
-    /// @param _manager The address of the contract upgrade manager
+    /// @param _manager The contract upgrade manager address
     constructor(address _manager) payable initializer {
         manager = IManager(_manager);
     }
@@ -35,25 +38,25 @@ contract Treasury is ITreasury, UUPS, Ownable, TreasuryStorageV1 {
     ///                                                          ///
 
     /// @notice Initializes an instance of a DAO's treasury
-    /// @param _governor The address of the DAO's governor
-    /// @param _minDelay The time delay
-    function initialize(address _governor, uint256 _minDelay) external initializer {
+    /// @param _governor The DAO's governor address
+    /// @param _delay The time delay to execute a queued transaction
+    function initialize(address _governor, uint256 _delay) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) revert ONLY_MANAGER();
 
         // Ensure a governor address was provided
         if (_governor == address(0)) revert ADDRESS_ZERO();
 
-        // Set ownership of the treasury to the governor
+        // Grant ownership to the governor
         __Ownable_init(_governor);
 
         // Store the time delay
-        settings.delay = SafeCast.toUint128(_minDelay);
+        settings.delay = SafeCast.toUint128(_delay);
 
         // Set the default grace period
         settings.gracePeriod = 2 weeks;
 
-        emit DelayUpdated(0, _minDelay);
+        emit DelayUpdated(0, _delay);
     }
 
     ///                                                          ///
@@ -62,28 +65,28 @@ contract Treasury is ITreasury, UUPS, Ownable, TreasuryStorageV1 {
 
     /// @notice The timestamp that a proposal is valid to execute
     /// @param _proposalId The proposal id
-    function timestamp(bytes32 _proposalId) public view returns (uint256) {
+    function timestamp(bytes32 _proposalId) external view returns (uint256) {
         return timestamps[_proposalId];
     }
 
-    /// @notice If a proposal has been queued
+    /// @notice If a queued proposal can no longer be executed
+    /// @param _proposalId The proposal id
+    function isExpired(bytes32 _proposalId) external view returns (bool) {
+        unchecked {
+            return block.timestamp > (timestamps[_proposalId] + settings.gracePeriod);
+        }
+    }
+
+    /// @notice If a proposal is queued
     /// @param _proposalId The proposal id
     function isQueued(bytes32 _proposalId) public view returns (bool) {
         return timestamps[_proposalId] != 0;
     }
 
-    /// @notice If a proposal is ready to execute (does not consider if a proposal has expired)
+    /// @notice If a proposal is ready to execute (does not consider expiration)
     /// @param _proposalId The proposal id
     function isReady(bytes32 _proposalId) public view returns (bool) {
         return timestamps[_proposalId] != 0 && block.timestamp >= timestamps[_proposalId];
-    }
-
-    /// @notice If a proposal has expired to execute
-    /// @param _proposalId The proposal id
-    function isExpired(bytes32 _proposalId) public view returns (bool) {
-        unchecked {
-            return block.timestamp > (timestamps[_proposalId] + settings.gracePeriod);
-        }
     }
 
     ///                                                          ///
@@ -110,17 +113,17 @@ contract Treasury is ITreasury, UUPS, Ownable, TreasuryStorageV1 {
 
     /// @notice Schedules a proposal for execution
     /// @param _proposalId The proposal id
-    function schedule(bytes32 _proposalId) external onlyOwner returns (uint256 eta) {
+    function queue(bytes32 _proposalId) external onlyOwner returns (uint256 eta) {
         // Ensure the proposal was not already queued
         if (isQueued(_proposalId)) revert PROPOSAL_ALREADY_QUEUED();
 
         // Cannot realistically overflow
         unchecked {
-            // Add the treasury delay to the current time to get the valid time to execute
+            // Compute the timestamp that the proposal will be valid to execute
             eta = block.timestamp + settings.delay;
         }
 
-        // Store the execution timestamp
+        // Store the timestamp
         timestamps[_proposalId] = eta;
 
         emit TransactionScheduled(_proposalId, eta);
@@ -141,13 +144,13 @@ contract Treasury is ITreasury, UUPS, Ownable, TreasuryStorageV1 {
         bytes[] calldata _calldatas,
         bytes32 _descriptionHash
     ) external payable onlyOwner {
-        // Compute the id of the proposal to execute
+        // Get the proposal id
         bytes32 proposalId = hashProposal(_targets, _values, _calldatas, _descriptionHash);
 
         // Ensure the proposal is ready to execute
         if (!isReady(proposalId)) revert EXECUTION_NOT_READY(proposalId);
 
-        // Remove the proposal from the treasury queue
+        // Remove the proposal from the queue
         delete timestamps[proposalId];
 
         // Cache the number of targets
@@ -178,7 +181,7 @@ contract Treasury is ITreasury, UUPS, Ownable, TreasuryStorageV1 {
         // Ensure the proposal is queued
         if (!isQueued(_proposalId)) revert PROPOSAL_NOT_QUEUED();
 
-        // Delete the associated timestamp
+        // Remove the proposal from the queue
         delete timestamps[_proposalId];
 
         emit TransactionCanceled(_proposalId);
@@ -188,12 +191,12 @@ contract Treasury is ITreasury, UUPS, Ownable, TreasuryStorageV1 {
     ///                      TREASURY SETTINGS                   ///
     ///                                                          ///
 
-    /// @notice The time delay between a queued proposal and its execution
+    /// @notice The time delay to execute a queued transaction
     function delay() external view returns (uint256) {
         return settings.delay;
     }
 
-    /// @notice The amount of time to execute a transaction
+    /// @notice The time period to execute a proposal
     function gracePeriod() external view returns (uint256) {
         return settings.gracePeriod;
     }

@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+/// @title EIP712
+/// @author Rohan Kulkarni
 /// @notice Modified from OpenZeppelin Contracts v4.7.3 (utils/Address.sol)
-/// - Uses custom errors
-/// - Adds toBytes32() util
+/// - Uses custom errors `INVALID_TARGET()` & `DELEGATE_CALL_FAILED()`
+/// - Adds util converting address to bytes32
 library Address {
     ///                                                          ///
     ///                            ERRORS                        ///
@@ -19,7 +21,7 @@ library Address {
     ///                           FUNCTIONS                      ///
     ///                                                          ///
 
-    /// @dev Converts an address to bytes32
+    /// @dev Utility to convert an address to bytes32
     function toBytes32(address _account) internal pure returns (bytes32) {
         return bytes32(uint256(uint160(_account)) << 96);
     }

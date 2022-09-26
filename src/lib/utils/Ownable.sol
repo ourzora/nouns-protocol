@@ -4,6 +4,8 @@ pragma solidity ^0.8.4;
 import { IOwnable } from "../interfaces/IOwnable.sol";
 import { Initializable } from "../utils/Initializable.sol";
 
+/// @title Ownable
+/// @author Rohan Kulkarni
 /// @notice Modified from OpenZeppelin Contracts v4.7.3 (access/OwnableUpgradeable.sol)
 /// - Uses custom errors declared in IOwnable
 /// - Adds optional two-step ownership transfer (`safeTransferOwnership` + `acceptOwnership`)

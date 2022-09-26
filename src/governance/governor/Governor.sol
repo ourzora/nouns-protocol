@@ -14,7 +14,10 @@ import { IGovernor } from "./IGovernor.sol";
 
 /// @title Governor
 /// @author Rohan Kulkarni
-/// @notice DAO proposal manager and transaction scheduler
+/// @notice A DAO's proposal manager and transaction scheduler
+/// Modified from:
+/// - OpenZeppelin Contracts v4.7.3 (governance/extensions/GovernorTimelockControl.sol)
+/// - NounsDAOLogicV1.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
 contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
     ///                                                          ///
     ///                         CONSTANTS                        ///
@@ -34,7 +37,7 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
     ///                         CONSTRUCTOR                      ///
     ///                                                          ///
 
-    /// @param _manager The address of the contract upgrade manager
+    /// @param _manager The contract upgrade manager address
     constructor(address _manager) payable initializer {
         manager = IManager(_manager);
     }
@@ -76,10 +79,10 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
         settings.proposalThresholdBps = SafeCast.toUint16(_proposalThresholdBps);
         settings.quorumThresholdBps = SafeCast.toUint16(_quorumThresholdBps);
 
-        // Initialize support for off-chain voting
+        // Initialize EIP-712 support
         __EIP712_init(string.concat(settings.token.symbol(), " GOV"), "1");
 
-        // Grant ownership of the contract to the treasury
+        // Grant ownership to the treasury
         __Ownable_init(_treasury);
     }
 
@@ -135,7 +138,7 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
         if (numTargets != _values.length) revert PROPOSAL_LENGTH_MISMATCH();
         if (numTargets != _calldatas.length) revert PROPOSAL_LENGTH_MISMATCH();
 
-        // Compute the hash of the description
+        // Compute the description hash
         bytes32 descriptionHash = keccak256(bytes(_description));
 
         // Compute the proposal id
@@ -144,7 +147,7 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
         // Get the pointer to store the proposal
         Proposal storage proposal = proposals[proposalId];
 
-        // Ensure a proposal with the same id doesn't already exist
+        // Ensure the proposal doesn't already exist
         if (proposal.voteStart != 0) revert PROPOSAL_EXISTS(proposalId);
 
         // Used to store the snapshot and deadline
@@ -161,7 +164,6 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
         // Store the proposal data
         proposal.voteStart = uint32(snapshot);
         proposal.voteEnd = uint32(deadline);
-
         proposal.proposalThreshold = uint32(currentProposalThreshold);
         proposal.quorumVotes = uint32(quorum());
         proposal.proposer = msg.sender;
@@ -218,9 +220,9 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
         // Used to store the signed digest
         bytes32 digest;
 
-        // Cannot realistically overflow voter nonces
+        // Cannot realistically overflow
         unchecked {
-            // Compute the encoded message
+            // Compute the message
             digest = keccak256(
                 abi.encodePacked(
                     "\x19\x01",
@@ -230,11 +232,11 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
             );
         }
 
-        // Recover the signer of the message
+        // Recover the message signer
         address recoveredAddress = ecrecover(digest, _v, _r, _s);
 
         // Ensure the recovered signer is the given voter
-        if (recoveredAddress == address(0) || recoveredAddress != _voter) revert INVALID_SIGNER();
+        if (recoveredAddress == address(0) || recoveredAddress != _voter) revert INVALID_SIGNATURE();
 
         return _castVote(_proposalId, _voter, _support, "");
     }
@@ -249,7 +251,7 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
         uint256 _support,
         string memory _reason
     ) internal returns (uint256) {
-        // Ensure voting for the proposal is active
+        // Ensure voting is active
         if (state(_proposalId) != ProposalState.Active) revert VOTING_NOT_STARTED();
 
         // Ensure the voter hasn't already voted
@@ -304,8 +306,8 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
         // Ensure the proposal has succeeded
         if (state(_proposalId) != ProposalState.Succeeded) revert PROPOSAL_UNSUCCESSFUL();
 
-        // Schedule the proposal for execution and get the timestamp that it'll be valid to execute
-        eta = settings.treasury.schedule(_proposalId);
+        // Schedule the proposal for execution
+        eta = settings.treasury.queue(_proposalId);
 
         emit ProposalQueued(_proposalId, eta);
     }
@@ -320,9 +322,9 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
     /// @param _calldatas The calldata of each call
     /// @param _descriptionHash The hash of the description
     function execute(
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
+        address[] calldata _targets,
+        uint256[] calldata _values,
+        bytes[] calldata _calldatas,
         bytes32 _descriptionHash
     ) external payable returns (bytes32) {
         // Get the proposal id
@@ -334,7 +336,7 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
         // Mark the proposal as executed
         proposals[proposalId].executed = true;
 
-        // Call the treasury to execute the proposal
+        // Execute the proposal
         settings.treasury.execute{ value: msg.value }(_targets, _values, _calldatas, _descriptionHash);
 
         emit ProposalExecuted(proposalId);
@@ -518,12 +520,12 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
     ///                      GOVERNOR SETTINGS                   ///
     ///                                                          ///
 
-    /// @notice The minimum basis points of the total token supply required to submit a proposal
+    /// @notice The basis points of the token supply required to create a proposal
     function proposalThresholdBps() external view returns (uint256) {
         return settings.proposalThresholdBps;
     }
 
-    /// @notice The minimum basis points of the total token supply required to reach quorum
+    /// @notice The basis points of the token supply required to reach quorum
     function quorumThresholdBps() external view returns (uint256) {
         return settings.quorumThresholdBps;
     }
@@ -548,7 +550,7 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
         return address(settings.token);
     }
 
-    /// @notice The address of the transaction executor and treasury
+    /// @notice The address of the treasury
     function treasury() external view returns (address) {
         return address(settings.treasury);
     }

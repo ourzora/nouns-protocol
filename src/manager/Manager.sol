@@ -75,8 +75,8 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
     ///                          INITIALIZER                     ///
     ///                                                          ///
 
-    /// @notice Grants ownership to the Builder DAO
-    /// @param _owner The Builder DAO treasury address
+    /// @notice Initializes ownership of the manager contract
+    /// @param _owner The owner address to set (will be transferred to the Builder DAO once its deployed)
     function initialize(address _owner) external initializer {
         // Ensure an owner is specified
         if (_owner == address(0)) revert ADDRESS_ZERO();
@@ -90,7 +90,7 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
     ///                                                          ///
 
     /// @notice Deploys a DAO with custom token, auction, and governance settings
-    /// @param _founderParams The DAO founder(s)
+    /// @param _founderParams The DAO founders
     /// @param _tokenParams The ERC-721 token settings
     /// @param _auctionParams The auction settings
     /// @param _govParams The governance settings
@@ -109,16 +109,17 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
             address governor
         )
     {
-        // Used to store the founder responsible for adding token artwork and kicking off the first auction
+        // Used to store the address of the first (or only) founder
+        // This founder is responsible for adding token artwork and launching the first auction -- they're also free to transfer this responsiblity
         address founder;
 
         // Ensure at least one founder is provided
         if ((founder = _founderParams[0].wallet) == address(0)) revert FOUNDER_REQUIRED();
 
-        // Deploy the DAO's ERC-721 token
+        // Deploy the DAO's ERC-721 governance token
         token = address(new ERC1967Proxy(tokenImpl, ""));
 
-        // Use the token address as a salt to precompute remaining DAO contract addresses
+        // Use the token address to precompute the DAO's remaining addresses
         bytes32 salt = bytes32(uint256(uint160(token)) << 96);
 
         // Deploy the remaining DAO contracts
@@ -149,7 +150,7 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
     ///                         DAO ADDRESSES                    ///
     ///                                                          ///
 
-    /// @notice A DAO's remaining contract addresses from its token address
+    /// @notice A DAO's contract addresses from its token
     /// @param _token The ERC-721 token address
     function getAddresses(address _token)
         external
@@ -180,7 +181,7 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
         return isUpgrade[_baseImpl][_upgradeImpl];
     }
 
-    /// @notice Called by the Builder DAO to offer opt-in implementation upgrades for all other DAOs
+    /// @notice Called by the Builder DAO to offer implementation upgrades for created DAOs
     /// @param _baseImpl The base implementation address
     /// @param _upgradeImpl The upgrade implementation address
     function registerUpgrade(address _baseImpl, address _upgradeImpl) external onlyOwner {
@@ -192,17 +193,17 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
     /// @notice Called by the Builder DAO to remove an upgrade
     /// @param _baseImpl The base implementation address
     /// @param _upgradeImpl The upgrade implementation address
-    function unregisterUpgrade(address _baseImpl, address _upgradeImpl) external onlyOwner {
+    function removeUpgrade(address _baseImpl, address _upgradeImpl) external onlyOwner {
         delete isUpgrade[_baseImpl][_upgradeImpl];
 
-        emit UpgradeUnregistered(_baseImpl, _upgradeImpl);
+        emit UpgradeRemoved(_baseImpl, _upgradeImpl);
     }
 
     ///                                                          ///
     ///                         MANAGER UPGRADE                  ///
     ///                                                          ///
 
-    /// @notice Ensures the caller is the Builder DAO
+    /// @notice Ensures the caller is authorized to upgrade the contract
     /// @dev This function is called in `upgradeTo` & `upgradeToAndCall`
     /// @param _newImpl The new implementation address
     function _authorizeUpgrade(address _newImpl) internal override onlyOwner {}

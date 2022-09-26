@@ -9,7 +9,7 @@ import { ERC1967Upgrade } from "./ERC1967Upgrade.sol";
 /// @title ERC1967Proxy
 /// @author Rohan Kulkarni
 /// @notice Modified from OpenZeppelin Contracts v4.7.3 (proxy/ERC1967/ERC1967Proxy.sol)
-/// - Inherits a modified ERC1967Upgrade
+/// - Inherits a modern, minimal ERC1967Upgrade
 contract ERC1967Proxy is IERC1967Upgrade, Proxy, ERC1967Upgrade {
     ///                                                          ///
     ///                         CONSTRUCTOR                      ///

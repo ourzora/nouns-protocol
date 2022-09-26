@@ -10,10 +10,10 @@ abstract contract ReentrancyGuard is Initializable {
     ///                            STORAGE                       ///
     ///                                                          ///
 
-    /// @dev Indicates that a function has not been entered
+    /// @dev Indicates a function has not been entered
     uint256 internal constant _NOT_ENTERED = 1;
 
-    /// @dev Indicates that a function has been entered
+    /// @dev Indicates a function has been entered
     uint256 internal constant _ENTERED = 2;
 
     /// @notice The reentrancy status of a function

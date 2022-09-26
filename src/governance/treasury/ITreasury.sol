@@ -58,16 +58,32 @@ interface ITreasury is IUUPS, IOwnable {
     ///                          FUNCTIONS                       ///
     ///                                                          ///
 
+    /// @notice Initializes a DAO's treasury
+    /// @param governor The governor address
+    /// @param delay The time delay to execute a queued transaction
     function initialize(address governor, uint256 delay) external;
 
+    /// @notice The timestamp that a proposal is valid to execute
+    /// @param proposalId The proposal id
     function timestamp(bytes32 proposalId) external view returns (uint256);
 
+    /// @notice If a proposal has been queued
+    /// @param proposalId The proposal ids
     function isQueued(bytes32 proposalId) external view returns (bool);
 
+    /// @notice If a proposal is ready to execute (does not consider if a proposal has expired)
+    /// @param proposalId The proposal id
     function isReady(bytes32 proposalId) external view returns (bool);
 
+    /// @notice If a proposal has expired to execute
+    /// @param proposalId The proposal id
     function isExpired(bytes32 proposalId) external view returns (bool);
 
+    /// @notice Hashes a proposal's details into its proposal id
+    /// @param targets The target addresses to call
+    /// @param values The ETH values of each call
+    /// @param calldatas The calldata of each call
+    /// @param descriptionHash The hash of the description
     function hashProposal(
         address[] calldata targets,
         uint256[] calldata values,
@@ -75,22 +91,37 @@ interface ITreasury is IUUPS, IOwnable {
         bytes32 descriptionHash
     ) external pure returns (bytes32);
 
-    function schedule(bytes32 proposalId) external returns (uint256 eta);
+    /// @notice Schedules a proposal for execution
+    /// @param proposalId The proposal id
+    function queue(bytes32 proposalId) external returns (uint256 eta);
 
+    /// @notice Removes a queued proposal
+    /// @param proposalId The proposal id
     function cancel(bytes32 proposalId) external;
 
+    /// @notice Executes a queued proposal
+    /// @param targets The target addresses to call
+    /// @param values The ETH values of each call
+    /// @param calldatas The calldata of each call
+    /// @param descriptionHash The hash of the description
     function execute(
         address[] calldata targets,
         uint256[] calldata values,
         bytes[] calldata calldatas,
-        bytes32 _descriptionHash
+        bytes32 descriptionHash
     ) external payable;
 
+    /// @notice The time delay to execute a queued transaction
     function delay() external view returns (uint256);
 
+    /// @notice The time period to execute a transaction
     function gracePeriod() external view returns (uint256);
 
+    /// @notice Updates the time delay
+    /// @param newDelay The new time delay
     function updateDelay(uint256 newDelay) external;
 
+    /// @notice Updates the grace period
+    /// @param newGracePeriod The grace period
     function updateGracePeriod(uint256 newGracePeriod) external;
 }

@@ -31,13 +31,20 @@ interface IBaseMetadata is IUUPS, IOwnable {
         address treasury
     ) external;
 
+    /// @notice Generates attributes for a token upon mint
+    /// @param tokenId The ERC-721 token id
     function onMinted(uint256 tokenId) external returns (bool);
 
+    /// @notice The token URI
+    /// @param tokenId The ERC-721 token id
     function tokenURI(uint256 tokenId) external view returns (string memory);
 
+    /// @notice The contract URI
     function contractURI() external view returns (string memory);
 
+    /// @notice The associated ERC-721 token
     function token() external view returns (address);
 
+    /// @notice The DAO treasury
     function treasury() external view returns (address);
 }

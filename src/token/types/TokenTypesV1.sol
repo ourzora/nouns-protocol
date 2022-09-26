@@ -17,17 +17,17 @@ interface TokenTypesV1 {
         address auction;
         uint96 totalSupply;
         IBaseMetadata metadataRenderer;
-        uint16 numFounders;
-        uint8 totalPercentage;
+        uint8 numFounders;
+        uint8 totalOwnership;
     }
 
     /// @notice The founder type
     /// @param wallet The address where tokens are sent
-    /// @param percentage The percentage of token ownership
-    /// @param vestingEnd The timestamp when vesting ends
+    /// @param ownershipPct The percentage of token ownership
+    /// @param vestExpiry The timestamp when vesting ends
     struct Founder {
         address wallet;
-        uint8 percentage;
-        uint32 vestingEnd;
+        uint8 ownershipPct;
+        uint32 vestExpiry;
     }
 }

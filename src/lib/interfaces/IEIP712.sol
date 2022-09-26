@@ -13,7 +13,7 @@ interface IEIP712 {
     error EXPIRED_SIGNATURE();
 
     /// @dev Reverts if the recovered signature is invalid
-    error INVALID_SIGNER();
+    error INVALID_SIGNATURE();
 
     ///                                                          ///
     ///                           FUNCTIONS                      ///

@@ -22,7 +22,7 @@ interface IERC721Votes is IERC721, IEIP712 {
     ///                            ERRORS                        ///
     ///                                                          ///
 
-    /// @dev Reverts if the provided timestamp is not in the past
+    /// @dev Reverts if the timestamp provided isn't in the past
     error INVALID_TIMESTAMP();
 
     ///                                                          ///

@@ -4,6 +4,8 @@ pragma solidity ^0.8.4;
 import { IInitializable } from "../interfaces/IInitializable.sol";
 import { Address } from "../utils/Address.sol";
 
+/// @title Initializable
+/// @author Rohan Kulkarni
 /// @notice Modified from OpenZeppelin Contracts v4.7.3 (proxy/utils/Initializable.sol)
 /// - Uses custom errors declared in IInitializable
 abstract contract Initializable is IInitializable {

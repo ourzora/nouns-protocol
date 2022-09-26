@@ -9,7 +9,7 @@ contract AuctionTypesV1 {
     /// @param treasury The DAO treasury
     /// @param duration The time duration of each auction
     /// @param timeBuffer The minimum time to place a bid
-    /// @param minBidIncrement The minimum percentage an incoming bid must beat the highest bid by
+    /// @param minBidIncrement The minimum percentage an incoming bid must raise the highest bid
     /// @param reservePrice The reserve price of each auction
     struct Settings {
         address treasury;

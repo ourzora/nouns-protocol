@@ -4,10 +4,12 @@ pragma solidity ^0.8.4;
 import { IEIP712 } from "../interfaces/IEIP712.sol";
 import { Initializable } from "../utils/Initializable.sol";
 
+/// @title EIP712
+/// @author Rohan Kulkarni
 /// @notice Modified from OpenZeppelin Contracts v4.7.3 (utils/cryptography/draft-EIP712Upgradeable.sol)
 /// - Uses custom errors declared in IEIP712
-/// - Adds `nonces` mapping
 /// - Caches `INITIAL_CHAIN_ID` and `INITIAL_DOMAIN_SEPARATOR` upon initialization
+/// - Adds mapping for account nonces
 abstract contract EIP712 is IEIP712, Initializable {
     ///                                                          ///
     ///                          CONSTANTS                       ///

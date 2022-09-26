@@ -49,11 +49,11 @@ abstract contract ERC721 is IERC721, Initializable {
         symbol = _symbol;
     }
 
-    /// @notice The Uniform Resource Identifier (URI) for a token
+    /// @notice The token URI
     /// @param _tokenId The ERC-721 token id
     function tokenURI(uint256 _tokenId) public view virtual returns (string memory) {}
 
-    /// @notice The Uniform Resource Identifier (URI) for a contract
+    /// @notice The contract URI
     function contractURI() public view virtual returns (string memory) {}
 
     /// @notice If the contract implements an interface

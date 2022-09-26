@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
@@ -16,12 +16,8 @@ contract AuctionTest is NounsBuilderTest {
         vm.deal(bidder1, 100 ether);
         vm.deal(bidder2, 100 ether);
 
-        deploy();
+        deployMock();
     }
-
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
 
     function test_AuctionHouseInitialized() public {
         assertEq(auction.owner(), founder);
@@ -38,11 +34,7 @@ contract AuctionTest is NounsBuilderTest {
         auction.initialize(address(token), address(this), address(treasury), 1 minutes, 0 ether);
     }
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
-    function test_UnpauseAndCreateFirstAuction() public {
+    function test_Unpause() public {
         vm.prank(founder);
         auction.unpause();
 
@@ -52,59 +44,44 @@ contract AuctionTest is NounsBuilderTest {
         assertEq(token.ownerOf(1), founder2);
         assertEq(token.ownerOf(2), address(auction));
 
-        // (uint256 tokenId, uint256 highestBid, address highestBidder, uint256 startTime, uint256 endTime, bool settled) = auction.auction();
+        (uint256 tokenId, uint256 highestBid, address highestBidder, uint256 startTime, uint256 endTime, bool settled) = auction.auction();
 
-        // assertEq(tokenId, 2);
-        // assertEq(highestBid, 0);
-        // assertEq(highestBidder, address(0));
-        // assertEq(startTime, 1);
-        // assertEq(endTime, 1 + auctionParams.duration);
-        // assertEq(settled, false);
+        assertEq(tokenId, 2);
+        assertEq(highestBid, 0);
+        assertEq(highestBidder, address(0));
+        assertEq(startTime, 1);
+        assertEq(endTime, 1 + auctionParams.duration);
+        assertEq(settled, false);
     }
 
-    function testRevert_OnlyOwnerCanUnpause() public {
+    function testRevert_OnlyFounderCanUnpause() public {
         vm.expectRevert(abi.encodeWithSignature("ONLY_OWNER()"));
         auction.unpause();
     }
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
+    function test_CreateBid(uint256 _amount) public {
+        vm.assume(_amount >= auction.reservePrice() && _amount <= bidder1.balance);
 
-    function test_CreateBid() public {
         vm.prank(founder);
         auction.unpause();
 
+        uint256 beforeBidderBalance = bidder1.balance;
+        uint256 beforeAuctionBalance = address(auction).balance;
+
         vm.prank(bidder1);
-        auction.createBid{ value: 0.420 ether }(2);
+        auction.createBid{ value: _amount }(2);
 
         (, uint256 highestBid, address highestBidder, , , ) = auction.auction();
 
-        assertEq(highestBid, 0.420 ether);
+        assertEq(highestBid, _amount);
         assertEq(highestBidder, bidder1);
 
-        assertEq(bidder1.balance, 99.58 ether);
-        assertEq(address(auction).balance, 0.420 ether);
+        uint256 afterBidderBalance = bidder1.balance;
+        uint256 afterAuctionBalance = address(auction).balance;
+
+        assertEq(beforeBidderBalance - afterBidderBalance, _amount);
+        assertEq(afterAuctionBalance - beforeAuctionBalance, _amount);
     }
-
-    // function testFuzz_CreateBid(uint256 _amount) public {
-    //     vm.assume(_amount <= 100 ether && _amount > auctionParams.reservePrice);
-
-    //     vm.prank(founder);
-    //     auction.unpause();
-
-    //     uint256 beforeBidderBalance = bidder1.balance;
-    //     uint256 beforeAuctionBalance = address(auction).balance;
-
-    //     vm.prank(bidder1);
-    //     auction.createBid{ value: _amount }(1);
-
-    //     uint256 afterBidderBalance = bidder1.balance;
-    //     uint256 afterAuctionBalance = address(auction).balance;
-
-    //     assertEq(beforeBidderBalance - afterBidderBalance, _amount);
-    //     assertEq(afterAuctionBalance - beforeAuctionBalance, _amount);
-    // }
 
     function testRevert_InvalidBidTokenId() public {
         vm.prank(founder);
@@ -129,25 +106,26 @@ contract AuctionTest is NounsBuilderTest {
         auction.unpause();
 
         uint256 bidder1BeforeBalance = bidder1.balance;
+        uint256 bidder2BeforeBalance = bidder2.balance;
 
         vm.prank(bidder1);
-        auction.createBid{ value: 0.420 ether }(2);
+        auction.createBid{ value: 0.1 ether }(2);
 
         vm.warp(5 minutes);
 
         vm.prank(bidder2);
-        auction.createBid{ value: 1 ether }(2);
+        auction.createBid{ value: 0.5 ether }(2);
 
         uint256 bidder1AfterBalance = bidder1.balance;
+        uint256 bidder2AfterBalance = bidder2.balance;
 
         assertEq(bidder1BeforeBalance, bidder1AfterBalance);
-
-        assertEq(bidder2.balance, 99 ether);
-        assertEq(address(auction).balance, 1 ether);
+        assertEq(bidder2BeforeBalance - bidder2AfterBalance, 0.5 ether);
+        assertEq(address(auction).balance, 0.5 ether);
 
         (, uint256 highestBid, address highestBidder, , , ) = auction.auction();
 
-        assertEq(highestBid, 1 ether);
+        assertEq(highestBid, 0.5 ether);
         assertEq(highestBidder, bidder2);
     }
 
@@ -192,10 +170,6 @@ contract AuctionTest is NounsBuilderTest {
         vm.expectRevert(abi.encodeWithSignature("AUCTION_OVER()"));
         auction.createBid{ value: 0.420 ether }(2);
     }
-
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
 
     function test_SettleAuction() public {
         vm.prank(founder);

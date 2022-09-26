@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
+import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { LibUintToString } from "sol2string/contracts/LibUintToString.sol";
 import { UriEncode } from "sol-uriencode/src/UriEncode.sol";
-import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
 
 import { UUPS } from "../../lib/proxy/UUPS.sol";
 import { Ownable } from "../../lib/utils/Ownable.sol";
-import { Strings } from "../../lib/utils/Strings.sol";
 
 import { MetadataRendererStorageV1 } from "./storage/MetadataRendererStorageV1.sol";
 import { IPropertyIPFSMetadataRenderer } from "./interfaces/IPropertyIPFSMetadataRenderer.sol";
@@ -15,7 +15,7 @@ import { IManager } from "../../manager/IManager.sol";
 
 /// @title Metadata Renderer
 /// @author Iain Nash & Rohan Kulkarni
-/// @notice DAO token metadata renderer
+/// @notice A DAO's artwork generator and renderer
 contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, MetadataRendererStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
@@ -28,7 +28,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
-    /// @param _manager The address of the contract upgrade manager
+    /// @param _manager The contract upgrade manager address
     constructor(address _manager) payable initializer {
         manager = IManager(_manager);
     }
@@ -108,10 +108,10 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         // Cache the number of existing properties
         uint256 numStoredProperties = properties.length;
 
-        // Cache the number of new properties adding
+        // Cache the number of new properties
         uint256 numNewProperties = _names.length;
 
-        // Cache the number of new items adding
+        // Cache the number of new items
         uint256 numNewItems = _items.length;
 
         unchecked {
@@ -135,25 +135,25 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
                 uint256 _propertyId = _items[i].propertyId;
 
                 // Offset the id if the item is for a new property
+                // Note: Property ids under the hood are offset by 1
                 if (_items[i].isNewProperty) {
                     _propertyId += numStoredProperties;
                 }
 
-                // Get the pointer to the  of the other items for the property
-                // Note: Property ids under the hood are offset by 1
-                Item[] storage propertyItems = properties[_propertyId].items;
+                // Get the pointer to the other items for the property
+                Item[] storage items = properties[_propertyId].items;
 
                 // Append storage space
-                propertyItems.push();
+                items.push();
 
-                // Get the index of the
-                // Cannot underflow as the array push() ensures the length to be at least 1
-                uint256 newItemIndex = propertyItems.length - 1;
+                // Get the index of the new item
+                // Cannot underflow as the items array length is ensured to be at least 1
+                uint256 newItemIndex = items.length - 1;
 
                 // Store the new item
-                Item storage newItem = propertyItems[newItemIndex];
+                Item storage newItem = items[newItemIndex];
 
-                // Store its associated metadata
+                // Store the new item's name and reference slot
                 newItem.name = _items[i].name;
                 newItem.referenceSlot = uint16(dataLength);
 
@@ -175,23 +175,20 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         // Compute some randomness for the token id
         uint256 seed = _generateSeed(_tokenId);
 
-        // Get the location to where the attributes should be stored after generation
+        // Get the pointer to store generated attributes
         uint16[16] storage tokenAttributes = attributes[_tokenId];
 
-        // Cache the number of total properties to choose from
+        // Cache the total number of properties available
         uint256 numProperties = properties.length;
 
-        // Store the number of properties in the first slot of the token's array for reference
+        // Store the total as reference in the first slot of the token's array of attributes
         tokenAttributes[0] = uint16(numProperties);
-
-        // Used to store the number of items in each property
-        uint256 numItems;
 
         unchecked {
             // For each property:
             for (uint256 i = 0; i < numProperties; ++i) {
                 // Get the number of items to choose from
-                numItems = properties[i].items.length;
+                uint256 numItems = properties[i].items.length;
 
                 // Use the token's seed to select an item
                 tokenAttributes[i + 1] = uint16(seed % numItems);
@@ -207,7 +204,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
     /// @notice The properties and query string for a generated token
     /// @param _tokenId The ERC-721 token id
     function getAttributes(uint256 _tokenId) public view returns (bytes memory aryAttributes, bytes memory queryString) {
-        // Compute its query string
+        // Get the token's query string
         queryString = abi.encodePacked(
             "?contractAddress=",
             Strings.toHexString(uint256(uint160(address(this))), 20),
@@ -215,13 +212,13 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
             Strings.toString(_tokenId)
         );
 
-        // Get the attributes for the given token
+        // Get the token's generated attributes
         uint16[16] memory tokenAttributes = attributes[_tokenId];
 
-        // Cache the number of properties stored when the token was minted
+        // Cache the number of properties when the token was minted
         uint256 numProperties = tokenAttributes[0];
 
-        // Ensure the token
+        // Ensure the given token was minted
         if (numProperties == 0) revert TOKEN_NOT_MINTED(_tokenId);
 
         unchecked {
@@ -230,18 +227,19 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
 
             // For each of the token's properties:
             for (uint256 i = 0; i < numProperties; ++i) {
-                // Check if this is the last iteration
+                // Check if this is the last property
                 bool isLast = i == lastProperty;
 
                 // Get a copy of the property
                 Property memory property = properties[i];
 
-                // Get the index of its generated attribute for this property
+                // Get the token's generated attribute
                 uint256 attribute = tokenAttributes[i + 1];
 
                 // Get the associated item data
                 Item memory item = property.items[attribute];
 
+                // Store the encoded attributes and query string
                 aryAttributes = abi.encodePacked(aryAttributes, '"', property.name, '": "', item.name, '"', isLast ? "" : ",");
                 queryString = abi.encodePacked(queryString, "&images=", _getItemImage(item, property.name));
             }
@@ -253,7 +251,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         return uint256(keccak256(abi.encode(_tokenId, blockhash(block.number), block.coinbase, block.timestamp)));
     }
 
-    /// @dev Encodes the string from an item in a property
+    /// @dev Encodes the reference URI of an item
     function _getItemImage(Item memory _item, string memory _propertyName) private view returns (string memory) {
         return
             UriEncode.uriEncode(
@@ -306,7 +304,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
             );
     }
 
-    /// @dev Converts JSON bytes to Bytes64
+    /// @dev Encodes data to JSON
     function _encodeAsJson(bytes memory _jsonBlob) private pure returns (string memory) {
         return string(abi.encodePacked("data:application/json;base64,", Base64.encode(_jsonBlob)));
     }
@@ -315,7 +313,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
     ///                       METADATA SETTINGS                  ///
     ///                                                          ///
 
-    /// @notice The DAO governance token
+    /// @notice The associated ERC-721 token
     function token() external view returns (address) {
         return settings.token;
     }
@@ -345,11 +343,11 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
     ///                                                          ///
 
     /// @notice Updates the contract image
-    /// @param _newImage The new contract image
-    function updateContractImage(string memory _newImage) external onlyOwner {
-        emit ContractImageUpdated(settings.contractImage, _newImage);
+    /// @param _newContractImage The new contract image
+    function updateContractImage(string memory _newContractImage) external onlyOwner {
+        emit ContractImageUpdated(settings.contractImage, _newContractImage);
 
-        settings.contractImage = _newImage;
+        settings.contractImage = _newContractImage;
     }
 
     /// @notice Updates the renderer base

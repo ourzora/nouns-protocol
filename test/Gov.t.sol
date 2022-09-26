@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
@@ -20,68 +20,35 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     function setUp() public virtual override {
         super.setUp();
 
-        deploy();
+        deployMock();
 
         createVoter1();
     }
 
-    ///                                                          ///
-    ///                          DEPLOY UTILS                    ///
-    ///                                                          ///
+    function deployMock() internal override {
+        address[] memory wallets = new address[](2);
+        uint256[] memory percents = new uint256[](2);
+        uint256[] memory vestingEnd = new uint256[](2);
 
-    function deploy() public override {
-        tokenInitStrings = abi.encode(
-            "Governor Test Token",
-            "GTT",
-            "This is a mock governance token",
-            "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
-            "http://localhost:5000/render"
-        );
+        wallets[0] = founder;
+        wallets[1] = founder2;
 
-        founderParamsArr.push();
-        founderParamsArr.push();
+        percents[0] = 1;
+        percents[1] = 1;
 
-        founderParamsArr[0] = IManager.FounderParams({ wallet: founder, percentage: 1, vestingEnd: 4 weeks });
-        founderParamsArr[1] = IManager.FounderParams({ wallet: founder2, percentage: 1, vestingEnd: 4 weeks });
+        vestingEnd[0] = 4 weeks;
+        vestingEnd[1] = 4 weeks;
 
-        tokenParams = IManager.TokenParams({ initStrings: tokenInitStrings });
-        auctionParams = IManager.AuctionParams({ reservePrice: 0 ether, duration: 1 days });
+        setFounderParams(wallets, percents, vestingEnd);
 
-        govParams = IManager.GovParams({
-            timelockDelay: 2 days,
-            votingDelay: 1 days,
-            votingPeriod: 1 weeks,
-            proposalThresholdBps: 25,
-            quorumThresholdBps: 1000
-        });
+        setMockTokenParams();
 
-        deploy(founderParamsArr, tokenParams, auctionParams, govParams);
+        setAuctionParams(0, 1 days);
+
+        setGovParams(2 days, 1 days, 1 weeks, 25, 1000);
+
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
     }
-
-    // function deployAlt() public {
-    //     tokenInitStrings = abi.encode(
-    //         "Governor Test Token",
-    //         "GTT",
-    //         "This is a mock governance token",
-    //         "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
-    //         "http://localhost:5000/render"
-    //     );
-
-    //     founderParamsArr.push();
-    //     founderParamsArr.push();
-
-    //     founderParamsArr[0] = IManager.FounderParams({ wallet: founder, percentage: 5, vestingEnd: 4 weeks });
-    //     founderParamsArr[1] = IManager.FounderParams({ wallet: address(this), percentage: 10, vestingEnd: 4 weeks });
-
-    //     tokenParams = IManager.TokenParams({ initStrings: tokenInitStrings });
-    //     auctionParams = IManager.AuctionParams({ reservePrice: 0 ether, duration: 1 days });
-
-    //     deploy(founderParamsArr, tokenParams, auctionParams, altGovParams);
-    // }
-
-    ///                                                          ///
-    ///                          VOTING UTILS                    ///
-    ///                                                          ///
 
     function createVoter1() internal {
         voter1PK = 0xABE;
@@ -101,24 +68,6 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         auction.settleCurrentAndCreateNewAuction();
     }
 
-    function createVoters(uint256 _numVoters) internal {
-        vm.prank(founder);
-        auction.unpause();
-
-        createUsers(_numVoters);
-
-        for (uint256 i = 1; i <= _numVoters; ++i) {
-            (uint256 tokenId, , , , , ) = auction.auction();
-
-            vm.prank(users[i]);
-            auction.createBid{ value: i }(tokenId);
-
-            vm.warp(block.timestamp + auctionParams.duration + 1 seconds);
-
-            auction.settleCurrentAndCreateNewAuction();
-        }
-    }
-
     function castVotes(
         bytes32 _proposalId,
         uint256 _numAgainst,
@@ -128,38 +77,46 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         uint256 currentVoterIndex;
 
         for (uint256 i = 0; i < _numAgainst; ++i) {
-            vm.prank(users[currentVoterIndex]);
+            vm.prank(otherUsers[currentVoterIndex]);
             governor.castVote(_proposalId, AGAINST);
 
             ++currentVoterIndex;
         }
 
         for (uint256 i = 0; i < _numFor; ++i) {
-            vm.prank(users[currentVoterIndex]);
+            vm.prank(otherUsers[currentVoterIndex]);
             governor.castVote(_proposalId, FOR);
 
             ++currentVoterIndex;
         }
 
         for (uint256 i = 0; i < _numAbstain; ++i) {
-            vm.prank(users[currentVoterIndex]);
+            vm.prank(otherUsers[currentVoterIndex]);
             governor.castVote(_proposalId, ABSTAIN);
 
             ++currentVoterIndex;
         }
     }
 
-    ///                                                          ///
-    ///                        PROPOSAL UTILS                    ///
-    ///                                                          ///
-
-    function createProposal() internal returns (bytes32 proposalId) {
-        address[] memory targets = new address[](1);
-        uint256[] memory values = new uint256[](1);
-        bytes[] memory calldatas = new bytes[](1);
+    function mockProposal()
+        internal
+        view
+        returns (
+            address[] memory targets,
+            uint256[] memory values,
+            bytes[] memory calldatas
+        )
+    {
+        targets = new address[](1);
+        values = new uint256[](1);
+        calldatas = new bytes[](1);
 
         targets[0] = address(auction);
         calldatas[0] = abi.encodeWithSignature("pause()");
+    }
+
+    function createProposal() internal returns (bytes32 proposalId) {
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
 
         vm.prank(voter1);
         proposalId = governor.propose(targets, values, calldatas, "");
@@ -182,10 +139,6 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         vm.prank(_proposer);
         proposalId = governor.propose(targets, values, calldatas, "");
     }
-
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
 
     function test_GovernorInit() public {
         assertEq(governor.owner(), address(treasury));
@@ -214,19 +167,10 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         treasury.initialize(address(this), 0);
     }
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
     function test_CreateProposal() public {
         mintVoter1();
 
-        address[] memory targets = new address[](1);
-        uint256[] memory values = new uint256[](1);
-        bytes[] memory calldatas = new bytes[](1);
-
-        targets[0] = address(auction);
-        calldatas[0] = abi.encodeWithSignature("pause()");
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
 
         bytes32 descriptionHash = keccak256(bytes(""));
         bytes32 proposalId = governor.hashProposal(targets, values, calldatas, descriptionHash);
@@ -332,10 +276,6 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         vm.expectRevert(abi.encodeWithSignature("BELOW_PROPOSAL_THRESHOLD()"));
         governor.propose(targets, values, calldatas, "");
     }
-
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
 
     function test_CastVote() public {
         mintVoter1();
@@ -458,7 +398,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(0xF, digest);
 
-        vm.expectRevert(abi.encodeWithSignature("INVALID_SIGNER()"));
+        vm.expectRevert(abi.encodeWithSignature("INVALID_SIGNATURE()"));
         governor.castVoteBySig(voter1, proposalId, FOR, deadline, v, r, s);
     }
 
@@ -481,7 +421,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(voter1PK, digest);
 
-        vm.expectRevert(abi.encodeWithSignature("INVALID_SIGNER()"));
+        vm.expectRevert(abi.encodeWithSignature("INVALID_SIGNATURE()"));
         governor.castVoteBySig(voter1, proposalId, FOR, deadline, v, r, s);
     }
 
@@ -510,10 +450,6 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         governor.castVoteBySig(voter1, proposalId, FOR, deadline, v, r, s);
     }
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
-
     function test_QueueProposal() public {
         mintVoter1();
 
@@ -525,8 +461,6 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         vm.prank(voter1);
         governor.castVote(proposalId, FOR);
-
-        //
 
         vm.warp(block.timestamp + governor.votingPeriod());
 
@@ -586,12 +520,13 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     }
 
     function testRevert_CannotQueueFailedQuorum() public {
+        vm.prank(founder);
+        auction.unpause();
+
+        createVoters(10, 5 ether);
+
         vm.prank(address(treasury));
         governor.updateQuorumThresholdBps(2000);
-
-        createVoters(10);
-
-        ///
 
         bytes32 proposalId = createProposal();
 
@@ -601,15 +536,9 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         vm.warp(block.timestamp + governor.votingPeriod());
 
-        ///
-
         vm.expectRevert(abi.encodeWithSignature("PROPOSAL_UNSUCCESSFUL()"));
         governor.queue(proposalId);
     }
-
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
 
     function test_CancelProposal() public {
         bytes32 proposalId = createProposal();
@@ -680,12 +609,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         vm.warp(block.timestamp + treasury.delay());
 
-        address[] memory targets = new address[](1);
-        uint256[] memory values = new uint256[](1);
-        bytes[] memory calldatas = new bytes[](1);
-
-        targets[0] = address(auction);
-        calldatas[0] = abi.encodeWithSignature("pause()");
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
 
         governor.execute(targets, values, calldatas, keccak256(bytes("")));
 
@@ -706,10 +630,6 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         vm.expectRevert(abi.encodeWithSignature("INVALID_CANCEL()"));
         governor.cancel(proposalId);
     }
-
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
 
     function test_VetoProposal() public {
         bytes32 proposalId = createProposal();
@@ -743,12 +663,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         vm.warp(block.timestamp + treasury.delay());
 
-        address[] memory targets = new address[](1);
-        uint256[] memory values = new uint256[](1);
-        bytes[] memory calldatas = new bytes[](1);
-
-        targets[0] = address(auction);
-        calldatas[0] = abi.encodeWithSignature("pause()");
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
 
         governor.execute(targets, values, calldatas, keccak256(bytes("")));
 
@@ -757,28 +672,42 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         governor.veto(proposalId);
     }
 
-    /// ...
+    function test_ProposalVoteQueueExecution() public {
+        mintVoter1();
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
 
-    function test_ExecuteProposal() public {}
+        bytes32 descriptionHash = keccak256(bytes("test"));
 
-    function testRevert_NotQueuedForExecution() public {}
+        vm.warp(1 days);
 
-    function testRevert_IncorrectValueAttached() public {}
+        vm.prank(voter1);
+        governor.propose(targets, values, calldatas, "test");
 
-    ///                                                          ///
-    ///                       UPDATE TREASURY                    ///
-    ///                                                          ///
+        bytes32 proposalId = governor.hashProposal(targets, values, calldatas, descriptionHash);
+
+        vm.warp(block.timestamp + governor.votingDelay());
+
+        vm.prank(voter1);
+        governor.castVote(proposalId, 1);
+
+        vm.warp(block.timestamp + governor.votingPeriod());
+
+        vm.prank(voter1);
+        governor.queue(proposalId);
+
+        vm.warp(block.timestamp + 2 days);
+
+        governor.execute(targets, values, calldatas, descriptionHash);
+
+        assertEq(auction.paused(), true);
+    }
 
     function test_UpdateDelay(uint128 _newDelay) public {
-        ///
+        vm.prank(founder);
+        auction.unpause();
 
-        createVoters(10);
-
-        ///
+        createVoters(10, 5 ether);
 
         address[] memory targets = new address[](1);
         uint256[] memory values = new uint256[](1);
@@ -787,10 +716,8 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         targets[0] = address(treasury);
         calldatas[0] = abi.encodeWithSignature("updateDelay(uint256)", _newDelay);
 
-        vm.prank(users[2]);
+        vm.prank(otherUsers[2]);
         bytes32 proposalId = governor.propose(targets, values, calldatas, "");
-
-        ///
 
         vm.warp(block.timestamp + governor.votingDelay());
 
@@ -798,15 +725,11 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         vm.warp(block.timestamp + governor.votingPeriod());
 
-        ///
-
         assertEq(uint8(governor.state(proposalId)), uint8(ProposalState.Succeeded));
 
         governor.queue(proposalId);
 
         vm.warp(block.timestamp + treasury.delay());
-
-        ///
 
         assertEq(treasury.delay(), 2 days);
 
@@ -815,9 +738,40 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         assertEq(treasury.delay(), _newDelay);
     }
 
-    ///                                                          ///
-    ///                                                          ///
-    ///                                                          ///
+    function test_GracePeriod(uint128 _newGracePeriod) public {
+        vm.prank(founder);
+        auction.unpause();
+
+        createVoters(10, 5 ether);
+
+        address[] memory targets = new address[](1);
+        uint256[] memory values = new uint256[](1);
+        bytes[] memory calldatas = new bytes[](1);
+
+        targets[0] = address(treasury);
+        calldatas[0] = abi.encodeWithSignature("updateGracePeriod(uint256)", _newGracePeriod);
+
+        vm.prank(otherUsers[2]);
+        bytes32 proposalId = governor.propose(targets, values, calldatas, "");
+
+        vm.warp(block.timestamp + governor.votingDelay());
+
+        castVotes(proposalId, 2, 5, 3); // AGAINST: 2, FOR: 5, ABSTAIN: 3
+
+        vm.warp(block.timestamp + governor.votingPeriod());
+
+        assertEq(uint8(governor.state(proposalId)), uint8(ProposalState.Succeeded));
+
+        governor.queue(proposalId);
+
+        vm.warp(block.timestamp + treasury.delay());
+
+        assertEq(treasury.gracePeriod(), 2 weeks);
+
+        governor.execute(targets, values, calldatas, keccak256(bytes("")));
+
+        assertEq(treasury.gracePeriod(), _newGracePeriod);
+    }
 
     function test_TreasuryReceive721SafeTransfer(uint256 _tokenId) public {
         mock721.mint(address(this), _tokenId);

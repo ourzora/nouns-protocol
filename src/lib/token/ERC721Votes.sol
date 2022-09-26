@@ -7,11 +7,11 @@ import { EIP712 } from "../utils/EIP712.sol";
 
 /// @title ERC721Votes
 /// @author Rohan Kulkarni
-/// @notice Modified from OpenZeppelin Contracts v4.7.3 (token/ERC721/extensions/draft-ERC721Votes.sol)
+/// @notice Modified from OpenZeppelin Contracts v4.7.3 (token/ERC721/extensions/draft-ERC721Votes.sol) & Nouns DAO ERC721Checkpointable.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
 /// - Uses custom errors defined in IERC721Votes
-/// - Checkpoints use timestamps instead of block numbers
+/// - Checkpoints are based on timestamps instead of block numbers
 /// - Tokens are self-delegated by default
-/// - Total number of votes isn't tracked, as that's the token supply itself (1 NFT = 1 Vote)
+/// - The total number of votes is the token supply itself
 abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
     ///                                                          ///
     ///                          CONSTANTS                       ///
@@ -77,7 +77,7 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
             // If the latest checkpoint has a valid timestamp, return its number of votes
             if (accountCheckpoints[lastCheckpoint].timestamp <= _timestamp) return accountCheckpoints[lastCheckpoint].votes;
 
-            // On the flip, if the first checkpoint doesn't have a valid timestamp, return 0
+            // If the first checkpoint doesn't have a valid timestamp, return 0
             if (accountCheckpoints[0].timestamp > _timestamp) return 0;
 
             // Otherwise, find a checkpoint with a valid timestamp
@@ -86,7 +86,7 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
             uint256 low;
             uint256 middle;
 
-            // Used to temporarily store a checkpoint
+            // Used to temporarily hold a checkpoint
             Checkpoint memory cp;
 
             // While a valid checkpoint is to be found:
@@ -152,12 +152,12 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
         // Ensure the signature has not expired
         if (block.timestamp > _deadline) revert EXPIRED_SIGNATURE();
 
-        // Used to store the message hash
+        // Used to store the digest
         bytes32 digest;
 
         // Cannot realistically overflow
         unchecked {
-            // Compute the signed message hash
+            // Compute the hash of the domain seperator with the typed delegation data
             digest = keccak256(
                 abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR(), keccak256(abi.encode(DELEGATION_TYPEHASH, _from, _to, nonces[_from]++, _deadline)))
             );
@@ -167,7 +167,7 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
         address recoveredAddress = ecrecover(digest, _v, _r, _s);
 
         // Ensure the recovered signer is the voter
-        if (recoveredAddress == address(0) || recoveredAddress != _from) revert INVALID_SIGNER();
+        if (recoveredAddress == address(0) || recoveredAddress != _from) revert INVALID_SIGNATURE();
 
         // Update the delegate
         _delegate(_from, _to);
@@ -201,7 +201,7 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
         unchecked {
             // If voting weight is being transferred:
             if (_from != _to && _amount > 0) {
-                // If this isn't a mint:
+                // If this isn't a token mint:
                 if (_from != address(0)) {
                     // Get the sender's number of checkpoints
                     uint256 nCheckpoints = numCheckpoints[_from]++;
@@ -216,12 +216,12 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
                     _writeCheckpoint(_from, nCheckpoints, prevTotalVotes, prevTotalVotes - _amount);
                 }
 
-                // If this isn't a burn:
+                // If this isn't a token burn:
                 if (_to != address(0)) {
-                    // Get the receiver's number of checkpoints
+                    // Get the recipients's number of checkpoints
                     uint256 nCheckpoints = numCheckpoints[_to]++;
 
-                    // Used to store the receiver's previous voting weight
+                    // Used to store the recipient's previous voting weight
                     uint256 prevTotalVotes;
 
                     // If this isn't the recipient's first checkpoint: Get their previous voting weight
@@ -245,10 +245,10 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
         uint256 _prevTotalVotes,
         uint256 _newTotalVotes
     ) private {
-        // Get the location to write the checkpoint
+        // Get the pointer to store the checkpoint
         Checkpoint storage checkpoint = checkpoints[_account][_id];
 
-        // Store the new voting total and current time
+        // Record the updated voting weight and current time
         checkpoint.votes = uint192(_newTotalVotes);
         checkpoint.timestamp = uint64(block.timestamp);
 

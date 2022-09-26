@@ -9,12 +9,12 @@ import { Treasury } from "../../treasury/Treasury.sol";
 /// @notice The Governor custom data types
 interface GovernorTypesV1 {
     /// @notice The governor settings
-    /// @param token The governance token
-    /// @param proposalThresholdBps The minimum votes (in basis points of the total supply) required to submit a proposal
-    /// @param quorumThresholdBps The minimum votes (in basis points of total supply) required to reach quorum
-    /// @param treasury The treasury controller
-    /// @param votingDelay The amount of time after a proposal until voting begins
-    /// @param votingPeriod The amount of time voting takes place for an active proposal
+    /// @param token The DAO governance token
+    /// @param proposalThresholdBps The basis points of the token supply required to create a proposal
+    /// @param quorumThresholdBps The basis points of the token supply required to reach quorum
+    /// @param treasury The DAO treasury
+    /// @param votingDelay The time delay to vote on a created proposal
+    /// @param votingPeriod The time period to vote on a proposal
     /// @param vetoer The address with the ability to veto proposals
     struct Settings {
         Token token;

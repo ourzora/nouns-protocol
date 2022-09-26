@@ -8,7 +8,7 @@ import { ERC1967Upgrade } from "./ERC1967Upgrade.sol";
 /// @author Rohan Kulkarni
 /// @notice Modified from OpenZeppelin Contracts v4.7.3 (proxy/utils/UUPSUpgradeable.sol)
 /// - Uses custom errors declared in IUUPS
-/// - Inherits a modified ERC1967Upgrade
+/// - Inherits a modern, minimal ERC1967Upgrade
 abstract contract UUPS is IUUPS, ERC1967Upgrade {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
@@ -21,7 +21,7 @@ abstract contract UUPS is IUUPS, ERC1967Upgrade {
     ///                           MODIFIERS                      ///
     ///                                                          ///
 
-    /// @dev Ensures that execution is via proxy delegatecall with the same implementation
+    /// @dev Ensures that execution is via proxy delegatecall with the correct implementation
     modifier onlyProxy() {
         if (address(this) == __self) revert ONLY_DELEGATECALL();
         if (_getImplementation() != __self) revert ONLY_PROXY();
@@ -30,7 +30,7 @@ abstract contract UUPS is IUUPS, ERC1967Upgrade {
 
     /// @dev Ensures that execution is via direct call
     modifier notDelegated() {
-        if (address(this) != __self) revert CANNOT_DELEGATECALL();
+        if (address(this) != __self) revert ONLY_CALL();
         _;
     }
 

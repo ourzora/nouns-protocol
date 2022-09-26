@@ -1,17 +1,25 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.15;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
 
+import { MockImpl } from "./utils/mocks/MockImpl.sol";
+
 contract ManagerTest is NounsBuilderTest {
+    MockImpl internal mockImpl;
+
+    address internal builderDAO;
+
     function setUp() public virtual override {
         super.setUp();
+
+        mockImpl = new MockImpl();
     }
 
     function test_GetAddresses() public {
-        deploy();
+        deployMock();
 
         (address _metadata, address _auction, address _treasury, address _governor) = manager.getAddresses(address(token));
 
@@ -22,7 +30,7 @@ contract ManagerTest is NounsBuilderTest {
     }
 
     function test_TokenInitialized() public {
-        deploy();
+        deployMock();
 
         assertEq(token.owner(), founder);
         assertEq(token.auction(), address(auction));
@@ -30,13 +38,13 @@ contract ManagerTest is NounsBuilderTest {
     }
 
     function test_MetadataRendererInitialized() public {
-        deploy();
+        deployMock();
 
         assertEq(metadataRenderer.owner(), founder);
     }
 
     function test_AuctionInitialized() public {
-        deploy();
+        deployMock();
 
         assertEq(auction.owner(), founder);
         assertTrue(auction.paused());
@@ -49,43 +57,61 @@ contract ManagerTest is NounsBuilderTest {
     }
 
     function test_TreasuryInitialized() public {
-        deploy();
+        deployMock();
 
         assertEq(treasury.owner(), address(governor));
         assertEq(treasury.delay(), govParams.timelockDelay);
     }
 
     function test_GovernorInitialized() public {
-        deploy();
+        deployMock();
 
         assertEq(governor.owner(), address(treasury));
         assertEq(governor.votingDelay(), govParams.votingDelay);
         assertEq(governor.votingPeriod(), govParams.votingPeriod);
     }
 
-    function test_DeployWithoutFounder() public {
-        tokenInitStrings = abi.encode(
-            "Mock Token",
-            "MOCK",
-            "This is a mock token",
-            "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
-            "http://localhost:5000/render"
-        );
+    function testRevert_DeployWithoutFounder() public {
+        setMockTokenParams();
 
-        founderParamsArr.push();
+        setMockAuctionParams();
 
-        tokenParams = IManager.TokenParams({ initStrings: tokenInitStrings });
-        auctionParams = IManager.AuctionParams({ reservePrice: 0.01 ether, duration: 10 minutes });
+        setMockGovParams();
 
-        govParams = IManager.GovParams({
-            timelockDelay: 2 days,
-            votingDelay: 1,
-            votingPeriod: 1 days,
-            proposalThresholdBps: 500,
-            quorumThresholdBps: 1000
-        });
+        foundersArr.push();
 
         vm.expectRevert(abi.encodeWithSignature("FOUNDER_REQUIRED()"));
-        deploy(founderParamsArr, tokenParams, auctionParams, govParams);
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
+    }
+
+    function test_RegisterUpgrade() public {
+        address owner = manager.owner();
+
+        vm.prank(owner);
+        manager.registerUpgrade(tokenImpl, address(mockImpl));
+
+        assertTrue(manager.isRegisteredUpgrade(tokenImpl, address(mockImpl)));
+    }
+
+    function test_RemoveUpgrade() public {
+        address owner = manager.owner();
+
+        vm.prank(owner);
+        manager.registerUpgrade(tokenImpl, address(mockImpl));
+
+        vm.prank(owner);
+        manager.removeUpgrade(tokenImpl, address(mockImpl));
+
+        assertFalse(manager.isRegisteredUpgrade(tokenImpl, address(mockImpl)));
+    }
+
+    function testRevert_OnlyOwnerCanRegisterUpgrade() public {
+        vm.expectRevert(abi.encodeWithSignature("ONLY_OWNER()"));
+        manager.registerUpgrade(address(token), address(mockImpl));
+    }
+
+    function testRevert_OnlyOwnerCanRemoveUpgrade() public {
+        vm.expectRevert(abi.encodeWithSignature("ONLY_OWNER()"));
+        manager.removeUpgrade(address(token), address(mockImpl));
     }
 }
