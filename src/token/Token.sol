@@ -115,7 +115,7 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
                     emit MintScheduled(baseTokenId, founderId, newFounder);
 
                     // Update the base token id
-                    (baseTokenId += schedule) % 100;
+                    baseTokenId = (baseTokenId + schedule) % 100;
                 }
             }
 
@@ -129,7 +129,7 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     /// @param _tokenId The ERC-721 token id
     function _getNextTokenId(uint256 _tokenId) internal view returns (uint256) {
         unchecked {
-            while (tokenRecipient[_tokenId].wallet != address(0)) ++_tokenId;
+            while (tokenRecipient[_tokenId].wallet != address(0)) _tokenId = (++_tokenId) % 100;
 
             return _tokenId;
         }
