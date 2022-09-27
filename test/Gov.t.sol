@@ -7,6 +7,8 @@ import { IManager } from "../src/manager/IManager.sol";
 import { IGovernor } from "../src/governance/governor/IGovernor.sol";
 import { GovernorTypesV1 } from "../src/governance/governor/types/GovernorTypesV1.sol";
 
+import { console2 } from "forge-std/console2.sol";
+
 contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     uint256 internal constant AGAINST = 0;
     uint256 internal constant FOR = 1;
@@ -736,6 +738,36 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         governor.execute(targets, values, calldatas, keccak256(bytes("")));
 
         assertEq(treasury.delay(), _newDelay);
+    }
+
+    function test_DelegateAndTransferVotes() public {
+        deployMock();
+
+        mintVoter1();
+
+        uint256 voter2PK = 0xABD;
+        address voter2 = vm.addr(voter2PK);
+
+        assertEq(token.getVotes(voter1), 1);
+        assertEq(token.getVotes(voter2), 0);
+
+        vm.prank(voter1);
+        token.delegate(voter2);
+
+        assertEq(token.getVotes(voter1), 0);
+        assertEq(token.getVotes(voter2), 1);
+
+        vm.prank(voter1);
+        token.transferFrom(voter1, voter2, 2);
+
+        assertEq(token.getVotes(voter1), 0);
+        assertEq(token.getVotes(voter2), 1);
+
+        vm.prank(voter2);
+        token.delegate(voter2);
+
+        assertEq(token.getVotes(voter1), 0);
+        assertEq(token.getVotes(voter2), 1);
     }
 
     function test_GracePeriod(uint128 _newGracePeriod) public {
