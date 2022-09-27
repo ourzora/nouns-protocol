@@ -151,7 +151,7 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
         unchecked {
             do {
                 // Get the next token to mint
-                tokenId = settings.totalSupply++;
+                tokenId = settings.mintCount++;
 
                 // Lookup whether the token is for a founder, and mint accordingly if so
             } while (_isForFounder(tokenId));
@@ -167,6 +167,11 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     function _mint(address _to, uint256 _tokenId) internal override {
         // Mint the token
         super._mint(_to, _tokenId);
+
+        // Increment the total supply
+        unchecked {
+            ++settings.totalSupply;
+        }
 
         // Generate the token attributes
         if (!settings.metadataRenderer.onMinted(_tokenId)) revert NO_METADATA_GENERATED();
@@ -210,6 +215,14 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
 
         // Burn the token
         _burn(_tokenId);
+    }
+
+    function _burn(uint256 _tokenId) internal override {
+        super._burn(_tokenId);
+
+        unchecked {
+            --settings.totalSupply;
+        }
     }
 
     ///                                                          ///

@@ -188,6 +188,29 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         }
     }
 
+    // Test that when tokens are minted / burned over time,
+    // no two tokens end up with the same ID
+    function test_TokenIdCollisionAvoidance(uint8 mintCount) public {
+        deployMock();
+
+        // avoid overflows specific to this test, shouldn't occur in practice
+        vm.assume(mintCount < 100);
+
+        uint256 ts = token.totalSupply();
+        uint256 lastTokenId = UINT256_MAX;
+
+        for (uint8 i = 0; i <= mintCount; i++) {
+            vm.prank(address(auction));
+            uint256 tokenId = token.mint();
+
+            assertFalse(tokenId == lastTokenId);
+            lastTokenId = tokenId;
+
+            vm.prank(address(auction));
+            token.burn(tokenId);
+        }
+    }
+
     function testRevert_OnlyAuctionCanMint() public {
         deployMock();
 
