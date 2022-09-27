@@ -188,6 +188,58 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         }
     }
 
+    function test_FounderScheduleRounding() public {
+        createUsers(3, 1 ether);
+
+        address[] memory wallets = new address[](3);
+        uint256[] memory percents = new uint256[](3);
+        uint256[] memory vestExpirys = new uint256[](3);
+
+        percents[0] = 11;
+        percents[1] = 12;
+        percents[2] = 13;
+
+        unchecked {
+            for (uint256 i; i < 3; ++i) {
+                wallets[i] = otherUsers[i];
+                vestExpirys[i] = 4 weeks;
+            }
+        }
+
+        deployWithCustomFounders(wallets, percents, vestExpirys);
+    }
+
+    function test_FounderScheduleRounding2() public {
+        createUsers(11, 1 ether);
+
+        address[] memory wallets = new address[](11);
+        uint256[] memory percents = new uint256[](11);
+        uint256[] memory vestExpirys = new uint256[](11);
+
+        percents[0] = 1;
+        percents[1] = 1;
+        percents[2] = 1;
+        percents[3] = 1;
+        percents[4] = 1;
+
+        percents[5] = 10;
+        percents[6] = 10;
+        percents[7] = 10;
+        percents[8] = 10;
+        percents[9] = 10;
+
+        percents[10] = 20;
+
+        unchecked {
+            for (uint256 i; i < 11; ++i) {
+                wallets[i] = otherUsers[i];
+                vestExpirys[i] = 4 weeks;
+            }
+        }
+
+        deployWithCustomFounders(wallets, percents, vestExpirys);
+    }
+
     function testRevert_OnlyAuctionCanMint() public {
         deployMock();
 
