@@ -14,6 +14,8 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
     address internal voter1;
     uint256 internal voter1PK;
+    address internal voter2;
+    uint256 internal voter2PK;
 
     IManager.GovParams internal altGovParams;
 
@@ -23,6 +25,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         deployMock();
 
         createVoter1();
+        createVoter2();
     }
 
     function deployMock() internal override {
@@ -57,6 +60,13 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         vm.deal(voter1, 100 ether);
     }
 
+    function createVoter2() internal {
+        voter2PK = 0xBAE;
+        voter2 = vm.addr(voter2PK);
+
+        vm.deal(voter2, 100 ether);
+    }
+
     function mintVoter1() internal {
         vm.prank(founder);
         auction.unpause();
@@ -65,6 +75,14 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         auction.createBid{ value: 0.420 ether }(2);
 
         vm.warp(auctionParams.duration + 1 seconds);
+        auction.settleCurrentAndCreateNewAuction();
+    }
+
+    function mintVoter2() internal {
+        vm.prank(voter2);
+        auction.createBid{ value: 0.420 ether }(3);
+
+        vm.warp(block.timestamp + auctionParams.duration + 1 seconds);
         auction.settleCurrentAndCreateNewAuction();
     }
 
@@ -498,6 +516,30 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         governor.queue(proposalId);
     }
 
+    function testRevert_CannotQueueDraw() public {
+        mintVoter1();
+        mintVoter2();
+
+        bytes32 proposalId = createProposal();
+
+        uint256 votingDelay = governor.votingDelay();
+        vm.warp(block.timestamp + votingDelay);
+
+        vm.prank(voter1);
+        governor.castVote(proposalId, AGAINST);
+        vm.prank(voter2);
+        governor.castVote(proposalId, FOR);
+
+        uint256 votingPeriod = governor.votingPeriod();
+        vm.warp(block.timestamp + votingPeriod);
+
+        assertEq(uint256(governor.state(proposalId)), uint256(ProposalState.Defeated));
+
+        vm.prank(voter1);
+        vm.expectRevert(abi.encodeWithSignature("PROPOSAL_UNSUCCESSFUL()"));
+        governor.queue(proposalId);
+    }
+
     function testRevert_CannotQueueFailed() public {
         mintVoter1();
 
@@ -552,6 +594,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     }
 
     function test_CancelProposalAndTreasuryQueue() public {
+        mintVoter1();
         bytes32 proposalId = createProposal();
 
         vm.warp(block.timestamp + governor.votingDelay());
@@ -679,7 +722,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         bytes32 descriptionHash = keccak256(bytes("test"));
 
-        vm.warp(1 days);
+        vm.warp(block.timestamp + 1 days);
 
         vm.prank(voter1);
         governor.propose(targets, values, calldatas, "test");
@@ -687,12 +730,10 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         bytes32 proposalId = governor.hashProposal(targets, values, calldatas, descriptionHash);
 
         vm.warp(block.timestamp + governor.votingDelay());
-
         vm.prank(voter1);
         governor.castVote(proposalId, 1);
 
         vm.warp(block.timestamp + governor.votingPeriod());
-
         vm.prank(voter1);
         governor.queue(proposalId);
 

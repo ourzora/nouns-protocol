@@ -438,7 +438,7 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
             return ProposalState.Active;
 
             // Else if the proposal failed (outvoted OR didn't reach quorum):
-        } else if (proposal.forVotes < proposal.againstVotes || proposal.forVotes < proposal.quorumVotes) {
+        } else if (proposal.forVotes <= proposal.againstVotes || proposal.forVotes < proposal.quorumVotes) {
             return ProposalState.Defeated;
 
             // Else if the proposal has not been queued:
