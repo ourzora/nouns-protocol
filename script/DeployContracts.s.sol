@@ -1,85 +1,95 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-// import "forge-std/Script.sol";
-// import "../src/token/builder/BuilderToken.sol";
-// import {UpgradeManager} from "../src/upgrade/UpgradeManager.sol";
-// import {BuilderDAOToken} from "../src/builderDAO/BuilderDAOToken.sol";
+import "forge-std/Script.sol";
+import "forge-std/console2.sol";
 
-// import {BuilderDAOToken} from "../src/builderDAO/BuilderDAOToken.sol";
-// import {BuilderDAOAuction} from "../src/builderDAO/BuilderDAOAuction.sol";
+import { IToken, Token } from "../src/token/Token.sol";
+import { IAuction, Auction } from "../src/auction/Auction.sol";
 
-// import {IToken, Token} from "../src/token/Token.sol";
-// import {IAuction, Auction} from "../src/auction/Auction.sol";
+import { MetadataRenderer } from "../src/token/metadata/MetadataRenderer.sol";
+import { Manager } from "../src/manager/Manager.sol";
+import { IManager } from "../src/manager/IManager.sol";
+import { Governor } from "../src/governance/governor/Governor.sol";
+import { IGovernor } from "../src/governance/governor/IGovernor.sol";
+import { Treasury } from "../src/governance/treasury/Treasury.sol";
+import { ITreasury } from "../src/governance/treasury/ITreasury.sol";
 
-// import {IMetadataRenderer, MetadataRenderer} from "../src/token/metadata/MetadataRenderer.sol";
-// import {IUpgradeManager, UpgradeManager} from "../src/upgrade/UpgradeManager.sol";
-// import {IDeployer, Deployer} from "../src/Deployer.sol";
-// import {IGovernor, Governor} from "../src/governance/governor/Governor.sol";
-// import {ITreasury, Treasury} from "../src/governance/treasury/Treasury.sol";
+import { ERC1967Proxy } from "../src/lib/proxy/ERC1967PRoxy.sol";
 
-// import {MockTreasury} from "./MockTreasury.sol";
+import { MockTreasury } from "./MockTreasury.sol";
+import { MockManager } from "./MockManager.sol";
 
-// contract DeployContracts is Script {
-//     UpgradeManager upgradeManager;
-//     address REGISTAR_ADDRESS = address(0x0901);
-//     address weth;
-//     address foundersDAO;
-//     Deployer deployer;
+contract DeployContracts is Script {
+    address weth;
+    address foundersDAO;
 
-//     function setUp() public {
-//         weth = vm.envAddress("WETH_ADDRESS");
-//         foundersDAO = vm.envAddress("FOUNDERS_DAO");
-//     }
+    function setUp() public {
+        weth = vm.envAddress("WETH_ADDRESS");
+        foundersDAO = vm.envAddress("FOUNDERS_DAO");
+    }
 
-//     function run() public {
-//         vm.startBroadcast();
-//         upgradeManager = new UpgradeManager(REGISTAR_ADDRESS);
-//         setupContracts();
-//         vm.stopBroadcast();
-//     }
+    function run() public {
+        vm.startBroadcast();
+        setupContracts();
+        vm.stopBroadcast();
+    }
 
-//     function setupContracts() public {
-//         address builderDAOTokenImpl = address(new BuilderDAOToken(address(upgradeManager)));
-//         address builderDAOAuctionImpl = address(new BuilderDAOAuction(address(upgradeManager), weth));
+    function setupDAO() public {}
 
-//         address mockTreasury = address(new MockTreasury(address(this)));
+    function setupContracts() public {
+        Manager manager = Manager(address(new ERC1967Proxy(address(new MockManager()), abi.encodeWithSelector(MockManager.initialize.selector))));
+        address newManagerImpl = address(
+            new Manager({
+                _tokenImpl: address(new Token(address(manager))),
+                _metadataImpl: address(new MetadataRenderer(address(manager))),
+                _auctionImpl: address(new Auction(address(manager), weth)),
+                _treasuryImpl: address(new MockTreasury(address(this))),
+                _governorImpl: address(new Governor(address(manager)))
+            })
+        );
+        manager.upgradeTo(newManagerImpl);
 
-//         address metadataRendererImpl = address(new MetadataRenderer(address(upgradeManager)));
-//         address treasuryImpl = address(mockTreasury);
-//         address governorImpl = address(new Governor(address(upgradeManager)));
-//         deployer = new Deployer(builderDAOTokenImpl, metadataRendererImpl, builderDAOAuctionImpl, treasuryImpl, governorImpl);
+        address mockTreasury = manager.treasuryImpl();
 
-//         bytes memory tokeninitStrings = abi.encode(
-//             "Builder DAO",
-//             "BUILD",
-//             "The Builder DAO Governance Token",
-//             "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
-//             "http://localhost:5000/render"
-//         );
+        bytes memory tokeninitStrings = abi.encode(
+            "Builder DAO",
+            "BUILD",
+            "The Builder DAO Governance Token",
+            "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
+            "http://localhost:5000/render"
+        );
 
-//         address nounsDAO = foundersDAO;
+        IManager.FounderParams[] memory founderParams = new IManager.FounderParams[](1);
 
-//         (address _token, address _metadata, address _auction, address _treasury, address _governor) = deployer.deploy(
-//             IDeployer.TokenParams({initStrings: tokeninitStrings, foundersDAO: nounsDAO, foundersMaxAllocation: 100, foundersAllocationFrequency: 5}),
-//             IDeployer.AuctionParams({reservePrice: 0.01 ether, duration: 10 minutes}),
-//             IDeployer.GovParams({
-//                 timelockDelay: 2 days,
-//                 votingDelay: 1, // 1 block
-//                 votingPeriod: 1 days,
-//                 proposalThresholdBPS: 500,
-//                 quorumVotesBPS: 1000
-//             })
-//         );
+        founderParams[0] = IManager.FounderParams({ wallet: foundersDAO, percentage: 2, vestingEnd: block.timestamp + (2 * 60 * 60 * 30 * 12) });
 
-//         address correctTreasuryImpl = address(new Treasury(address(upgradeManager)));
+        (address _token, address _metadata, address _auction, address _timelock, address _governor) = manager.deploy(
+            founderParams,
+            IManager.TokenParams({ initStrings: tokeninitStrings }),
+            IManager.AuctionParams({ reservePrice: 0.01 ether, duration: 10 minutes }),
+            IManager.GovParams({
+                timelockDelay: 2 days,
+                votingDelay: 1, // 1 block
+                votingPeriod: 1 days,
+                proposalThresholdBps: 500,
+                quorumThresholdBps: 1000
+            })
+        );
 
-//         address tokenImpl = address(new Token(address(upgradeManager), _treasury));
-//         address auctionImpl = address(new Auction(address(upgradeManager), weth, nounsDAO, 100, address(_treasury), 100));
+        address correctTreasury = address(new Treasury(address(manager)));
 
-//         address deployerV2Impl = address(new Deployer(tokenImpl, _metadata, auctionImpl, correctTreasuryImpl, _governor));
+        address tokenImpl = address(new Token(address(manager)));
+        address auctionImpl = address(new Auction(address(manager), weth));
 
-//         // builderDAOTreasury
-//         MockTreasury(_treasury).execute(address(deployer), abi.encodeWithSignature("upgradeTo(address)", deployerV2Impl));
-//     }
-// }
+        address managerV2Impl = address(new Manager(tokenImpl, _metadata, auctionImpl, correctTreasury, _governor));
+
+        manager.upgradeTo(managerV2Impl);
+        manager.transferOwnership(correctTreasury);
+
+        console2.log("Manager: ");
+        console2.log(address(manager));
+        console2.log("Manager impl: ");
+        console2.log(managerV2Impl);
+    }
+}

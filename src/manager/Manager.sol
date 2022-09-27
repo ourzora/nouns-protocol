@@ -58,7 +58,7 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
         address _auctionImpl,
         address _treasuryImpl,
         address _governorImpl
-    ) payable initializer {
+    ) payable {
         tokenImpl = _tokenImpl;
         metadataImpl = _metadataImpl;
         auctionImpl = _auctionImpl;
