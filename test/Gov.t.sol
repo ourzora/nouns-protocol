@@ -529,6 +529,30 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         governor.queue(proposalId);
     }
 
+    /// @notice If a user tries to queue a proposal with a missing hash, revert.
+    function testRevert_CannotQueueMissingProposal() public {
+        mintVoter1();
+
+        bytes32 proposalId = createProposal();
+
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
+        // change the proposer to generate a wrong ID, everything else is the same
+        bytes32 wrongProposalId = governor.hashProposal(targets, values, calldatas, "", voter2);
+
+        uint256 votingDelay = governor.votingDelay();
+        vm.warp(block.timestamp + votingDelay);
+
+        vm.prank(voter1);
+        governor.castVote(proposalId, FOR);
+
+        uint256 votingPeriod = governor.votingPeriod();
+        vm.warp(block.timestamp + votingPeriod + 1);
+
+        vm.prank(voter1);
+        vm.expectRevert(abi.encodeWithSignature("PROPOSAL_DOES_NOT_EXIST()"));
+        governor.queue(wrongProposalId);
+    }
+
     function testRevert_CannotQueueDraw() public {
         mintVoter1();
         mintVoter2();
