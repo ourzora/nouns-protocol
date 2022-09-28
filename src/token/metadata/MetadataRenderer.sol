@@ -17,6 +17,8 @@ import { IManager } from "../../manager/IManager.sol";
 /// @author Iain Nash & Rohan Kulkarni
 /// @notice A DAO's artwork generator and renderer
 contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, MetadataRendererStorageV1 {
+    error AtLeastOneItemAndPropertyRequired();
+    error InvalidPropertySelected(uint256 selectedPropertyId);
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -96,12 +98,6 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         // Cache the existing amount of IPFS data stored
         uint256 dataLength = ipfsData.length;
 
-        // If this is the first time adding properties and/or items:
-        if (dataLength == 0) {
-            // Transfer ownership to the DAO treasury
-            transferOwnership(settings.treasury);
-        }
-
         // Add the IPFS group information
         ipfsData.push(_ipfsGroup);
 
@@ -113,6 +109,10 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
 
         // Cache the number of new items
         uint256 numNewItems = _items.length;
+
+        if (!(_items.length > 0 && properties.length + numNewProperties > 0)) {
+            revert AtLeastOneItemAndPropertyRequired();
+        }
 
         unchecked {
             // For each new property:
@@ -138,6 +138,10 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
                 // Note: Property ids under the hood are offset by 1
                 if (_items[i].isNewProperty) {
                     _propertyId += numStoredProperties;
+                }
+
+                if (_propertyId >= properties.length) {
+                    revert InvalidPropertySelected(_propertyId);
                 }
 
                 // Get the pointer to the other items for the property
@@ -180,6 +184,10 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
 
         // Cache the total number of properties available
         uint256 numProperties = properties.length;
+
+        if (numProperties == 0) {
+            return false;
+        }
 
         // Store the total as reference in the first slot of the token's array of attributes
         tokenAttributes[0] = uint16(numProperties);
