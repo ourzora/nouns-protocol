@@ -2,8 +2,11 @@
 pragma solidity 0.8.15;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
+import { MockImpl } from "./utils/mocks/MockImpl.sol";
 
 contract AuctionTest is NounsBuilderTest {
+    MockImpl internal mockImpl;
+
     address internal bidder1;
     address internal bidder2;
 
@@ -17,6 +20,8 @@ contract AuctionTest is NounsBuilderTest {
         vm.deal(bidder2, 100 ether);
 
         deployMock();
+
+        mockImpl = new MockImpl();
     }
 
     function test_AuctionHouseInitialized() public {
@@ -256,5 +261,123 @@ contract AuctionTest is NounsBuilderTest {
 
         vm.expectRevert(abi.encodeWithSignature("UNPAUSED()"));
         auction.settleAuction();
+    }
+
+    function test_UpdateDuration() public {
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(address(treasury));
+        auction.pause();
+
+        vm.prank(address(treasury));
+        auction.setDuration(12 minutes);
+
+        assertEq(auction.duration(), 12 minutes);
+    }
+
+    function testRevert_MustBePausedToUpdateDuration() public {
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(address(treasury));
+        vm.expectRevert(abi.encodeWithSignature("UNPAUSED()"));
+        auction.setDuration(12 minutes);
+    }
+
+    function test_UpdateReservePrice() public {
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(address(treasury));
+        auction.pause();
+
+        vm.prank(address(treasury));
+        auction.setReservePrice(12 ether);
+
+        assertEq(auction.reservePrice(), 12 ether);
+    }
+
+    function testRevert_MustBePausedToUpdateReservePrice() public {
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(address(treasury));
+        vm.expectRevert(abi.encodeWithSignature("UNPAUSED()"));
+        auction.setReservePrice(12 ether);
+    }
+
+    function test_UpdateTimeBuffer() public {
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(address(treasury));
+        auction.pause();
+
+        vm.prank(address(treasury));
+        auction.setTimeBuffer(12 minutes);
+
+        assertEq(auction.timeBuffer(), 12 minutes);
+    }
+
+    function testRevert_MustBePausedToUpdateTimeBuffer() public {
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(address(treasury));
+        vm.expectRevert(abi.encodeWithSignature("UNPAUSED()"));
+        auction.setTimeBuffer(12 minutes);
+    }
+
+    function test_UpdateMinBidIncrement() public {
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(address(treasury));
+        auction.pause();
+
+        vm.prank(address(treasury));
+        auction.setMinimumBidIncrement(12);
+
+        assertEq(auction.minBidIncrement(), 12);
+    }
+
+    function testRevert_MustBePausedToUpdateMinBidIncrement() public {
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(address(treasury));
+        vm.expectRevert(abi.encodeWithSignature("UNPAUSED()"));
+        auction.setMinimumBidIncrement(12);
+    }
+
+    function test_UpgradeWhenPaused() public {
+        vm.prank(founder);
+        auction.unpause();
+
+        address owner = manager.owner();
+
+        vm.prank(owner);
+        manager.registerUpgrade(auctionImpl, address(mockImpl));
+
+        vm.prank(address(treasury));
+        auction.pause();
+
+        vm.prank(address(treasury));
+        auction.upgradeTo(address(mockImpl));
+    }
+
+    function testRevert_MustUpgradeWhenPaused() public {
+        vm.prank(founder);
+        auction.unpause();
+
+        address owner = manager.owner();
+
+        vm.prank(owner);
+        manager.registerUpgrade(auctionImpl, address(mockImpl));
+
+        vm.prank(address(treasury));
+        vm.expectRevert(abi.encodeWithSignature("UNPAUSED()"));
+        auction.upgradeTo(address(mockImpl));
     }
 }
