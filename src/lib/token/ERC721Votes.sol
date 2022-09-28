@@ -123,7 +123,7 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
 
     /// @notice The delegate for an account
     /// @param _account The account address
-    function delegates(address _account) external view returns (address) {
+    function delegates(address _account) public view returns (address) {
         address current = delegation[_account];
         return current == address(0) ? _account : current;
     }
@@ -178,7 +178,7 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
     /// @param _to The address delegating votes to
     function _delegate(address _from, address _to) internal {
         // Get the previous delegate
-        address prevDelegate = delegation[_from];
+        address prevDelegate = delegates(_from);
 
         // Store the new delegate
         delegation[_from] = _to;
@@ -265,7 +265,7 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
         uint256 _tokenId
     ) internal override {
         // Transfer 1 vote from the sender to the recipient
-        _moveDelegateVotes(_from, _to, 1);
+        _moveDelegateVotes(delegates(_from), delegates(_to), 1);
 
         super._afterTokenTransfer(_from, _to, _tokenId);
     }

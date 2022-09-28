@@ -66,7 +66,8 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
         settings.auction = _auction;
     }
 
-    /// @dev Called upon initialization to add founders and compute their vesting allocations
+    /// @notice Called upon initialization to add founders and compute their vesting allocations
+    /// @dev We do this by reserving an mapping of [0-100] token indices, such that if a new token mint ID % 100 is reserved, it's sent to the appropriate founder.
     /// @param _founders The list of DAO founders
     function _addFounders(IManager.FounderParams[] calldata _founders) internal {
         // Cache the number of founders
@@ -115,7 +116,7 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
                     emit MintScheduled(baseTokenId, founderId, newFounder);
 
                     // Update the base token id
-                    (baseTokenId += schedule) % 100;
+                    baseTokenId = (baseTokenId + schedule) % 100;
                 }
             }
 
@@ -129,7 +130,7 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     /// @param _tokenId The ERC-721 token id
     function _getNextTokenId(uint256 _tokenId) internal view returns (uint256) {
         unchecked {
-            while (tokenRecipient[_tokenId].wallet != address(0)) ++_tokenId;
+            while (tokenRecipient[_tokenId].wallet != address(0)) _tokenId = (++_tokenId) % 100;
 
             return _tokenId;
         }
