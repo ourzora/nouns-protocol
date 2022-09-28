@@ -193,7 +193,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
 
         bytes32 descriptionHash = keccak256(bytes(""));
-        bytes32 proposalId = governor.hashProposal(targets, values, calldatas, descriptionHash);
+        bytes32 proposalId = governor.hashProposal(targets, values, calldatas, descriptionHash, voter1);
 
         vm.prank(voter1);
         bytes32 returnedProposalId = governor.propose(targets, values, calldatas, "");
@@ -215,7 +215,38 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         assertEq(uint256(governor.state(proposalId)), uint256(ProposalState.Pending));
 
-        assertEq(treasury.hashProposal(targets, values, calldatas, descriptionHash), proposalId);
+        assertEq(treasury.hashProposal(targets, values, calldatas, descriptionHash, voter1), proposalId);
+    }
+
+    /// @notice Test that a proposal cannot be front-run and canceled by a malicious user
+    function test_ProposalHashUniqueToSender() public {
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
+
+        bytes32 descriptionHash = keccak256(bytes(""));
+        bytes32 proposalId1 = governor.hashProposal(targets, values, calldatas, descriptionHash, voter1);
+        bytes32 proposalId2 = governor.hashProposal(targets, values, calldatas, descriptionHash, voter2);
+
+        assertTrue(proposalId1 != proposalId2);
+    }
+
+    function test_VerifySubmittedProposalHash() public {
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
+
+        vm.prank(voter1);
+        bytes32 proposalId = governor.propose(targets, values, calldatas, "");
+
+        assertEq(proposalId, governor.hashProposal(targets, values, calldatas, keccak256(bytes("")), voter1));
+    }
+
+    function testFail_MismatchingHashesFromIncorrectProposer() public {
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
+
+        vm.prank(voter1);
+        bytes32 proposalId = governor.propose(targets, values, calldatas, "");
+
+        bytes32 incorrectProposalId = governor.hashProposal(targets, values, calldatas, keccak256(bytes("")), address(this));
+
+        assertEq(proposalId, incorrectProposalId);
     }
 
     function testRevert_NoTarget() public {
@@ -270,7 +301,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         bytes32 descriptionHash = keccak256(bytes(""));
 
-        bytes32 proposalId = governor.hashProposal(targets, values, calldatas, descriptionHash);
+        bytes32 proposalId = governor.hashProposal(targets, values, calldatas, descriptionHash, address(this));
 
         governor.propose(targets, values, calldatas, "");
 
@@ -656,7 +687,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
 
-        governor.execute(targets, values, calldatas, keccak256(bytes("")));
+        governor.execute(targets, values, calldatas, keccak256(bytes("")), voter1);
 
         vm.expectRevert(abi.encodeWithSignature("PROPOSAL_ALREADY_EXECUTED()"));
         governor.cancel(proposalId);
@@ -710,7 +741,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
 
-        governor.execute(targets, values, calldatas, keccak256(bytes("")));
+        governor.execute(targets, values, calldatas, keccak256(bytes("")), voter1);
 
         vm.expectRevert(abi.encodeWithSignature("PROPOSAL_ALREADY_EXECUTED()"));
         vm.prank(founder);
@@ -729,7 +760,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         vm.prank(voter1);
         governor.propose(targets, values, calldatas, "test");
 
-        bytes32 proposalId = governor.hashProposal(targets, values, calldatas, descriptionHash);
+        bytes32 proposalId = governor.hashProposal(targets, values, calldatas, descriptionHash, voter1);
 
         vm.warp(block.timestamp + governor.votingDelay());
         vm.prank(voter1);
@@ -741,7 +772,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         vm.warp(block.timestamp + 2 days);
 
-        governor.execute(targets, values, calldatas, descriptionHash);
+        governor.execute(targets, values, calldatas, descriptionHash, voter1);
 
         assertEq(auction.paused(), true);
     }
@@ -776,7 +807,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         assertEq(treasury.delay(), 2 days);
 
-        governor.execute(targets, values, calldatas, keccak256(bytes("")));
+        governor.execute(targets, values, calldatas, keccak256(bytes("")), otherUsers[2]);
 
         assertEq(treasury.delay(), _newDelay);
     }
@@ -841,7 +872,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         assertEq(treasury.gracePeriod(), 2 weeks);
 
-        governor.execute(targets, values, calldatas, keccak256(bytes("")));
+        governor.execute(targets, values, calldatas, keccak256(bytes("")), otherUsers[2]);
 
         assertEq(treasury.gracePeriod(), _newGracePeriod);
     }

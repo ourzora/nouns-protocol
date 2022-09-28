@@ -126,18 +126,6 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
         uint256 quorumThresholdBps
     ) external;
 
-    /// @notice Hashes a proposal's details into a proposal id
-    /// @param targets The target addresses to call
-    /// @param values The ETH values of each call
-    /// @param calldatas The calldata of each call
-    /// @param descriptionHash The hash of the description
-    function hashProposal(
-        address[] memory targets,
-        uint256[] memory values,
-        bytes[] memory calldatas,
-        bytes32 descriptionHash
-    ) external pure returns (bytes32);
-
     /// @notice Creates a proposal
     /// @param targets The target addresses to call
     /// @param values The ETH values of each call
@@ -192,11 +180,13 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
     /// @param values The ETH values of each call
     /// @param calldatas The calldata of each call
     /// @param descriptionHash The hash of the description
+    /// @param proposer The proposal creator
     function execute(
         address[] memory targets,
         uint256[] memory values,
         bytes[] memory calldatas,
-        bytes32 descriptionHash
+        bytes32 descriptionHash,
+        address proposer
     ) external payable returns (bytes32);
 
     /// @notice Cancels a proposal
