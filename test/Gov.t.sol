@@ -229,6 +229,26 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         assertTrue(proposalId1 != proposalId2);
     }
 
+    function test_VerifySubmittedProposalHash() public {
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
+
+        vm.prank(voter1);
+        bytes32 proposalId = governor.propose(targets, values, calldatas, "");
+
+        assertEq(proposalId, governor.hashProposal(targets, values, calldatas, keccak256(bytes("")), voter1));
+    }
+
+    function testFail_MismatchingHashesFromIncorrectProposer() public {
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
+
+        vm.prank(voter1);
+        bytes32 proposalId = governor.propose(targets, values, calldatas, "");
+
+        bytes32 incorrectProposalId = governor.hashProposal(targets, values, calldatas, keccak256(bytes("")), address(this));
+
+        assertEq(proposalId, incorrectProposalId);
+    }
+
     function testRevert_NoTarget() public {
         mintVoter1();
 
