@@ -10,16 +10,16 @@ interface TokenTypesV1 {
     /// @notice The settings type
     /// @param auction The DAO auction house
     /// @param totalSupply The number of active tokens
-    /// @param mintCount The number of minted tokens
-    /// @param metadatarenderer The token metadata renderer
     /// @param numFounders The number of vesting recipients
+    /// @param metadatarenderer The token metadata renderer
+    /// @param mintCount The number of minted tokens
     /// @param totalPercentage The total percentage owned by founders
     struct Settings {
         address auction;
-        uint96 totalSupply;
-        uint96 mintCount;
-        IBaseMetadata metadataRenderer;
+        uint88 totalSupply;
         uint8 numFounders;
+        IBaseMetadata metadataRenderer;
+        uint88 mintCount;
         uint8 totalOwnership;
     }
 
