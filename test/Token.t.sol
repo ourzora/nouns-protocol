@@ -263,6 +263,57 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         deployWithCustomFounders(wallets, percents, vestExpirys);
     }
 
+    function test_OverwriteCheckpointWithSameTimestamp() public {
+        deployMock();
+
+        vm.prank(founder);
+        auction.unpause();
+
+        assertEq(token.balanceOf(founder), 1);
+        assertEq(token.getVotes(founder), 1);
+        assertEq(token.delegates(founder), founder);
+
+        (uint256 nextTokenId, , , , , ) = auction.auction();
+
+        vm.deal(founder, 1 ether);
+
+        vm.prank(founder);
+        auction.createBid{ value: 0.5 ether }(nextTokenId); // Checkpoint #0, Timestamp 1 sec
+
+        vm.warp(block.timestamp + 10 minutes); // Checkpoint #1, Timestamp 10 min + 1 sec
+
+        auction.settleCurrentAndCreateNewAuction();
+
+        assertEq(token.balanceOf(founder), 2);
+        assertEq(token.getVotes(founder), 2);
+        assertEq(token.delegates(founder), founder);
+
+        vm.prank(founder);
+        token.delegate(address(this)); // Checkpoint #1 overwrite
+
+        assertEq(token.getVotes(founder), 0);
+        assertEq(token.delegates(founder), address(this));
+        assertEq(token.balanceOf(address(this)), 0);
+        assertEq(token.getVotes(address(this)), 2);
+
+        vm.prank(founder);
+        token.delegate(founder); // Checkpoint #1 overwrite
+
+        assertEq(token.getVotes(founder), 2);
+        assertEq(token.delegates(founder), founder);
+        assertEq(token.getVotes(address(this)), 0);
+
+        vm.warp(block.timestamp + 1); // Checkpoint #2, Timestamp 10 min + 2 sec
+
+        vm.prank(founder);
+        token.transferFrom(founder, address(this), 0);
+
+        assertEq(token.getVotes(founder), 1);
+
+        // Ensure the votes returned from the binary search is the latest overwrite of checkpoint 1
+        assertEq(token.getPastVotes(founder, block.timestamp - 1), 2);
+    }
+
     function testRevert_OnlyAuctionCanMint() public {
         deployMock();
 

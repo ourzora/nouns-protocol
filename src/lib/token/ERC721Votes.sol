@@ -204,31 +204,61 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
                 // If this isn't a token mint:
                 if (_from != address(0)) {
                     // Get the sender's number of checkpoints
-                    uint256 nCheckpoints = numCheckpoints[_from]++;
+                    uint256 newCheckpointId = numCheckpoints[_from];
 
-                    // Used to store the sender's previous voting weight
+                    // Used to store their previous checkpoint id
+                    uint256 prevCheckpointId;
+
+                    // Used to store their previous checkpoint's voting weight
                     uint256 prevTotalVotes;
 
-                    // If this isn't the sender's first checkpoint: Get their previous voting weight
-                    if (nCheckpoints != 0) prevTotalVotes = checkpoints[_from][nCheckpoints - 1].votes;
+                    // Used to store their previous checkpoint's timestamp
+                    uint256 prevTimestamp;
+
+                    // If this isn't the sender's first checkpoint:
+                    if (newCheckpointId != 0) {
+                        // Get their previous checkpoint's id
+                        prevCheckpointId = newCheckpointId - 1;
+
+                        // Get their previous checkpoint's voting weight
+                        prevTotalVotes = checkpoints[_from][prevCheckpointId].votes;
+
+                        // Get their previous checkpoint's timestamp
+                        prevTimestamp = checkpoints[_from][prevCheckpointId].timestamp;
+                    }
 
                     // Update their voting weight
-                    _writeCheckpoint(_from, nCheckpoints, prevTotalVotes, prevTotalVotes - _amount);
+                    _writeCheckpoint(_from, newCheckpointId, prevCheckpointId, prevTimestamp, prevTotalVotes, prevTotalVotes - _amount);
                 }
 
                 // If this isn't a token burn:
                 if (_to != address(0)) {
                     // Get the recipients's number of checkpoints
-                    uint256 nCheckpoints = numCheckpoints[_to]++;
+                    uint256 nCheckpoints = numCheckpoints[_to];
 
-                    // Used to store the recipient's previous voting weight
+                    // Used to store their previous checkpoint id
+                    uint256 prevCheckpointId;
+
+                    // Used to store their previous checkpoint's voting weight
                     uint256 prevTotalVotes;
 
-                    // If this isn't the recipient's first checkpoint: Get their previous voting weight
-                    if (nCheckpoints != 0) prevTotalVotes = checkpoints[_to][nCheckpoints - 1].votes;
+                    // Used to store their previous checkpoint's timestamp
+                    uint256 prevTimestamp;
+
+                    // If this isn't the recipient's first checkpoint:
+                    if (nCheckpoints != 0) {
+                        // Get their previous checkpoint's id
+                        prevCheckpointId = nCheckpoints - 1;
+
+                        // Get their previous checkpoint's voting weight
+                        prevTotalVotes = checkpoints[_to][prevCheckpointId].votes;
+
+                        // Get their previous checkpoint's timestamp
+                        prevTimestamp = checkpoints[_to][prevCheckpointId].timestamp;
+                    }
 
                     // Update their voting weight
-                    _writeCheckpoint(_to, nCheckpoints, prevTotalVotes, prevTotalVotes + _amount);
+                    _writeCheckpoint(_to, nCheckpoints, prevCheckpointId, prevTimestamp, prevTotalVotes, prevTotalVotes + _amount);
                 }
             }
         }
@@ -236,23 +266,40 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
 
     /// @dev Records a checkpoint
     /// @param _account The account address
-    /// @param _id The checkpoint id
-    /// @param _prevTotalVotes The account's previous voting weight
-    /// @param _newTotalVotes The account's new voting weight
+    /// @param _newId The new checkpoint id
+    /// @param _prevId The previous checkpoint id
+    /// @param _prevTimestamp The previous checkpoint timestamp
+    /// @param _prevTotalVotes The previous checkpoint voting weight
+    /// @param _newTotalVotes The new checkpoint voting weight
     function _writeCheckpoint(
         address _account,
-        uint256 _id,
+        uint256 _newId,
+        uint256 _prevId,
+        uint256 _prevTimestamp,
         uint256 _prevTotalVotes,
         uint256 _newTotalVotes
     ) private {
-        // Get the pointer to store the checkpoint
-        Checkpoint storage checkpoint = checkpoints[_account][_id];
+        unchecked {
+            // If the new checkpoint is not the user's first AND has the timestamp of the previous checkpoint:
+            if (_newId > 0 && _prevTimestamp == block.timestamp) {
+                // Just update the previous checkpoint's votes
+                checkpoints[_account][_prevId].votes = uint192(_newTotalVotes);
 
-        // Record the updated voting weight and current time
-        checkpoint.votes = uint192(_newTotalVotes);
-        checkpoint.timestamp = uint64(block.timestamp);
+                // Else write a new checkpoint:
+            } else {
+                // Get the pointer to store the checkpoint
+                Checkpoint storage checkpoint = checkpoints[_account][_newId];
 
-        emit DelegateVotesChanged(_account, _prevTotalVotes, _newTotalVotes);
+                // Store the new voting weight and the current time
+                checkpoint.votes = uint192(_newTotalVotes);
+                checkpoint.timestamp = uint64(block.timestamp);
+
+                // Increment the account's number of checkpoints
+                ++numCheckpoints[_account];
+            }
+
+            emit DelegateVotesChanged(_account, _prevTotalVotes, _newTotalVotes);
+        }
     }
 
     /// @dev Enables each NFT to equal 1 vote
