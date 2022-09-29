@@ -218,6 +218,10 @@ contract NounsBuilderTest is Test {
     ///                           USER UTILS                     ///
     ///                                                          ///
 
+    function createUser(uint256 _privateKey) internal virtual returns (address) {
+        return vm.addr(_privateKey);
+    }
+
     address[] internal otherUsers;
 
     function createUsers(uint256 _numUsers, uint256 _balance) internal virtual {

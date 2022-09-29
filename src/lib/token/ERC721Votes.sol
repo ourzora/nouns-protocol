@@ -131,6 +131,7 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
     /// @notice Delegates votes to an account
     /// @param _to The address delegating votes to
     function delegate(address _to) external {
+        if (_to == address(0)) _to = msg.sender;
         _delegate(msg.sender, _to);
     }
 

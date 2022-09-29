@@ -209,7 +209,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
             vm.prank(address(auction));
             token.burn(tokenId);
         }
-      }
+    }
 
     function test_FounderScheduleRounding() public {
         createUsers(3, 1 ether);
@@ -261,6 +261,30 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         }
 
         deployWithCustomFounders(wallets, percents, vestExpirys);
+    }
+
+    function test_DelegatingAddressZeroShouldSelfDelegate() public {
+        deployMock();
+
+        address user = createUser(0xC0FFEE);
+
+        vm.startPrank(address(auction));
+
+        token.mint();
+        token.transferFrom(address(auction), user, 2);
+
+        vm.stopPrank();
+
+        assertEq(token.balanceOf(user), 1);
+        assertEq(token.getVotes(user), 1);
+
+        vm.prank(user);
+        token.delegate(address(0));
+        assertEq(token.getVotes(user), 1);
+
+        vm.prank(user);
+        token.delegate(address(0));
+        assertEq(token.getVotes(user), 1);
     }
 
     function test_OverwriteCheckpointWithSameTimestamp() public {
