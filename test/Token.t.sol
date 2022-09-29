@@ -287,6 +287,30 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.getVotes(user), 1);
     }
 
+    function test_TransferAfterSelfDelegate() public {
+        deployMock();
+
+        address user = createUser(0xC0FFEE);
+        address user2 = createUser(0x1EA);
+
+        vm.startPrank(address(auction));
+
+        token.mint();
+        token.transferFrom(address(auction), user, 2);
+
+        vm.stopPrank();
+
+        vm.prank(user);
+        token.delegate(address(0));
+        assertEq(token.getVotes(user), 1);
+
+        vm.prank(user);
+        token.transferFrom(user, user2, 2);
+
+        assertEq(token.getVotes(user), 0);
+        assertEq(token.getVotes(user2), 1);
+    }
+
     function test_OverwriteCheckpointWithSameTimestamp() public {
         deployMock();
 
