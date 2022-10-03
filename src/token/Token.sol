@@ -86,7 +86,7 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
                 if (founderPct == 0) continue;
 
                 // Update the total ownership and ensure it's valid
-                if ((totalOwnership += uint8(founderPct)) > 100) revert INVALID_FOUNDER_OWNERSHIP();
+                if ((totalOwnership += founderPct) > 100) revert INVALID_FOUNDER_OWNERSHIP();
 
                 // Compute the founder's id
                 uint256 founderId = settings.numFounders++;

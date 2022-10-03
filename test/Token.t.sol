@@ -209,7 +209,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
             vm.prank(address(auction));
             token.burn(tokenId);
         }
-      }
+    }
 
     function test_FounderScheduleRounding() public {
         createUsers(3, 1 ether);
@@ -260,6 +260,27 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
             }
         }
 
+        deployWithCustomFounders(wallets, percents, vestExpirys);
+    }
+
+    function testRevert_InvalidFounderOwnership() public {
+        createUsers(2, 1 ether);
+
+        address[] memory wallets = new address[](2);
+        uint256[] memory percents = new uint256[](2);
+        uint256[] memory vestExpirys = new uint256[](2);
+
+        percents[0] = 256;
+        percents[1] = 256;
+
+        unchecked {
+            for (uint256 i; i < 2; ++i) {
+                wallets[i] = otherUsers[i];
+                vestExpirys[i] = 4 weeks;
+            }
+        }
+
+        vm.expectRevert(abi.encodeWithSignature("INVALID_FOUNDER_OWNERSHIP()"));
         deployWithCustomFounders(wallets, percents, vestExpirys);
     }
 
