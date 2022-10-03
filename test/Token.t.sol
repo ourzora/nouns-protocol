@@ -15,22 +15,6 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         super.setUp();
     }
 
-    function deployWithCustomFounders(
-        address[] memory _wallets,
-        uint256[] memory _percents,
-        uint256[] memory _vestExpirys
-    ) internal virtual {
-        setFounderParams(_wallets, _percents, _vestExpirys);
-
-        setMockTokenParams();
-
-        setMockAuctionParams();
-
-        setMockGovParams();
-
-        deploy(foundersArr, tokenParams, auctionParams, govParams);
-    }
-
     function test_MockTokenInit() public {
         deployMock();
 
@@ -209,7 +193,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
             vm.prank(address(auction));
             token.burn(tokenId);
         }
-      }
+    }
 
     function test_FounderScheduleRounding() public {
         createUsers(3, 1 ether);

@@ -188,6 +188,22 @@ contract NounsBuilderTest is Test {
         deploy(foundersArr, tokenParams, auctionParams, govParams);
     }
 
+    function deployWithCustomFounders(
+        address[] memory _wallets,
+        uint256[] memory _percents,
+        uint256[] memory _vestExpirys
+    ) internal virtual {
+        setFounderParams(_wallets, _percents, _vestExpirys);
+
+        setMockTokenParams();
+
+        setMockAuctionParams();
+
+        setMockGovParams();
+
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
+    }
+
     function deploy(
         IManager.FounderParams[] memory _founderParams,
         IManager.TokenParams memory _tokenParams,
