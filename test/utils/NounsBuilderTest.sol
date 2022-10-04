@@ -83,7 +83,7 @@ contract NounsBuilderTest is Test {
 
     function setMockFounderParams() internal virtual {
         address[] memory wallets = new address[](2);
-        uint256[] memory percents = new uint256[](2);
+        uint8[] memory percents = new uint8[](2);
         uint256[] memory vestingEnds = new uint256[](2);
 
         wallets[0] = founder;
@@ -100,7 +100,7 @@ contract NounsBuilderTest is Test {
 
     function setFounderParams(
         address[] memory _wallets,
-        uint256[] memory _percents,
+        uint8[] memory _percents,
         uint256[] memory _vestingEnds
     ) internal virtual {
         uint256 numFounders = _wallets.length;

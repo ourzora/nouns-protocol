@@ -32,7 +32,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
     function deployMock() internal override {
         address[] memory wallets = new address[](2);
-        uint256[] memory percents = new uint256[](2);
+        uint8[] memory percents = new uint8[](2);
         uint256[] memory vestingEnd = new uint256[](2);
 
         wallets[0] = founder;

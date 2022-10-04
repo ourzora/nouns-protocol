@@ -19,9 +19,9 @@ contract E2ETest is NounsBuilderTest {
         address f1Wallet,
         address f2Wallet,
         address f3Wallet,
-        uint256 f1Percentage,
-        uint256 f2Percentage,
-        uint256 f3Percentage
+        uint8 f1Percentage,
+        uint8 f2Percentage,
+        uint8 f3Percentage
     ) public {
         vm.assume(f1Wallet != address(0) && f2Wallet != address(0) && f3Wallet != address(0));
         vm.assume(f1Wallet != f2Wallet && f2Wallet != f3Wallet && f1Wallet != f3Wallet);
@@ -31,7 +31,7 @@ contract E2ETest is NounsBuilderTest {
         vm.assume(f1Percentage + f2Percentage + f3Percentage < 99);
 
         address[] memory founders = new address[](3);
-        uint256[] memory percents = new uint256[](3);
+        uint8[] memory percents = new uint8[](3);
         uint256[] memory vestingEnds = new uint256[](3);
         founders[0] = f1Wallet;
         founders[1] = f2Wallet;

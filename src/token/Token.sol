@@ -80,13 +80,18 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
             // For each founder:
             for (uint256 i; i < numFounders; ++i) {
                 // Cache the percent ownership
-                uint256 founderPct = _founders[i].ownershipPct;
+                uint8 founderPct = _founders[i].ownershipPct;
 
                 // Continue if no ownership is specified
                 if (founderPct == 0) continue;
 
                 // Update the total ownership and ensure it's valid
-                if ((totalOwnership += uint8(founderPct)) > 100) revert INVALID_FOUNDER_OWNERSHIP();
+                totalOwnership += founderPct;
+
+                // Check that founders own less than 100% of tokens
+                if (totalOwnership > 99) {
+                    revert INVALID_FOUNDER_OWNERSHIP();
+                }
 
                 // Compute the founder's id
                 uint256 founderId = settings.numFounders++;
@@ -97,7 +102,7 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
                 // Store the founder's vesting details
                 newFounder.wallet = _founders[i].wallet;
                 newFounder.vestExpiry = uint32(_founders[i].vestExpiry);
-                newFounder.ownershipPct = uint8(founderPct);
+                newFounder.ownershipPct = founderPct;
 
                 // Compute the vesting schedule
                 uint256 schedule = 100 / founderPct;
