@@ -345,7 +345,7 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
         // Cannot realistically underflow and `getVotes` would revert
         unchecked {
             // Ensure the caller is the proposer or the proposer's voting weight has dropped below the proposal threshold
-            if (msg.sender != proposal.proposer && getVotes(proposal.proposer, block.timestamp - 1) > proposal.proposalThreshold)
+            if (msg.sender != proposal.proposer && getVotes(proposal.proposer, block.timestamp - 1) >= proposal.proposalThreshold)
                 revert INVALID_CANCEL();
         }
 
