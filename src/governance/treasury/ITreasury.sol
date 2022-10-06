@@ -79,18 +79,6 @@ interface ITreasury is IUUPS, IOwnable {
     /// @param proposalId The proposal id
     function isExpired(bytes32 proposalId) external view returns (bool);
 
-    /// @notice Hashes a proposal's details into its proposal id
-    /// @param targets The target addresses to call
-    /// @param values The ETH values of each call
-    /// @param calldatas The calldata of each call
-    /// @param descriptionHash The hash of the description
-    function hashProposal(
-        address[] calldata targets,
-        uint256[] calldata values,
-        bytes[] calldata calldatas,
-        bytes32 descriptionHash
-    ) external pure returns (bytes32);
-
     /// @notice Schedules a proposal for execution
     /// @param proposalId The proposal id
     function queue(bytes32 proposalId) external returns (uint256 eta);
@@ -104,11 +92,13 @@ interface ITreasury is IUUPS, IOwnable {
     /// @param values The ETH values of each call
     /// @param calldatas The calldata of each call
     /// @param descriptionHash The hash of the description
+    /// @param proposer The proposal creator
     function execute(
         address[] calldata targets,
         uint256[] calldata values,
         bytes[] calldata calldatas,
-        bytes32 descriptionHash
+        bytes32 descriptionHash,
+        address proposer
     ) external payable;
 
     /// @notice The time delay to execute a queued transaction

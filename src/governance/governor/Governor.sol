@@ -11,6 +11,7 @@ import { Token } from "../../token/Token.sol";
 import { Treasury } from "../treasury/Treasury.sol";
 import { IManager } from "../../manager/IManager.sol";
 import { IGovernor } from "./IGovernor.sol";
+import { ProposalHasher } from "./ProposalHasher.sol";
 
 /// @title Governor
 /// @author Rohan Kulkarni
@@ -18,7 +19,7 @@ import { IGovernor } from "./IGovernor.sol";
 /// Modified from:
 /// - OpenZeppelin Contracts v4.7.3 (governance/extensions/GovernorTimelockControl.sol)
 /// - NounsDAOLogicV1.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
-contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
+contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorStorageV1 {
     ///                                                          ///
     ///                         CONSTANTS                        ///
     ///                                                          ///
@@ -87,24 +88,6 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
     }
 
     ///                                                          ///
-    ///                         HASH PROPOSAL                    ///
-    ///                                                          ///
-
-    /// @notice Hashes a proposal's details into a proposal id
-    /// @param _targets The target addresses to call
-    /// @param _values The ETH values of each call
-    /// @param _calldatas The calldata of each call
-    /// @param _descriptionHash The hash of the description
-    function hashProposal(
-        address[] memory _targets,
-        uint256[] memory _values,
-        bytes[] memory _calldatas,
-        bytes32 _descriptionHash
-    ) public pure returns (bytes32) {
-        return keccak256(abi.encode(_targets, _values, _calldatas, _descriptionHash));
-    }
-
-    ///                                                          ///
     ///                        CREATE PROPOSAL                   ///
     ///                                                          ///
 
@@ -142,7 +125,7 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
         bytes32 descriptionHash = keccak256(bytes(_description));
 
         // Compute the proposal id
-        bytes32 proposalId = hashProposal(_targets, _values, _calldatas, descriptionHash);
+        bytes32 proposalId = hashProposal(_targets, _values, _calldatas, descriptionHash, msg.sender);
 
         // Get the pointer to store the proposal
         Proposal storage proposal = proposals[proposalId];
@@ -321,14 +304,16 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
     /// @param _values The ETH values of each call
     /// @param _calldatas The calldata of each call
     /// @param _descriptionHash The hash of the description
+    /// @param _proposer The proposal creator
     function execute(
         address[] calldata _targets,
         uint256[] calldata _values,
         bytes[] calldata _calldatas,
-        bytes32 _descriptionHash
+        bytes32 _descriptionHash,
+        address _proposer
     ) external payable returns (bytes32) {
         // Get the proposal id
-        bytes32 proposalId = hashProposal(_targets, _values, _calldatas, _descriptionHash);
+        bytes32 proposalId = hashProposal(_targets, _values, _calldatas, _descriptionHash, _proposer);
 
         // Ensure the proposal is queued
         if (state(proposalId) != ProposalState.Queued) revert PROPOSAL_NOT_QUEUED(proposalId);
@@ -337,7 +322,7 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
         proposals[proposalId].executed = true;
 
         // Execute the proposal
-        settings.treasury.execute{ value: msg.value }(_targets, _values, _calldatas, _descriptionHash);
+        settings.treasury.execute{ value: msg.value }(_targets, _values, _calldatas, _descriptionHash, _proposer);
 
         emit ProposalExecuted(proposalId);
 
@@ -360,7 +345,7 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, GovernorStorageV1 {
         // Cannot realistically underflow and `getVotes` would revert
         unchecked {
             // Ensure the caller is the proposer or the proposer's voting weight has dropped below the proposal threshold
-            if (msg.sender != proposal.proposer && getVotes(proposal.proposer, block.timestamp - 1) > proposal.proposalThreshold)
+            if (msg.sender != proposal.proposer && getVotes(proposal.proposer, block.timestamp - 1) >= proposal.proposalThreshold)
                 revert INVALID_CANCEL();
         }
 

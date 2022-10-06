@@ -19,12 +19,12 @@ contract AuctionTest is NounsBuilderTest {
         vm.deal(bidder1, 100 ether);
         vm.deal(bidder2, 100 ether);
 
-        deployMock();
-
         mockImpl = new MockImpl();
     }
 
     function test_AuctionHouseInitialized() public {
+        deployMock();
+
         assertEq(auction.owner(), founder);
 
         assertEq(auction.treasury(), address(treasury));
@@ -35,11 +35,15 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function testRevert_AlreadyInitialized() public {
+        deployMock();
+
         vm.expectRevert(abi.encodeWithSignature("ALREADY_INITIALIZED()"));
         auction.initialize(address(token), address(this), address(treasury), 1 minutes, 0 ether);
     }
 
     function test_Unpause() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -60,11 +64,15 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function testRevert_OnlyFounderCanUnpause() public {
+        deployMock();
+
         vm.expectRevert(abi.encodeWithSignature("ONLY_OWNER()"));
         auction.unpause();
     }
 
     function test_CreateBid(uint256 _amount) public {
+        deployMock();
+
         vm.assume(_amount >= auction.reservePrice() && _amount <= bidder1.balance);
 
         vm.prank(founder);
@@ -89,6 +97,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function testRevert_InvalidBidTokenId() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -98,6 +108,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function testRevert_MustMeetReservePrice() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -107,6 +119,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function test_CreateSubsequentBid() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -135,6 +149,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function testRevert_MustMeetMinBidIncrement() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -149,6 +165,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function test_ExtendAuction() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -166,6 +184,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function testRevert_AuctionExpired() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -177,6 +197,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function test_SettleAuction() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -197,6 +219,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function testRevert_CannotSettleWhenAuctionStillActive() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -213,6 +237,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function testRevert_TokenBurnFromNoBids() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -226,6 +252,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function test_OnlySettleWhenPaused() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -248,6 +276,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function testRevert_CannotOnlySettleWhenNotPaused() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -263,7 +293,35 @@ contract AuctionTest is NounsBuilderTest {
         auction.settleAuction();
     }
 
+    function test_FirstAuctionPauseAndUnpauseInFirstAuction() public {
+        address[] memory wallets = new address[](1);
+        uint256[] memory percents = new uint256[](1);
+        uint256[] memory vestExpirys = new uint256[](1);
+
+        wallets[0] = address(this);
+
+        deployWithCustomFounders(wallets, percents, vestExpirys);
+
+        vm.prank(address(this));
+        auction.unpause();
+
+        vm.prank(bidder1);
+        auction.createBid{ value: 0.420 ether }(0);
+
+        vm.startPrank(address(treasury));
+
+        auction.pause();
+        auction.unpause();
+
+        vm.stopPrank();
+
+        vm.prank(bidder2);
+        auction.createBid{ value: 0.5 ether }(0);
+    }
+
     function test_UpdateDuration() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -277,6 +335,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function testRevert_MustBePausedToUpdateDuration() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -286,6 +346,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function test_UpdateReservePrice() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -299,6 +361,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function testRevert_MustBePausedToUpdateReservePrice() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -308,6 +372,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function test_UpdateTimeBuffer() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -321,6 +387,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function testRevert_MustBePausedToUpdateTimeBuffer() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -330,6 +398,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function test_UpdateMinBidIncrement() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -343,6 +413,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function testRevert_MustBePausedToUpdateMinBidIncrement() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -352,6 +424,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function test_UpgradeWhenPaused() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 
@@ -368,6 +442,8 @@ contract AuctionTest is NounsBuilderTest {
     }
 
     function testRevert_MustUpgradeWhenPaused() public {
+        deployMock();
+
         vm.prank(founder);
         auction.unpause();
 

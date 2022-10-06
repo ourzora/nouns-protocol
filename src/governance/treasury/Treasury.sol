@@ -8,6 +8,7 @@ import { SafeCast } from "../../lib/utils/SafeCast.sol";
 
 import { TreasuryStorageV1 } from "./storage/TreasuryStorageV1.sol";
 import { ITreasury } from "./ITreasury.sol";
+import { ProposalHasher } from "../governor/ProposalHasher.sol";
 import { IManager } from "../../manager/IManager.sol";
 
 /// @title Treasury
@@ -16,7 +17,7 @@ import { IManager } from "../../manager/IManager.sol";
 /// Modified from:
 /// - OpenZeppelin Contracts v4.7.3 (governance/TimelockController.sol)
 /// - NounsDAOExecutor.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
-contract Treasury is ITreasury, UUPS, Ownable, TreasuryStorageV1 {
+contract Treasury is ITreasury, UUPS, Ownable, ProposalHasher, TreasuryStorageV1 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
@@ -90,24 +91,6 @@ contract Treasury is ITreasury, UUPS, Ownable, TreasuryStorageV1 {
     }
 
     ///                                                          ///
-    ///                        HASH PROPOSAL                     ///
-    ///                                                          ///
-
-    /// @notice Hashes a proposal's details into its proposal id
-    /// @param _targets The target addresses to call
-    /// @param _values The ETH values of each call
-    /// @param _calldatas The calldata of each call
-    /// @param _descriptionHash The hash of the description
-    function hashProposal(
-        address[] calldata _targets,
-        uint256[] calldata _values,
-        bytes[] calldata _calldatas,
-        bytes32 _descriptionHash
-    ) public pure returns (bytes32) {
-        return keccak256(abi.encode(_targets, _values, _calldatas, _descriptionHash));
-    }
-
-    ///                                                          ///
     ///                        QUEUE PROPOSAL                    ///
     ///                                                          ///
 
@@ -138,14 +121,16 @@ contract Treasury is ITreasury, UUPS, Ownable, TreasuryStorageV1 {
     /// @param _values The ETH values of each call
     /// @param _calldatas The calldata of each call
     /// @param _descriptionHash The hash of the description
+    /// @param _proposer The proposal creator
     function execute(
         address[] calldata _targets,
         uint256[] calldata _values,
         bytes[] calldata _calldatas,
-        bytes32 _descriptionHash
+        bytes32 _descriptionHash,
+        address _proposer
     ) external payable onlyOwner {
         // Get the proposal id
-        bytes32 proposalId = hashProposal(_targets, _values, _calldatas, _descriptionHash);
+        bytes32 proposalId = hashProposal(_targets, _values, _calldatas, _descriptionHash, _proposer);
 
         // Ensure the proposal is ready to execute
         if (!isReady(proposalId)) revert EXECUTION_NOT_READY(proposalId);
