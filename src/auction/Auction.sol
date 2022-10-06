@@ -307,7 +307,7 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
 
     /// @notice Updates the time duration of each auction
     /// @param _duration The new time duration
-    function setDuration(uint256 _duration) external onlyOwner {
+    function setDuration(uint256 _duration) external onlyOwner whenPaused {
         settings.duration = SafeCast.toUint40(_duration);
 
         emit DurationUpdated(_duration);
@@ -315,7 +315,7 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
 
     /// @notice Updates the reserve price of each auction
     /// @param _reservePrice The new reserve price
-    function setReservePrice(uint256 _reservePrice) external onlyOwner {
+    function setReservePrice(uint256 _reservePrice) external onlyOwner whenPaused {
         settings.reservePrice = _reservePrice;
 
         emit ReservePriceUpdated(_reservePrice);
@@ -323,7 +323,7 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
 
     /// @notice Updates the time buffer of each auction
     /// @param _timeBuffer The new time buffer
-    function setTimeBuffer(uint256 _timeBuffer) external onlyOwner {
+    function setTimeBuffer(uint256 _timeBuffer) external onlyOwner whenPaused {
         settings.timeBuffer = SafeCast.toUint40(_timeBuffer);
 
         emit TimeBufferUpdated(_timeBuffer);
@@ -331,7 +331,7 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
 
     /// @notice Updates the minimum bid increment of each subsequent bid
     /// @param _percentage The new percentage
-    function setMinimumBidIncrement(uint256 _percentage) external onlyOwner {
+    function setMinimumBidIncrement(uint256 _percentage) external onlyOwner whenPaused {
         settings.minBidIncrement = SafeCast.toUint8(_percentage);
 
         emit MinBidIncrementPercentageUpdated(_percentage);
@@ -374,7 +374,7 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
     /// @notice Ensures the caller is authorized to upgrade the contract and the new implementation is valid
     /// @dev This function is called in `upgradeTo` & `upgradeToAndCall`
     /// @param _newImpl The new implementation address
-    function _authorizeUpgrade(address _newImpl) internal view override onlyOwner {
+    function _authorizeUpgrade(address _newImpl) internal view override onlyOwner whenPaused {
         // Ensure the new implementation is registered by the Builder DAO
         if (!manager.isRegisteredUpgrade(_getImplementation(), _newImpl)) revert INVALID_UPGRADE(_newImpl);
     }
