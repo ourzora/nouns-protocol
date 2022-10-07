@@ -4,8 +4,8 @@ pragma solidity 0.8.15;
 import { Test } from "forge-std/Test.sol";
 import { ClonesUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
-import { MetadataRenderer } from "../../../token/metadata/MetadataRenderer.sol";
-import { MetadataRendererTypesV1 } from "../../../token/metadata/types/MetadataRendererTypesV1.sol";
+import { MetadataRenderer } from "../../../src/token/metadata/MetadataRenderer.sol";
+import { MetadataRendererTypesV1 } from "../../../src/token/metadata/types/MetadataRendererTypesV1.sol";
 
 contract MetadataRendererTest is Test {
     address token = address(0x12);

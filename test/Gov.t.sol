@@ -51,6 +51,8 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         setGovParams(2 days, 1 days, 1 weeks, 25, 1000);
 
         deploy(foundersArr, tokenParams, auctionParams, govParams);
+
+        _setupMetadata();
     }
 
     function deployAltMock() internal {
@@ -76,6 +78,8 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         setGovParams(2 days, 1 days, 1 weeks, 100, 1000);
 
         deploy(foundersArr, tokenParams, auctionParams, govParams);
+
+        _setupMetadata();
     }
 
     function createVoter1() internal {
