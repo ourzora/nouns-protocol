@@ -73,7 +73,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         createUsers(100, 1 ether);
 
         address[] memory wallets = new address[](100);
-        uint8[] memory percents = new uint8[](100);
+        uint256[] memory percents = new uint256[](100);
         uint256[] memory vestExpirys = new uint256[](100);
 
         uint8 pct = 1;
@@ -105,7 +105,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         createUsers(50, 1 ether);
 
         address[] memory wallets = new address[](50);
-        uint8[] memory percents = new uint8[](50);
+        uint256[] memory percents = new uint256[](50);
         uint256[] memory vestExpirys = new uint256[](50);
 
         uint8 pct = 2;
@@ -142,7 +142,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         createUsers(2, 1 ether);
 
         address[] memory wallets = new address[](2);
-        uint8[] memory percents = new uint8[](2);
+        uint256[] memory percents = new uint256[](2);
         uint256[] memory vestExpirys = new uint256[](2);
 
         uint8 pct = 49;
@@ -207,7 +207,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         createUsers(3, 1 ether);
 
         address[] memory wallets = new address[](3);
-        uint8[] memory percents = new uint8[](3);
+        uint256[] memory percents = new uint256[](3);
         uint256[] memory vestExpirys = new uint256[](3);
 
         percents[0] = 11;
@@ -228,7 +228,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         createUsers(11, 1 ether);
 
         address[] memory wallets = new address[](11);
-        uint8[] memory percents = new uint8[](11);
+        uint256[] memory percents = new uint256[](11);
         uint256[] memory vestExpirys = new uint256[](11);
 
         percents[0] = 1;
@@ -350,7 +350,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         createUsers(2, 1 ether);
 
         address[] memory wallets = new address[](2);
-        uint8[] memory percents = new uint8[](2);
+        uint256[] memory percents = new uint256[](2);
         uint256[] memory vestExpirys = new uint256[](2);
 
         uint256 end = 4 weeks;
@@ -369,11 +369,14 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         Founder memory founder;
 
         unchecked {
-            for (uint256 i; i < 100; ++i) {
+            for (uint256 i; i < 99; ++i) {
                 founder = token.getScheduledRecipient(i);
 
-                if (i % 2 == 0) assertEq(founder.wallet, otherUsers[0]);
-                else assertEq(founder.wallet, otherUsers[1]);
+                if (i % 2 == 0) {
+                    assertEq(founder.wallet, otherUsers[0]);
+                } else {
+                    assertEq(founder.wallet, otherUsers[1]);
+                }
             }
         }
 

@@ -295,7 +295,7 @@ contract AuctionTest is NounsBuilderTest {
 
     function test_FirstAuctionPauseAndUnpauseInFirstAuction() public {
         address[] memory wallets = new address[](1);
-        uint8[] memory percents = new uint8[](1);
+        uint256[] memory percents = new uint256[](1);
         uint256[] memory vestExpirys = new uint256[](1);
 
         wallets[0] = address(this);

@@ -7,8 +7,6 @@ import { IManager } from "../src/manager/IManager.sol";
 import { IGovernor } from "../src/governance/governor/IGovernor.sol";
 import { GovernorTypesV1 } from "../src/governance/governor/types/GovernorTypesV1.sol";
 
-import { console2 } from "forge-std/console2.sol";
-
 contract E2ETest is NounsBuilderTest {
     function setUp() public virtual override {
         super.setUp();
@@ -31,7 +29,7 @@ contract E2ETest is NounsBuilderTest {
         vm.assume(uint256(f1Percentage) + uint256(f2Percentage) + uint256(f3Percentage) < 99);
 
         address[] memory founders = new address[](3);
-        uint8[] memory percents = new uint8[](3);
+        uint256[] memory percents = new uint256[](3);
         uint256[] memory vestingEnds = new uint256[](3);
         founders[0] = f1Wallet;
         founders[1] = f2Wallet;

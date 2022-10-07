@@ -47,7 +47,7 @@ interface IManager is IUUPS, IOwnable {
     /// @param vestExpiry The timestamp that vesting expires
     struct FounderParams {
         address wallet;
-        uint8 ownershipPct;
+        uint256 ownershipPct;
         uint256 vestExpiry;
     }
 
