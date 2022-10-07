@@ -15,22 +15,6 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         super.setUp();
     }
 
-    function deployWithCustomFounders(
-        address[] memory _wallets,
-        uint256[] memory _percents,
-        uint256[] memory _vestExpirys
-    ) internal virtual {
-        setFounderParams(_wallets, _percents, _vestExpirys);
-
-        setMockTokenParams();
-
-        setMockAuctionParams();
-
-        setMockGovParams();
-
-        deploy(foundersArr, tokenParams, auctionParams, govParams);
-    }
-
     function test_MockTokenInit() public {
         deployMock();
 
@@ -188,6 +172,29 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         }
     }
 
+    // Test that when tokens are minted / burned over time,
+    // no two tokens end up with the same ID
+    function test_TokenIdCollisionAvoidance(uint8 mintCount) public {
+        deployMock();
+
+        // avoid overflows specific to this test, shouldn't occur in practice
+        vm.assume(mintCount < 100);
+
+        uint256 ts = token.totalSupply();
+        uint256 lastTokenId = UINT256_MAX;
+
+        for (uint8 i = 0; i <= mintCount; i++) {
+            vm.prank(address(auction));
+            uint256 tokenId = token.mint();
+
+            assertFalse(tokenId == lastTokenId);
+            lastTokenId = tokenId;
+
+            vm.prank(address(auction));
+            token.burn(tokenId);
+        }
+    }
+
     function test_FounderScheduleRounding() public {
         createUsers(3, 1 ether);
 
@@ -238,6 +245,105 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         }
 
         deployWithCustomFounders(wallets, percents, vestExpirys);
+    }
+
+    function test_DelegatingAddressZeroShouldSelfDelegate() public {
+        deployMock();
+
+        address user = createUser(0xC0FFEE);
+
+        vm.startPrank(address(auction));
+
+        token.mint();
+        token.transferFrom(address(auction), user, 2);
+
+        vm.stopPrank();
+
+        assertEq(token.balanceOf(user), 1);
+        assertEq(token.getVotes(user), 1);
+
+        vm.prank(user);
+        token.delegate(address(0));
+        assertEq(token.getVotes(user), 1);
+
+        vm.prank(user);
+        token.delegate(address(0));
+        assertEq(token.getVotes(user), 1);
+    }
+
+    function test_TransferAfterSelfDelegate() public {
+        deployMock();
+
+        address user = createUser(0xC0FFEE);
+        address user2 = createUser(0x1EA);
+
+        vm.startPrank(address(auction));
+
+        token.mint();
+        token.transferFrom(address(auction), user, 2);
+
+        vm.stopPrank();
+
+        vm.prank(user);
+        token.delegate(address(0));
+        assertEq(token.getVotes(user), 1);
+
+        vm.prank(user);
+        token.transferFrom(user, user2, 2);
+
+        assertEq(token.getVotes(user), 0);
+        assertEq(token.getVotes(user2), 1);
+    }
+
+    function test_OverwriteCheckpointWithSameTimestamp() public {
+        deployMock();
+
+        vm.prank(founder);
+        auction.unpause();
+
+        assertEq(token.balanceOf(founder), 1);
+        assertEq(token.getVotes(founder), 1);
+        assertEq(token.delegates(founder), founder);
+
+        (uint256 nextTokenId, , , , , ) = auction.auction();
+
+        vm.deal(founder, 1 ether);
+
+        vm.prank(founder);
+        auction.createBid{ value: 0.5 ether }(nextTokenId); // Checkpoint #0, Timestamp 1 sec
+
+        vm.warp(block.timestamp + 10 minutes); // Checkpoint #1, Timestamp 10 min + 1 sec
+
+        auction.settleCurrentAndCreateNewAuction();
+
+        assertEq(token.balanceOf(founder), 2);
+        assertEq(token.getVotes(founder), 2);
+        assertEq(token.delegates(founder), founder);
+
+        vm.prank(founder);
+        token.delegate(address(this)); // Checkpoint #1 overwrite
+
+        assertEq(token.getVotes(founder), 0);
+        assertEq(token.delegates(founder), address(this));
+        assertEq(token.balanceOf(address(this)), 0);
+        assertEq(token.getVotes(address(this)), 2);
+
+        vm.prank(founder);
+        token.delegate(founder); // Checkpoint #1 overwrite
+
+        assertEq(token.getVotes(founder), 2);
+        assertEq(token.delegates(founder), founder);
+        assertEq(token.getVotes(address(this)), 0);
+
+        vm.warp(block.timestamp + 1); // Checkpoint #2, Timestamp 10 min + 2 sec
+
+        vm.prank(founder);
+        token.transferFrom(founder, address(this), 0);
+
+        assertEq(token.getVotes(founder), 1);
+
+        // Ensure the votes returned from the binary search is the latest overwrite of checkpoint 1
+        assertEq(token.getPastVotes(founder, block.timestamp - 1), 2);
     }
 
     function testRevert_OnlyAuctionCanMint() public {

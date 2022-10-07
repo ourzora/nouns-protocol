@@ -66,7 +66,8 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
         settings.auction = _auction;
     }
 
-    /// @dev Called upon initialization to add founders and compute their vesting allocations
+    /// @notice Called upon initialization to add founders and compute their vesting allocations
+    /// @dev We do this by reserving an mapping of [0-100] token indices, such that if a new token mint ID % 100 is reserved, it's sent to the appropriate founder.
     /// @param _founders The list of DAO founders
     function _addFounders(IManager.FounderParams[] calldata _founders) internal {
         // Cache the number of founders
@@ -151,7 +152,7 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
         unchecked {
             do {
                 // Get the next token to mint
-                tokenId = settings.totalSupply++;
+                tokenId = settings.mintCount++;
 
                 // Lookup whether the token is for a founder, and mint accordingly if so
             } while (_isForFounder(tokenId));
@@ -167,6 +168,11 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     function _mint(address _to, uint256 _tokenId) internal override {
         // Mint the token
         super._mint(_to, _tokenId);
+
+        // Increment the total supply
+        unchecked {
+            ++settings.totalSupply;
+        }
 
         // Generate the token attributes
         if (!settings.metadataRenderer.onMinted(_tokenId)) revert NO_METADATA_GENERATED();
@@ -210,6 +216,14 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
 
         // Burn the token
         _burn(_tokenId);
+    }
+
+    function _burn(uint256 _tokenId) internal override {
+        super._burn(_tokenId);
+
+        unchecked {
+            --settings.totalSupply;
+        }
     }
 
     ///                                                          ///
