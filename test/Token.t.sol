@@ -85,7 +85,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.getVotes(address(auction)), 1);
     }
 
-    function test_MaxOwnership100Founders() public {
+    function test_MaxOwnership99Founders() public {
         createUsers(100, 1 ether);
 
         address[] memory wallets = new address[](100);
@@ -96,7 +96,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         uint256 end = 4 weeks;
 
         unchecked {
-            for (uint256 i; i < 100; ++i) {
+            for (uint256 i; i < 99; ++i) {
                 wallets[i] = otherUsers[i];
                 percents[i] = pct;
                 vestExpirys[i] = end;
@@ -106,11 +106,11 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         deployWithCustomFounders(wallets, percents, vestExpirys);
 
         assertEq(token.totalFounders(), 100);
-        assertEq(token.totalFounderOwnership(), 100);
+        assertEq(token.totalFounderOwnership(), 99);
 
         Founder memory founder;
 
-        for (uint256 i; i < 100; ++i) {
+        for (uint256 i; i < 99; ++i) {
             founder = token.getScheduledRecipient(i);
 
             assertEq(founder.wallet, otherUsers[i]);
@@ -134,15 +134,16 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
                 vestExpirys[i] = end;
             }
         }
+        percents[49] = 1;
 
         deployWithCustomFounders(wallets, percents, vestExpirys);
 
         assertEq(token.totalFounders(), 50);
-        assertEq(token.totalFounderOwnership(), 100);
+        assertEq(token.totalFounderOwnership(), 99);
 
         Founder memory founder;
 
-        for (uint256 i; i < 50; ++i) {
+        for (uint256 i; i < 49; ++i) {
             founder = token.getScheduledRecipient(i);
 
             assertEq(founder.wallet, otherUsers[i]);
@@ -160,21 +161,21 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         uint8[] memory percents = new uint8[](2);
         uint256[] memory vestExpirys = new uint256[](2);
 
-        uint8 pct = 50;
+        uint8 pct = 49;
         uint256 end = 4 weeks;
 
         unchecked {
             for (uint256 i; i < 2; ++i) {
                 wallets[i] = otherUsers[i];
-                percents[i] = pct;
                 vestExpirys[i] = end;
+                percents[i] = pct;
             }
         }
 
         deployWithCustomFounders(wallets, percents, vestExpirys);
 
         assertEq(token.totalFounders(), 2);
-        assertEq(token.totalFounderOwnership(), 100);
+        assertEq(token.totalFounderOwnership(), 98);
 
         Founder memory founder;
 
@@ -182,8 +183,15 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
             for (uint256 i; i < 500; ++i) {
                 founder = token.getScheduledRecipient(i);
 
-                if (i % 2 == 0) assertEq(founder.wallet, otherUsers[0]);
-                else assertEq(founder.wallet, otherUsers[1]);
+                if (i % 100 >= 98) {
+                    continue;
+                }
+
+                if (i % 2 == 0) {
+                    assertEq(founder.wallet, otherUsers[0]);
+                } else {
+                    assertEq(founder.wallet, otherUsers[1]);
+                }
             }
         }
     }
@@ -196,7 +204,6 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         // avoid overflows specific to this test, shouldn't occur in practice
         vm.assume(mintCount < 100);
 
-        uint256 ts = token.totalSupply();
         uint256 lastTokenId = UINT256_MAX;
 
         for (uint8 i = 0; i <= mintCount; i++) {
@@ -361,21 +368,18 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         uint8[] memory percents = new uint8[](2);
         uint256[] memory vestExpirys = new uint256[](2);
 
-        uint8 pct = 50;
         uint256 end = 4 weeks;
-
-        unchecked {
-            for (uint256 i; i < 2; ++i) {
-                wallets[i] = otherUsers[i];
-                percents[i] = pct;
-                vestExpirys[i] = end;
-            }
-        }
+        wallets[0] = otherUsers[0];
+        vestExpirys[0] = end;
+        wallets[1] = otherUsers[1];
+        vestExpirys[1] = end;
+        percents[0] = 50;
+        percents[1] = 49;
 
         deployWithCustomFounders(wallets, percents, vestExpirys);
 
         assertEq(token.totalFounders(), 2);
-        assertEq(token.totalFounderOwnership(), 100);
+        assertEq(token.totalFounderOwnership(), 99);
 
         Founder memory founder;
 

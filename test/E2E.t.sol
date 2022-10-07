@@ -56,7 +56,7 @@ contract E2ETest is NounsBuilderTest {
 
         deploy(foundersArr, tokenParams, auctionParams, govParams);
 
-        for (uint96 i = 0; i < MINT_COUNT - f1Percentage - f2Percentage - f3Percentage; i++) {
+        while (token.totalSupply() < MINT_COUNT) {
             vm.prank(address(auction));
             token.mint();
         }
