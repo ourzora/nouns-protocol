@@ -11,6 +11,8 @@ import { IBaseMetadata } from "./metadata/interfaces/IBaseMetadata.sol";
 import { IManager } from "../manager/IManager.sol";
 import { IToken } from "./IToken.sol";
 
+import "forge-std/console2.sol";
+
 /// @title Token
 /// @author Rohan Kulkarni
 /// @notice A DAO's ERC-721 governance token
@@ -119,6 +121,7 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
                     tokenRecipient[baseTokenId] = newFounder;
 
                     emit MintScheduled(baseTokenId, founderId, newFounder);
+                    console2.log(baseTokenId, founderId, newFounder.wallet);
 
                     // Update the base token id
                     baseTokenId = (baseTokenId + schedule) % 100;

@@ -15,22 +15,6 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         super.setUp();
     }
 
-    function deployWithCustomFounders(
-        address[] memory _wallets,
-        uint8[] memory _percents,
-        uint256[] memory _vestExpirys
-    ) internal virtual {
-        setFounderParams(_wallets, _percents, _vestExpirys);
-
-        setMockTokenParams();
-
-        setMockAuctionParams();
-
-        setMockGovParams();
-
-        deploy(foundersArr, tokenParams, auctionParams, govParams);
-    }
-
     function test_MockTokenInit() public {
         deployMock();
 
@@ -204,6 +188,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         // avoid overflows specific to this test, shouldn't occur in practice
         vm.assume(mintCount < 100);
 
+        uint256 ts = token.totalSupply();
         uint256 lastTokenId = UINT256_MAX;
 
         for (uint8 i = 0; i <= mintCount; i++) {

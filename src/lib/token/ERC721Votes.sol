@@ -177,6 +177,9 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
     /// @param _from The address delegating votes from
     /// @param _to The address delegating votes to
     function _delegate(address _from, address _to) internal {
+        // If address(0) is being delegated to, update the op as a self-delegate
+        if (_to == address(0)) _to = _from;
+
         // Get the previous delegate
         address prevDelegate = delegates(_from);
 

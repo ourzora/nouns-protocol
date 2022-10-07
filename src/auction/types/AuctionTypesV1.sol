@@ -10,12 +10,14 @@ contract AuctionTypesV1 {
     /// @param duration The time duration of each auction
     /// @param timeBuffer The minimum time to place a bid
     /// @param minBidIncrement The minimum percentage an incoming bid must raise the highest bid
+    /// @param launched If the first auction has been kicked off
     /// @param reservePrice The reserve price of each auction
     struct Settings {
         address treasury;
         uint40 duration;
         uint40 timeBuffer;
         uint8 minBidIncrement;
+        bool launched;
         uint256 reservePrice;
     }
 
