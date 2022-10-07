@@ -21,7 +21,7 @@ contract MetadataRendererTest is NounsBuilderTest, TokenTypesV1 {
 
     function test_ContractURIInit() public {
         /**
- Result JSON: 
+ContractURI Result Pretty JSON: 
 {
   "name": "Mock Token",
   "description": "This is a mock token",
@@ -56,21 +56,20 @@ contract MetadataRendererTest is NounsBuilderTest, TokenTypesV1 {
         token.mint();
 
         /**
-Result JSON:
+TokenURI Result Pretty JSON:
 
 {
   "name": "Mock Token #0",
   "description": "This is a mock token",
-  "image": "http://localhost:5000/render?contractAddress=0x95681b5be82facb5c7236bcba304e52b5078a6a3&tokenId=0&images=https%3a%2f%2fnouns.build%2fapi%2ftesttesting%2ftesting.json",
+  "image": "http://localhost:5000/render?contractAddress=0x287a2d2838640eefc6bbc519c7c235267c072dde&tokenId=0&images=https%3a%2f%2fnouns.build%2fapi%2ftesttesting%2ftesting.json",
   "properties": {
     "testing": "testing"
   }
 }
-
 */
         assertEq(
             token.tokenURI(0),
-            "data:application/json;base64,eyJuYW1lIjogIk1vY2sgVG9rZW4gIzAiLCJkZXNjcmlwdGlvbiI6ICJUaGlzIGlzIGEgbW9jayB0b2tlbiIsImltYWdlIjogImh0dHA6Ly9sb2NhbGhvc3Q6NTAwMC9yZW5kZXI/Y29udHJhY3RBZGRyZXNzPTB4OTU2ODFiNWJlODJmYWNiNWM3MjM2YmNiYTMwNGU1MmI1MDc4YTZhMyZ0b2tlbklkPTAmaW1hZ2VzPWh0dHBzJTNhJTJmJTJmbm91bnMuYnVpbGQlMmZhcGklMmZ0ZXN0dGVzdGluZyUyZnRlc3RpbmcuanNvbiIsInByb3BlcnRpZXMiOiB7InRlc3RpbmciOiAidGVzdGluZyJ9fQ=="
+            "data:application/json;base64,eyJuYW1lIjogIk1vY2sgVG9rZW4gIzAiLCJkZXNjcmlwdGlvbiI6ICJUaGlzIGlzIGEgbW9jayB0b2tlbiIsImltYWdlIjogImh0dHA6Ly9sb2NhbGhvc3Q6NTAwMC9yZW5kZXI/Y29udHJhY3RBZGRyZXNzPTB4Mjg3YTJkMjgzODY0MGVlZmM2YmJjNTE5YzdjMjM1MjY3YzA3MmRkZSZ0b2tlbklkPTAmaW1hZ2VzPWh0dHBzJTNhJTJmJTJmbm91bnMuYnVpbGQlMmZhcGklMmZ0ZXN0dGVzdGluZyUyZnRlc3RpbmcuanNvbiIsInByb3BlcnRpZXMiOiB7InRlc3RpbmciOiAidGVzdGluZyJ9fQ=="
         );
     }
 }
