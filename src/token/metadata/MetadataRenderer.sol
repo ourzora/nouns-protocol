@@ -3,9 +3,8 @@ pragma solidity 0.8.15;
 
 import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+import { LibUintToString } from "sol2string/contracts/LibUintToString.sol";
 import { UriEncode } from "sol-uriencode/src/UriEncode.sol";
-import { MetadataBuilder } from "micro-onchain-metadata-utils/MetadataBuilder.sol";
-import { MetadataJSONKeys } from "micro-onchain-metadata-utils/MetadataJSONKeys.sol";
 
 import { UUPS } from "../../lib/proxy/UUPS.sol";
 import { Ownable } from "../../lib/utils/Ownable.sol";
@@ -212,9 +211,9 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
 
     /// @notice The properties and query string for a generated token
     /// @param _tokenId The ERC-721 token id
-    function getAttributes(uint256 _tokenId) public view returns (string memory resultAttributes, string memory queryString) {
+    function getAttributes(uint256 _tokenId) public view returns (bytes memory aryAttributes, bytes memory queryString) {
         // Get the token's query string
-        queryString = string.concat(
+        queryString = abi.encodePacked(
             "?contractAddress=",
             Strings.toHexString(uint256(uint160(address(this))), 20),
             "&tokenId=",
@@ -228,15 +227,17 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         uint256 numProperties = tokenAttributes[0];
 
         // Ensure the given token was minted
-        if (numProperties == 0) {
-            revert TOKEN_NOT_MINTED(_tokenId);
-        }
-
-        MetadataBuilder.JSONItem[] memory arrayAttributesItems = new MetadataBuilder.JSONItem[](numProperties);
+        if (numProperties == 0) revert TOKEN_NOT_MINTED(_tokenId);
 
         unchecked {
+            // Cache the index of the last property
+            uint256 lastProperty = numProperties - 1;
+
             // For each of the token's properties:
             for (uint256 i = 0; i < numProperties; ++i) {
+                // Check if this is the last property
+                bool isLast = i == lastProperty;
+
                 // Get a copy of the property
                 Property memory property = properties[i];
 
@@ -247,15 +248,10 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
                 Item memory item = property.items[attribute];
 
                 // Store the encoded attributes and query string
-                arrayAttributesItems[i].key = property.name;
-                arrayAttributesItems[i].value = item.name;
-                arrayAttributesItems[i].quote = true;
-
-                queryString = string.concat(queryString, "&images=", _getItemImage(item, property.name));
+                aryAttributes = abi.encodePacked(aryAttributes, '"', property.name, '": "', item.name, '"', isLast ? "" : ",");
+                queryString = abi.encodePacked(queryString, "&images=", _getItemImage(item, property.name));
             }
         }
-
-        resultAttributes = MetadataBuilder.generateJSON(arrayAttributesItems);
     }
 
     /// @dev Generates a psuedo-random seed for a token id
@@ -279,28 +275,46 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
 
     /// @notice The contract URI
     function contractURI() external view returns (string memory) {
-        MetadataBuilder.JSONItem[] memory items = new MetadataBuilder.JSONItem[](3);
-
-        items[0] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyName, value: settings.name, quote: true });
-        items[1] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyDescription, value: settings.description, quote: true });
-        items[2] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyImage, value: settings.contractImage, quote: true });
-
-        return MetadataBuilder.generateEncodedJSON(items);
+        return
+            _encodeAsJson(
+                abi.encodePacked(
+                    '{"name": "',
+                    settings.name,
+                    '", "description": "',
+                    settings.description,
+                    '", "image": "',
+                    settings.contractImage,
+                    '"}'
+                )
+            );
     }
 
     /// @notice The token URI
     /// @param _tokenId The ERC-721 token id
     function tokenURI(uint256 _tokenId) external view returns (string memory) {
-        (string memory attributes, string memory queryString) = getAttributes(_tokenId);
+        (bytes memory aryAttributes, bytes memory queryString) = getAttributes(_tokenId);
+        return
+            _encodeAsJson(
+                abi.encodePacked(
+                    '{"name": "',
+                    settings.name,
+                    " #",
+                    LibUintToString.toString(_tokenId),
+                    '", "description": "',
+                    settings.description,
+                    '", "image": "',
+                    settings.rendererBase,
+                    queryString,
+                    '", "properties": {',
+                    aryAttributes,
+                    "}}"
+                )
+            );
+    }
 
-        MetadataBuilder.JSONItem[] memory items = new MetadataBuilder.JSONItem[](4);
-
-        items[0] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyName, value: string.concat(settings.name, " #", Strings.toString(_tokenId)), quote: true });
-        items[1] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyDescription, value: settings.description, quote: true });
-        items[2] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyImage, value: string.concat(settings.rendererBase, queryString), quote: true });
-        items[3] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyProperties, value: attributes, quote: false });
-
-        return MetadataBuilder.generateEncodedJSON(items);
+    /// @dev Encodes data to JSON
+    function _encodeAsJson(bytes memory _jsonBlob) private pure returns (string memory) {
+        return string(abi.encodePacked("data:application/json;base64,", Base64.encode(_jsonBlob)));
     }
 
     ///                                                          ///

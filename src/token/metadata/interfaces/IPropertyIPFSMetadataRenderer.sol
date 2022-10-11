@@ -60,7 +60,7 @@ interface IPropertyIPFSMetadataRenderer is IBaseMetadata, MetadataRendererTypesV
 
     /// @notice The properties and query string for a generated token
     /// @param tokenId The ERC-721 token id
-    function getAttributes(uint256 tokenId) external view returns (string memory resultAttributes, string memory queryString);
+    function getAttributes(uint256 tokenId) external view returns (bytes memory aryAttributes, bytes memory queryString);
 
     /// @notice The contract image
     function contractImage() external view returns (string memory);
