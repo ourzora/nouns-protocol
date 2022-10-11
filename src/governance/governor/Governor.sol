@@ -71,10 +71,20 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
         if (_treasury == address(0)) revert ADDRESS_ZERO();
         if (_token == address(0)) revert ADDRESS_ZERO();
 
+        if (_proposalThresholdBps < MIN_PROPOSAL_THRESHOLD_BPS || _proposalThresholdBps > MAX_PROPOSAL_THRESHOLD_BPS)
+            revert INVALID_PROPOSAL_THRESHOLD_BPS();
+
+        if (_quorumThresholdBps < MIN_QUORUM_THRESHOLD_BPS || _quorumThresholdBps > MAX_QUORUM_THRESHOLD_BPS) revert INVALID_QUORUM_THRESHOLD_BPS();
+        if (_proposalThresholdBps >= _quorumThresholdBps) revert INVALID_PROPOSAL_THRESHOLD_BPS();
+        if (_votingDelay < MIN_VOTING_DELAY || _votingDelay > MAX_VOTING_DELAY) revert INVALID_VOTING_DELAY();
+        if (_votingPeriod < MIN_VOTING_PERIOD || _votingPeriod > MAX_VOTING_PERIOD) revert INVALID_VOTING_PERIOD();
+
         // Store the governor settings
         settings.treasury = Treasury(payable(_treasury));
         settings.token = Token(_token);
         settings.vetoer = _vetoer;
+
+        // TODO if we're checking its between bounds we prob don't need to safecast
         settings.votingDelay = SafeCast.toUint48(_votingDelay);
         settings.votingPeriod = SafeCast.toUint48(_votingPeriod);
         settings.proposalThresholdBps = SafeCast.toUint16(_proposalThresholdBps);
@@ -544,13 +554,23 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
     ///                       UPDATE SETTINGS                    ///
     ///                                                          ///
 
+    uint256 private constant MIN_VOTING_DELAY = 10 minutes;
+
+    uint256 private constant MAX_VOTING_DELAY = 4 weeks;
+
     /// @notice Updates the voting delay
     /// @param _newVotingDelay The new voting delay
     function updateVotingDelay(uint256 _newVotingDelay) external onlyOwner {
+        if (_newVotingDelay < 1 && _newVotingDelay > 100) revert INVALID_VOTING_DELAY();
+
         emit VotingDelayUpdated(settings.votingDelay, _newVotingDelay);
 
         settings.votingDelay = SafeCast.toUint48(_newVotingDelay);
     }
+
+    uint256 private constant MIN_VOTING_PERIOD = 10 minutes;
+
+    uint256 private constant MAX_VOTING_PERIOD = 4 weeks;
 
     /// @notice Updates the voting period
     /// @param _newVotingPeriod The new voting period
@@ -560,6 +580,10 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
         settings.votingPeriod = SafeCast.toUint48(_newVotingPeriod);
     }
 
+    uint256 private constant MIN_PROPOSAL_THRESHOLD_BPS = 1;
+
+    uint256 private constant MAX_PROPOSAL_THRESHOLD_BPS = 1000;
+
     /// @notice Updates the minimum proposal threshold
     /// @param _newProposalThresholdBps The new proposal threshold basis points
     function updateProposalThresholdBps(uint256 _newProposalThresholdBps) external onlyOwner {
@@ -567,6 +591,10 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
 
         settings.proposalThresholdBps = SafeCast.toUint16(_newProposalThresholdBps);
     }
+
+    uint256 private constant MIN_QUORUM_THRESHOLD_BPS = 200;
+
+    uint256 private constant MAX_QUORUM_THRESHOLD_BPS = 6000;
 
     /// @notice Updates the minimum quorum threshold
     /// @param _newQuorumVotesBps The new quorum votes basis points
