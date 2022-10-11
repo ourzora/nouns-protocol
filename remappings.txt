@@ -1,4 +1,6 @@
 forge-std/=lib/forge-std/src/
-@openzeppelin/=node_modules/@openzeppelin/
+@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/
+@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable/
 sol2string/=node_modules/sol2string/
+micro-onchain-metadata-utils/=node_modules/micro-onchain-metadata-utils/src/
 sol-uriencode/=node_modules/sol-uriencode/
