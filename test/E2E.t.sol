@@ -54,6 +54,8 @@ contract E2ETest is NounsBuilderTest {
 
         deploy(foundersArr, tokenParams, auctionParams, govParams);
 
+        _setupMetadata();
+
         // This adds up to 100 total mints with allocations
         for (uint256 i = 0; i < MINT_COUNT; i++) {
             vm.prank(address(auction));

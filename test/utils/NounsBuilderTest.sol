@@ -9,6 +9,8 @@ import { MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol"
 import { IAuction, Auction } from "../../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../../src/governance/governor/Governor.sol";
 import { ITreasury, Treasury } from "../../src/governance/treasury/Treasury.sol";
+import { MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol";
+import { MetadataRendererTypesV1 } from "../../src/token/metadata/types/MetadataRendererTypesV1.sol";
 
 import { ERC1967Proxy } from "../../src/lib/proxy/ERC1967Proxy.sol";
 import { MockERC721 } from "../utils/mocks/MockERC721.sol";
@@ -176,6 +178,18 @@ contract NounsBuilderTest is Test {
     Treasury internal treasury;
     Governor internal governor;
 
+    function _setupMetadata() internal {
+        string[] memory names = new string[](1);
+        names[0] = "testing";
+        MetadataRendererTypesV1.ItemParam[] memory items = new MetadataRendererTypesV1.ItemParam[](2);
+        MetadataRendererTypesV1.IPFSGroup memory ipfsGroup = MetadataRendererTypesV1.IPFSGroup({ baseUri: "BASE_URI", extension: "EXTENSION" });
+        items[0] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure1", isNewProperty: true });
+        items[1] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure2", isNewProperty: true });
+        MetadataRenderer renderer = MetadataRenderer(token.metadataRenderer());
+        vm.prank(renderer.owner());
+        renderer.addProperties(names, items, ipfsGroup);
+    }
+
     function deployMock() internal virtual {
         setMockFounderParams();
 
@@ -186,6 +200,8 @@ contract NounsBuilderTest is Test {
         setMockGovParams();
 
         deploy(foundersArr, tokenParams, auctionParams, govParams);
+
+        _setupMetadata();
     }
 
     function deployWithCustomFounders(
@@ -202,6 +218,8 @@ contract NounsBuilderTest is Test {
         setMockGovParams();
 
         deploy(foundersArr, tokenParams, auctionParams, govParams);
+
+        _setupMetadata();
     }
 
     function deploy(
