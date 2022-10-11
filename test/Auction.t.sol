@@ -224,8 +224,9 @@ contract AuctionTest is NounsBuilderTest {
 
         address mockERC721 = address(new MockERC721());
 
-        address auctionImpl = manager.auctionImpl();
-        address tokenImpl = manager.tokenImpl();
+        // address auctionImpl = manager.auctionImpl();
+        // address tokenImpl = manager.tokenImpl();
+
         vm.prank(zoraDAO);
         manager.registerUpgrade(tokenImpl, mockERC721);
 

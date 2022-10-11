@@ -44,9 +44,6 @@ contract E2ETest is NounsBuilderTest {
         // lol just run a bunch
         uint256 MINT_COUNT = 100;
 
-        // off-by-1 percentages feel fine;
-        uint256 maxDelta = 1;
-
         setFounderParams(founders, percents, vestingEnds);
         setMockTokenParams();
         setMockAuctionParams();
@@ -63,7 +60,7 @@ contract E2ETest is NounsBuilderTest {
         }
 
         // Read the ownership of only the first 100 minted tokens
-        // Note that the # of tokens minted above can exceed 100, therefore 
+        // Note that the # of tokens minted above can exceed 100, therefore
         // we do our own count because we cannot use balanceOf().
 
         // Clear memory

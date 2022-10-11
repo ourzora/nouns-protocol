@@ -4,8 +4,8 @@ pragma solidity 0.8.15;
 import { Test } from "forge-std/Test.sol";
 import { ClonesUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
 
-import { MetadataRenderer } from "../../../src/token/metadata/MetadataRenderer.sol";
-import { MetadataRendererTypesV1 } from "../../../src/token/metadata/types/MetadataRendererTypesV1.sol";
+import { MetadataRenderer } from "../src/token/metadata/MetadataRenderer.sol";
+import { MetadataRendererTypesV1 } from "../src/token/metadata/types/MetadataRendererTypesV1.sol";
 
 contract MetadataRendererTest is Test {
     address token = address(0x12);
@@ -47,16 +47,8 @@ contract MetadataRendererTest is Test {
         string[] memory names = new string[](0);
         MetadataRendererTypesV1.ItemParam[] memory items = new MetadataRendererTypesV1.ItemParam[](2);
         MetadataRendererTypesV1.IPFSGroup memory ipfsGroup = MetadataRendererTypesV1.IPFSGroup({ baseUri: "BASE_URI", extension: "EXTENSION" });
-        items[0] = MetadataRendererTypesV1.ItemParam({
-            propertyId: 0,
-            name: "failure",
-            isNewProperty: false
-        });
-        items[1] = MetadataRendererTypesV1.ItemParam({
-            propertyId: 0,
-            name: "failure",
-            isNewProperty: true
-        });
+        items[0] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure", isNewProperty: false });
+        items[1] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure", isNewProperty: true });
         vm.startPrank(founder);
         vm.expectRevert(MetadataRenderer.AtLeastOneItemAndPropertyRequired.selector);
         instance.addProperties(names, items, ipfsGroup);
@@ -72,16 +64,8 @@ contract MetadataRendererTest is Test {
         names[0] = "testing";
         MetadataRendererTypesV1.ItemParam[] memory items = new MetadataRendererTypesV1.ItemParam[](2);
         MetadataRendererTypesV1.IPFSGroup memory ipfsGroup = MetadataRendererTypesV1.IPFSGroup({ baseUri: "BASE_URI", extension: "EXTENSION" });
-        items[0] = MetadataRendererTypesV1.ItemParam({
-            propertyId: 0,
-            name: "failure",
-            isNewProperty: true
-        });
-        items[1] = MetadataRendererTypesV1.ItemParam({
-            propertyId: 2,
-            name: "failure",
-            isNewProperty: false
-        });
+        items[0] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure", isNewProperty: true });
+        items[1] = MetadataRendererTypesV1.ItemParam({ propertyId: 2, name: "failure", isNewProperty: false });
         vm.startPrank(founder);
         vm.expectRevert(abi.encodeWithSelector(MetadataRenderer.InvalidPropertySelected.selector, 2));
         instance.addProperties(names, items, ipfsGroup);
@@ -97,16 +81,8 @@ contract MetadataRendererTest is Test {
         names[0] = "testing";
         MetadataRendererTypesV1.ItemParam[] memory items = new MetadataRendererTypesV1.ItemParam[](2);
         MetadataRendererTypesV1.IPFSGroup memory ipfsGroup = MetadataRendererTypesV1.IPFSGroup({ baseUri: "BASE_URI", extension: "EXTENSION" });
-        items[0] = MetadataRendererTypesV1.ItemParam({
-            propertyId: 0,
-            name: "failure1",
-            isNewProperty: true
-        });
-        items[1] = MetadataRendererTypesV1.ItemParam({
-            propertyId: 0,
-            name: "failure2",
-            isNewProperty: true
-        });
+        items[0] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure1", isNewProperty: true });
+        items[1] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure2", isNewProperty: true });
         vm.startPrank(founder);
         instance.addProperties(names, items, ipfsGroup);
         vm.stopPrank();
@@ -115,5 +91,4 @@ contract MetadataRendererTest is Test {
         bool response = instance.onMinted(0);
         assertTrue(response);
     }
-
 }

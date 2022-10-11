@@ -972,8 +972,8 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         mintVoter1();
 
-        uint256 voter2PK = 0xABD;
-        address voter2 = vm.addr(voter2PK);
+        // uint256 voter2PK = 0xABD;
+        // address voter2 = vm.addr(voter2PK);
 
         assertEq(token.getVotes(voter1), 1);
         assertEq(token.getVotes(voter2), 0);

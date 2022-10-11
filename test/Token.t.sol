@@ -188,7 +188,6 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         // avoid overflows specific to this test, shouldn't occur in practice
         vm.assume(mintCount < 100);
 
-        uint256 ts = token.totalSupply();
         uint256 lastTokenId = UINT256_MAX;
 
         for (uint8 i = 0; i <= mintCount; i++) {
@@ -201,7 +200,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
             vm.prank(address(auction));
             token.burn(tokenId);
         }
-      }
+    }
 
     function test_FounderScheduleRounding() public {
         createUsers(3, 1 ether);
