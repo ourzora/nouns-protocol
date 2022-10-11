@@ -7,8 +7,6 @@ import { IManager } from "../src/manager/IManager.sol";
 import { IGovernor } from "../src/governance/governor/IGovernor.sol";
 import { GovernorTypesV1 } from "../src/governance/governor/types/GovernorTypesV1.sol";
 
-import { console2 } from "forge-std/console2.sol";
-
 contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     uint256 internal constant AGAINST = 0;
     uint256 internal constant FOR = 1;

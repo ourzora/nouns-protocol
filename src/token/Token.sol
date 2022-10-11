@@ -83,10 +83,17 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
                 uint256 founderPct = _founders[i].ownershipPct;
 
                 // Continue if no ownership is specified
-                if (founderPct == 0) continue;
+                if (founderPct == 0) {
+                    continue;
+                }
 
                 // Update the total ownership and ensure it's valid
-                if ((totalOwnership += uint8(founderPct)) > 100) revert INVALID_FOUNDER_OWNERSHIP();
+                totalOwnership += founderPct;
+
+                // Check that founders own less than 100% of tokens
+                if (totalOwnership > 99) {
+                    revert INVALID_FOUNDER_OWNERSHIP();
+                }
 
                 // Compute the founder's id
                 uint256 founderId = settings.numFounders++;
@@ -97,6 +104,7 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
                 // Store the founder's vesting details
                 newFounder.wallet = _founders[i].wallet;
                 newFounder.vestExpiry = uint32(_founders[i].vestExpiry);
+                // Total ownership cannot be above 100 so this fits safely in uint8
                 newFounder.ownershipPct = uint8(founderPct);
 
                 // Compute the vesting schedule
@@ -130,7 +138,9 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     /// @param _tokenId The ERC-721 token id
     function _getNextTokenId(uint256 _tokenId) internal view returns (uint256) {
         unchecked {
-            while (tokenRecipient[_tokenId].wallet != address(0)) _tokenId = (++_tokenId) % 100;
+            while (tokenRecipient[_tokenId].wallet != address(0)) {
+                _tokenId = (++_tokenId) % 100;
+            }
 
             return _tokenId;
         }
@@ -146,7 +156,9 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
         address minter = settings.auction;
 
         // Ensure the caller is the auction
-        if (msg.sender != minter) revert ONLY_AUCTION();
+        if (msg.sender != minter) {
+            revert ONLY_AUCTION();
+        }
 
         // Cannot realistically overflow
         unchecked {
@@ -212,7 +224,9 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     /// @param _tokenId The ERC-721 token id
     function burn(uint256 _tokenId) external {
         // Ensure the caller is the auction house
-        if (msg.sender != settings.auction) revert ONLY_AUCTION();
+        if (msg.sender != settings.auction) {
+            revert ONLY_AUCTION();
+        }
 
         // Burn the token
         _burn(_tokenId);
@@ -272,7 +286,9 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
         // Cannot realistically overflow
         unchecked {
             // Add each founder to the array
-            for (uint256 i; i < numFounders; ++i) founders[i] = founder[i];
+            for (uint256 i; i < numFounders; ++i) {
+                founders[i] = founder[i];
+            }
         }
 
         return founders;

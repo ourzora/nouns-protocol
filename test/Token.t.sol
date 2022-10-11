@@ -69,18 +69,18 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.getVotes(address(auction)), 1);
     }
 
-    function test_MaxOwnership100Founders() public {
+    function test_MaxOwnership99Founders() public {
         createUsers(100, 1 ether);
 
         address[] memory wallets = new address[](100);
         uint256[] memory percents = new uint256[](100);
         uint256[] memory vestExpirys = new uint256[](100);
 
-        uint256 pct = 1;
+        uint8 pct = 1;
         uint256 end = 4 weeks;
 
         unchecked {
-            for (uint256 i; i < 100; ++i) {
+            for (uint256 i; i < 99; ++i) {
                 wallets[i] = otherUsers[i];
                 percents[i] = pct;
                 vestExpirys[i] = end;
@@ -90,11 +90,11 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         deployWithCustomFounders(wallets, percents, vestExpirys);
 
         assertEq(token.totalFounders(), 100);
-        assertEq(token.totalFounderOwnership(), 100);
+        assertEq(token.totalFounderOwnership(), 99);
 
         Founder memory founder;
 
-        for (uint256 i; i < 100; ++i) {
+        for (uint256 i; i < 99; ++i) {
             founder = token.getScheduledRecipient(i);
 
             assertEq(founder.wallet, otherUsers[i]);
@@ -108,7 +108,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         uint256[] memory percents = new uint256[](50);
         uint256[] memory vestExpirys = new uint256[](50);
 
-        uint256 pct = 2;
+        uint8 pct = 2;
         uint256 end = 4 weeks;
 
         unchecked {
@@ -118,15 +118,16 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
                 vestExpirys[i] = end;
             }
         }
+        percents[49] = 1;
 
         deployWithCustomFounders(wallets, percents, vestExpirys);
 
         assertEq(token.totalFounders(), 50);
-        assertEq(token.totalFounderOwnership(), 100);
+        assertEq(token.totalFounderOwnership(), 99);
 
         Founder memory founder;
 
-        for (uint256 i; i < 50; ++i) {
+        for (uint256 i; i < 49; ++i) {
             founder = token.getScheduledRecipient(i);
 
             assertEq(founder.wallet, otherUsers[i]);
@@ -144,21 +145,21 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         uint256[] memory percents = new uint256[](2);
         uint256[] memory vestExpirys = new uint256[](2);
 
-        uint256 pct = 50;
+        uint8 pct = 49;
         uint256 end = 4 weeks;
 
         unchecked {
             for (uint256 i; i < 2; ++i) {
                 wallets[i] = otherUsers[i];
-                percents[i] = pct;
                 vestExpirys[i] = end;
+                percents[i] = pct;
             }
         }
 
         deployWithCustomFounders(wallets, percents, vestExpirys);
 
         assertEq(token.totalFounders(), 2);
-        assertEq(token.totalFounderOwnership(), 100);
+        assertEq(token.totalFounderOwnership(), 98);
 
         Founder memory founder;
 
@@ -166,8 +167,15 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
             for (uint256 i; i < 500; ++i) {
                 founder = token.getScheduledRecipient(i);
 
-                if (i % 2 == 0) assertEq(founder.wallet, otherUsers[0]);
-                else assertEq(founder.wallet, otherUsers[1]);
+                if (i % 100 >= 98) {
+                    continue;
+                }
+
+                if (i % 2 == 0) {
+                    assertEq(founder.wallet, otherUsers[0]);
+                } else {
+                    assertEq(founder.wallet, otherUsers[1]);
+                }
             }
         }
     }
@@ -193,7 +201,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
             vm.prank(address(auction));
             token.burn(tokenId);
         }
-    }
+      }
 
     function test_FounderScheduleRounding() public {
         createUsers(3, 1 ether);
@@ -245,54 +253,6 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         }
 
         deployWithCustomFounders(wallets, percents, vestExpirys);
-    }
-
-    function test_DelegatingAddressZeroShouldSelfDelegate() public {
-        deployMock();
-
-        address user = createUser(0xC0FFEE);
-
-        vm.startPrank(address(auction));
-
-        token.mint();
-        token.transferFrom(address(auction), user, 2);
-
-        vm.stopPrank();
-
-        assertEq(token.balanceOf(user), 1);
-        assertEq(token.getVotes(user), 1);
-
-        vm.prank(user);
-        token.delegate(address(0));
-        assertEq(token.getVotes(user), 1);
-
-        vm.prank(user);
-        token.delegate(address(0));
-        assertEq(token.getVotes(user), 1);
-    }
-
-    function test_TransferAfterSelfDelegate() public {
-        deployMock();
-
-        address user = createUser(0xC0FFEE);
-        address user2 = createUser(0x1EA);
-
-        vm.startPrank(address(auction));
-
-        token.mint();
-        token.transferFrom(address(auction), user, 2);
-
-        vm.stopPrank();
-
-        vm.prank(user);
-        token.delegate(address(0));
-        assertEq(token.getVotes(user), 1);
-
-        vm.prank(user);
-        token.transferFrom(user, user2, 2);
-
-        assertEq(token.getVotes(user), 0);
-        assertEq(token.getVotes(user2), 1);
     }
 
     function test_OverwriteCheckpointWithSameTimestamp() public {
@@ -384,5 +344,43 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
 
         vm.expectRevert(abi.encodeWithSignature("ONLY_OWNER()"));
         token.upgradeToAndCall(address(this), "");
+    }
+
+    function testFoundersCannotHaveFullOwnership() public {
+        createUsers(2, 1 ether);
+
+        address[] memory wallets = new address[](2);
+        uint256[] memory percents = new uint256[](2);
+        uint256[] memory vestExpirys = new uint256[](2);
+
+        uint256 end = 4 weeks;
+        wallets[0] = otherUsers[0];
+        vestExpirys[0] = end;
+        wallets[1] = otherUsers[1];
+        vestExpirys[1] = end;
+        percents[0] = 50;
+        percents[1] = 49;
+
+        deployWithCustomFounders(wallets, percents, vestExpirys);
+
+        assertEq(token.totalFounders(), 2);
+        assertEq(token.totalFounderOwnership(), 99);
+
+        Founder memory founder;
+
+        unchecked {
+            for (uint256 i; i < 99; ++i) {
+                founder = token.getScheduledRecipient(i);
+
+                if (i % 2 == 0) {
+                    assertEq(founder.wallet, otherUsers[0]);
+                } else {
+                    assertEq(founder.wallet, otherUsers[1]);
+                }
+            }
+        }
+
+        vm.prank(otherUsers[0]);
+        auction.unpause();
     }
 }
