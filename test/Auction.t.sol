@@ -2,8 +2,8 @@
 pragma solidity 0.8.15;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
-import { MockImpl } from "./utils/mocks/MockImpl.sol";
 import { MockERC721 } from "./utils/mocks/MockERC721.sol";
+import { MockImpl } from "./utils/mocks/MockImpl.sol";
 
 contract AuctionTest is NounsBuilderTest {
     MockImpl internal mockImpl;
@@ -219,16 +219,8 @@ contract AuctionTest is NounsBuilderTest {
         assertEq(address(treasury).balance, 1 ether);
     }
 
-    function test_PausesWhemMintFails() public {
+    function test_PausesWhenMintFails() public {
         deployMock();
-
-        address mockERC721 = address(new MockERC721());
-
-        // address auctionImpl = manager.auctionImpl();
-        // address tokenImpl = manager.tokenImpl();
-
-        vm.prank(zoraDAO);
-        manager.registerUpgrade(tokenImpl, mockERC721);
 
         vm.prank(founder);
         auction.unpause();
@@ -238,9 +230,12 @@ contract AuctionTest is NounsBuilderTest {
 
         vm.warp(10 minutes + 1 seconds);
 
+        vm.prank(zoraDAO);
+        manager.registerUpgrade(tokenImpl, address(mock721));
+
         // Upgrade token to invalid contract
-        vm.prank(founder);
-        token.upgradeTo(mockERC721);
+        vm.prank(address(treasury));
+        token.upgradeTo(address(mock721));
 
         // mint token to transfer
         MockERC721(address(token)).mint(address(auction), 2);
