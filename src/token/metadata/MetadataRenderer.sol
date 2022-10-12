@@ -110,8 +110,13 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         // Cache the number of new items
         uint256 numNewItems = _items.length;
 
-        if (!(_items.length > 0 && properties.length + numNewProperties > 0)) {
-            revert AtLeastOneItemAndPropertyRequired();
+        // If this is the first time adding metadata:
+        if (numStoredProperties == 0) {
+            // Ensure at least one property and one item are included
+            if (numNewProperties == 0 || numNewItems == 0) revert AtLeastOneItemAndPropertyRequired();
+
+            // Transfer contract ownership to the DAO treasury
+            transferOwnership(settings.treasury);
         }
 
         unchecked {
