@@ -17,8 +17,6 @@ import { IManager } from "../../manager/IManager.sol";
 /// @author Iain Nash & Rohan Kulkarni
 /// @notice A DAO's artwork generator and renderer
 contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, MetadataRendererStorageV1 {
-    error AtLeastOneItemAndPropertyRequired();
-    error InvalidPropertySelected(uint256 selectedPropertyId);
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -113,7 +111,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         // If this is the first time adding metadata:
         if (numStoredProperties == 0) {
             // Ensure at least one property and one item are included
-            if (numNewProperties == 0 || numNewItems == 0) revert AtLeastOneItemAndPropertyRequired();
+            if (numNewProperties == 0 || numNewItems == 0) revert ONE_PROPERTY_AND_ITEM_REQUIRED();
 
             // Transfer contract ownership to the DAO treasury
             transferOwnership(settings.treasury);
@@ -145,8 +143,9 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
                     _propertyId += numStoredProperties;
                 }
 
+                // Ensure the item is for a valid property
                 if (_propertyId >= properties.length) {
-                    revert InvalidPropertySelected(_propertyId);
+                    revert INVALID_PROPERTY_SELECTED(_propertyId);
                 }
 
                 // Get the pointer to the other items for the property
