@@ -168,6 +168,20 @@ contract NounsBuilderTest is Test {
         });
     }
 
+    function setMockMetadata() internal {
+        string[] memory names = new string[](1);
+        names[0] = "testing";
+
+        MetadataRendererTypesV1.ItemParam[] memory items = new MetadataRendererTypesV1.ItemParam[](2);
+        items[0] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure1", isNewProperty: true });
+        items[1] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure2", isNewProperty: true });
+
+        MetadataRendererTypesV1.IPFSGroup memory ipfsGroup = MetadataRendererTypesV1.IPFSGroup({ baseUri: "BASE_URI", extension: "EXTENSION" });
+
+        vm.prank(metadataRenderer.owner());
+        metadataRenderer.addProperties(names, items, ipfsGroup);
+    }
+
     ///                                                          ///
     ///                       DAO DEPLOY UTILS                   ///
     ///                                                          ///
@@ -177,18 +191,6 @@ contract NounsBuilderTest is Test {
     Auction internal auction;
     Treasury internal treasury;
     Governor internal governor;
-
-    function _setupMetadata() internal {
-        string[] memory names = new string[](1);
-        names[0] = "testing";
-        MetadataRendererTypesV1.ItemParam[] memory items = new MetadataRendererTypesV1.ItemParam[](2);
-        MetadataRendererTypesV1.IPFSGroup memory ipfsGroup = MetadataRendererTypesV1.IPFSGroup({ baseUri: "BASE_URI", extension: "EXTENSION" });
-        items[0] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure1", isNewProperty: true });
-        items[1] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure2", isNewProperty: true });
-        MetadataRenderer renderer = MetadataRenderer(token.metadataRenderer());
-        vm.prank(renderer.owner());
-        renderer.addProperties(names, items, ipfsGroup);
-    }
 
     function deployMock() internal virtual {
         setMockFounderParams();
@@ -201,7 +203,7 @@ contract NounsBuilderTest is Test {
 
         deploy(foundersArr, tokenParams, auctionParams, govParams);
 
-        _setupMetadata();
+        setMockMetadata();
     }
 
     function deployWithCustomFounders(
@@ -219,7 +221,39 @@ contract NounsBuilderTest is Test {
 
         deploy(foundersArr, tokenParams, auctionParams, govParams);
 
-        _setupMetadata();
+        setMockMetadata();
+    }
+
+    function deployWithCustomMetadata(
+        string memory _name,
+        string memory _symbol,
+        string memory _description,
+        string memory _contractImage,
+        string memory _rendererBase
+    ) internal {
+        setMockFounderParams();
+
+        setTokenParams(_name, _symbol, _description, _contractImage, _rendererBase);
+
+        setMockAuctionParams();
+
+        setMockGovParams();
+
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
+
+        setMockMetadata();
+    }
+
+    function deployWithoutMetadata() internal {
+        setMockFounderParams();
+
+        setMockTokenParams();
+
+        setMockAuctionParams();
+
+        setMockGovParams();
+
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
     }
 
     function deploy(
