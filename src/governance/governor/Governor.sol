@@ -27,6 +27,22 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
     /// @notice The EIP-712 typehash to vote with a signature
     bytes32 public constant VOTE_TYPEHASH = keccak256("Vote(address voter,uint256 proposalId,uint256 support,uint256 nonce,uint256 deadline)");
 
+    uint256 private constant MIN_VOTING_DELAY = 1 seconds;
+
+    uint256 private constant MAX_VOTING_DELAY = 4 weeks;
+
+    uint256 private constant MIN_VOTING_PERIOD = 10 minutes;
+
+    uint256 private constant MAX_VOTING_PERIOD = 4 weeks;
+
+    uint256 private constant MIN_PROPOSAL_THRESHOLD_BPS = 1;
+
+    uint256 private constant MAX_PROPOSAL_THRESHOLD_BPS = 1000;
+
+    uint256 private constant MIN_QUORUM_THRESHOLD_BPS = 200;
+
+    uint256 private constant MAX_QUORUM_THRESHOLD_BPS = 6000;
+
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
@@ -71,9 +87,9 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
         if (_treasury == address(0)) revert ADDRESS_ZERO();
         if (_token == address(0)) revert ADDRESS_ZERO();
 
+        // Ensure the specified governance settings are valid
         if (_proposalThresholdBps < MIN_PROPOSAL_THRESHOLD_BPS || _proposalThresholdBps > MAX_PROPOSAL_THRESHOLD_BPS)
             revert INVALID_PROPOSAL_THRESHOLD_BPS();
-
         if (_quorumThresholdBps < MIN_QUORUM_THRESHOLD_BPS || _quorumThresholdBps > MAX_QUORUM_THRESHOLD_BPS) revert INVALID_QUORUM_THRESHOLD_BPS();
         if (_proposalThresholdBps >= _quorumThresholdBps) revert INVALID_PROPOSAL_THRESHOLD_BPS();
         if (_votingDelay < MIN_VOTING_DELAY || _votingDelay > MAX_VOTING_DELAY) revert INVALID_VOTING_DELAY();
@@ -83,12 +99,10 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
         settings.treasury = Treasury(payable(_treasury));
         settings.token = Token(_token);
         settings.vetoer = _vetoer;
-
-        // TODO if we're checking its between bounds we prob don't need to safecast
-        settings.votingDelay = SafeCast.toUint48(_votingDelay);
-        settings.votingPeriod = SafeCast.toUint48(_votingPeriod);
-        settings.proposalThresholdBps = SafeCast.toUint16(_proposalThresholdBps);
-        settings.quorumThresholdBps = SafeCast.toUint16(_quorumThresholdBps);
+        settings.votingDelay = uint48(_votingDelay);
+        settings.votingPeriod = uint48(_votingPeriod);
+        settings.proposalThresholdBps = uint16(_proposalThresholdBps);
+        settings.quorumThresholdBps = uint16(_quorumThresholdBps);
 
         // Initialize EIP-712 support
         __EIP712_init(string.concat(settings.token.symbol(), " GOV"), "1");
@@ -554,54 +568,49 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
     ///                       UPDATE SETTINGS                    ///
     ///                                                          ///
 
-    uint256 private constant MIN_VOTING_DELAY = 10 minutes;
-
-    uint256 private constant MAX_VOTING_DELAY = 4 weeks;
-
     /// @notice Updates the voting delay
     /// @param _newVotingDelay The new voting delay
     function updateVotingDelay(uint256 _newVotingDelay) external onlyOwner {
-        if (_newVotingDelay < 1 && _newVotingDelay > 100) revert INVALID_VOTING_DELAY();
+        if (_newVotingDelay < MIN_VOTING_DELAY || _newVotingDelay > MAX_VOTING_DELAY) revert INVALID_VOTING_DELAY();
 
         emit VotingDelayUpdated(settings.votingDelay, _newVotingDelay);
 
-        settings.votingDelay = SafeCast.toUint48(_newVotingDelay);
+        settings.votingDelay = uint48(_newVotingDelay);
     }
-
-    uint256 private constant MIN_VOTING_PERIOD = 10 minutes;
-
-    uint256 private constant MAX_VOTING_PERIOD = 4 weeks;
 
     /// @notice Updates the voting period
     /// @param _newVotingPeriod The new voting period
     function updateVotingPeriod(uint256 _newVotingPeriod) external onlyOwner {
+        if (_newVotingPeriod < MIN_VOTING_PERIOD || _newVotingPeriod > MAX_VOTING_PERIOD) revert INVALID_VOTING_PERIOD();
+
         emit VotingPeriodUpdated(settings.votingPeriod, _newVotingPeriod);
 
-        settings.votingPeriod = SafeCast.toUint48(_newVotingPeriod);
+        settings.votingPeriod = uint48(_newVotingPeriod);
     }
-
-    uint256 private constant MIN_PROPOSAL_THRESHOLD_BPS = 1;
-
-    uint256 private constant MAX_PROPOSAL_THRESHOLD_BPS = 1000;
 
     /// @notice Updates the minimum proposal threshold
     /// @param _newProposalThresholdBps The new proposal threshold basis points
     function updateProposalThresholdBps(uint256 _newProposalThresholdBps) external onlyOwner {
+        if (_newProposalThresholdBps < MIN_PROPOSAL_THRESHOLD_BPS || _newProposalThresholdBps > MAX_PROPOSAL_THRESHOLD_BPS)
+            revert INVALID_PROPOSAL_THRESHOLD_BPS();
+
+        if (_newProposalThresholdBps >= settings.quorumThresholdBps) revert INVALID_PROPOSAL_THRESHOLD_BPS();
+
         emit ProposalThresholdBpsUpdated(settings.proposalThresholdBps, _newProposalThresholdBps);
 
-        settings.proposalThresholdBps = SafeCast.toUint16(_newProposalThresholdBps);
+        settings.proposalThresholdBps = uint16(_newProposalThresholdBps);
     }
-
-    uint256 private constant MIN_QUORUM_THRESHOLD_BPS = 200;
-
-    uint256 private constant MAX_QUORUM_THRESHOLD_BPS = 6000;
 
     /// @notice Updates the minimum quorum threshold
     /// @param _newQuorumVotesBps The new quorum votes basis points
     function updateQuorumThresholdBps(uint256 _newQuorumVotesBps) external onlyOwner {
+        if (_newQuorumVotesBps < MIN_QUORUM_THRESHOLD_BPS || _newQuorumVotesBps > MAX_QUORUM_THRESHOLD_BPS) revert INVALID_QUORUM_THRESHOLD_BPS();
+
+        if (settings.proposalThresholdBps >= _newQuorumVotesBps) revert INVALID_QUORUM_THRESHOLD_BPS();
+
         emit QuorumVotesBpsUpdated(settings.quorumThresholdBps, _newQuorumVotesBps);
 
-        settings.quorumThresholdBps = SafeCast.toUint16(_newQuorumVotesBps);
+        settings.quorumThresholdBps = uint16(_newQuorumVotesBps);
     }
 
     /// @notice Updates the vetoer
