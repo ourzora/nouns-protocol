@@ -7,8 +7,6 @@ import { IManager } from "../src/manager/IManager.sol";
 import { IGovernor } from "../src/governance/governor/IGovernor.sol";
 import { GovernorTypesV1 } from "../src/governance/governor/types/GovernorTypesV1.sol";
 
-import { console2 } from "forge-std/console2.sol";
-
 contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     uint256 internal constant AGAINST = 0;
     uint256 internal constant FOR = 1;
@@ -51,6 +49,8 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         setGovParams(2 days, 1 days, 1 weeks, 25, 1000);
 
         deploy(foundersArr, tokenParams, auctionParams, govParams);
+
+        setMockMetadata();
     }
 
     function deployAltMock() internal {
@@ -76,6 +76,8 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         setGovParams(2 days, 1 days, 1 weeks, 100, 1000);
 
         deploy(foundersArr, tokenParams, auctionParams, govParams);
+
+        setMockMetadata();
     }
 
     function createVoter1() internal {
@@ -970,8 +972,8 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         mintVoter1();
 
-        uint256 voter2PK = 0xABD;
-        address voter2 = vm.addr(voter2PK);
+        // uint256 voter2PK = 0xABD;
+        // address voter2 = vm.addr(voter2PK);
 
         assertEq(token.getVotes(voter1), 1);
         assertEq(token.getVotes(voter2), 0);

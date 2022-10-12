@@ -37,6 +37,12 @@ interface IPropertyIPFSMetadataRenderer is IBaseMetadata, MetadataRendererTypesV
     /// @dev Reverts if querying attributes for a token not minted
     error TOKEN_NOT_MINTED(uint256 tokenId);
 
+    /// @dev Reverts if the founder does not include both a property and item during the initial artwork upload
+    error ONE_PROPERTY_AND_ITEM_REQUIRED();
+
+    /// @dev Reverts if an item is added for a non-existent property
+    error INVALID_PROPERTY_SELECTED(uint256 selectedPropertyId);
+
     ///                                                          ///
     ///                           FUNCTIONS                      ///
     ///                                                          ///
@@ -60,7 +66,7 @@ interface IPropertyIPFSMetadataRenderer is IBaseMetadata, MetadataRendererTypesV
 
     /// @notice The properties and query string for a generated token
     /// @param tokenId The ERC-721 token id
-    function getAttributes(uint256 tokenId) external view returns (bytes memory aryAttributes, bytes memory queryString);
+    function getAttributes(uint256 tokenId) external view returns (string memory resultAttributes, string memory queryString);
 
     /// @notice The contract image
     function contractImage() external view returns (string memory);

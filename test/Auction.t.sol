@@ -2,6 +2,7 @@
 pragma solidity 0.8.15;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
+import { MockERC721 } from "./utils/mocks/MockERC721.sol";
 import { MockImpl } from "./utils/mocks/MockImpl.sol";
 
 contract AuctionTest is NounsBuilderTest {
@@ -216,6 +217,32 @@ contract AuctionTest is NounsBuilderTest {
         assertEq(token.getVotes(bidder2), 1);
 
         assertEq(address(treasury).balance, 1 ether);
+    }
+
+    function test_PausesWhenMintFails() public {
+        deployMock();
+
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(bidder1);
+        auction.createBid{ value: 0.420 ether }(2);
+
+        vm.warp(10 minutes + 1 seconds);
+
+        vm.prank(zoraDAO);
+        manager.registerUpgrade(tokenImpl, address(mock721));
+
+        // Upgrade token to invalid contract
+        vm.prank(address(treasury));
+        token.upgradeTo(address(mock721));
+
+        // mint token to transfer
+        MockERC721(address(token)).mint(address(auction), 2);
+
+        // this fails the new mint and should pause the auction
+        auction.settleCurrentAndCreateNewAuction();
+        assertTrue(auction.paused());
     }
 
     function testRevert_CannotSettleWhenAuctionStillActive() public {

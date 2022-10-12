@@ -9,6 +9,8 @@ import { MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol"
 import { IAuction, Auction } from "../../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../../src/governance/governor/Governor.sol";
 import { ITreasury, Treasury } from "../../src/governance/treasury/Treasury.sol";
+import { MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol";
+import { MetadataRendererTypesV1 } from "../../src/token/metadata/types/MetadataRendererTypesV1.sol";
 
 import { ERC1967Proxy } from "../../src/lib/proxy/ERC1967Proxy.sol";
 import { MockERC721 } from "../utils/mocks/MockERC721.sol";
@@ -166,6 +168,20 @@ contract NounsBuilderTest is Test {
         });
     }
 
+    function setMockMetadata() internal {
+        string[] memory names = new string[](1);
+        names[0] = "testing";
+
+        MetadataRendererTypesV1.ItemParam[] memory items = new MetadataRendererTypesV1.ItemParam[](2);
+        items[0] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure1", isNewProperty: true });
+        items[1] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure2", isNewProperty: true });
+
+        MetadataRendererTypesV1.IPFSGroup memory ipfsGroup = MetadataRendererTypesV1.IPFSGroup({ baseUri: "BASE_URI", extension: "EXTENSION" });
+
+        vm.prank(metadataRenderer.owner());
+        metadataRenderer.addProperties(names, items, ipfsGroup);
+    }
+
     ///                                                          ///
     ///                       DAO DEPLOY UTILS                   ///
     ///                                                          ///
@@ -186,6 +202,8 @@ contract NounsBuilderTest is Test {
         setMockGovParams();
 
         deploy(foundersArr, tokenParams, auctionParams, govParams);
+
+        setMockMetadata();
     }
 
     function deployWithCustomFounders(
@@ -194,6 +212,40 @@ contract NounsBuilderTest is Test {
         uint256[] memory _vestExpirys
     ) internal virtual {
         setFounderParams(_wallets, _percents, _vestExpirys);
+
+        setMockTokenParams();
+
+        setMockAuctionParams();
+
+        setMockGovParams();
+
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
+
+        setMockMetadata();
+    }
+
+    function deployWithCustomMetadata(
+        string memory _name,
+        string memory _symbol,
+        string memory _description,
+        string memory _contractImage,
+        string memory _rendererBase
+    ) internal {
+        setMockFounderParams();
+
+        setTokenParams(_name, _symbol, _description, _contractImage, _rendererBase);
+
+        setMockAuctionParams();
+
+        setMockGovParams();
+
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
+
+        setMockMetadata();
+    }
+
+    function deployWithoutMetadata() internal {
+        setMockFounderParams();
 
         setMockTokenParams();
 

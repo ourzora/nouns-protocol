@@ -32,7 +32,7 @@ contract ManagerTest is NounsBuilderTest {
     function test_TokenInitialized() public {
         deployMock();
 
-        assertEq(token.owner(), founder);
+        assertEq(token.owner(), address(treasury));
         assertEq(token.auction(), address(auction));
         assertEq(token.totalSupply(), 0);
     }
@@ -40,7 +40,7 @@ contract ManagerTest is NounsBuilderTest {
     function test_MetadataRendererInitialized() public {
         deployMock();
 
-        assertEq(metadataRenderer.owner(), founder);
+        assertEq(metadataRenderer.owner(), address(treasury));
     }
 
     function test_AuctionInitialized() public {

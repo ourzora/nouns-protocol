@@ -229,9 +229,8 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             auction.settled = false;
 
             emit AuctionCreated(tokenId, startTime, endTime);
-
+        } catch {
             // Pause the contract if token minting failed
-        } catch Error(string memory) {
             _pause();
         }
     }
