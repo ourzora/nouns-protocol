@@ -366,9 +366,9 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         mintVoter1();
 
         vm.prank(address(treasury));
-        governor.updateProposalThresholdBps(5000);
+        governor.updateProposalThresholdBps(999);
 
-        assertEq(governor.proposalThreshold(), 2);
+        assertEq(governor.proposalThreshold(), ((token.totalSupply() * 999) / 10_000));
 
         address[] memory targets = new address[](1);
         uint256[] memory values = new uint256[](1);
@@ -376,6 +376,11 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         targets[0] = address(auction);
         calldatas[0] = abi.encodeWithSignature("");
+
+        for (uint256 i; i < 11; ++i) {
+            vm.prank(address(auction));
+            token.mint();
+        }
 
         vm.expectRevert(abi.encodeWithSignature("BELOW_PROPOSAL_THRESHOLD()"));
         governor.propose(targets, values, calldatas, "");
@@ -842,7 +847,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         mintVoter1();
 
         vm.prank(address(treasury));
-        governor.updateProposalThresholdBps(1000);
+        governor.updateProposalThresholdBps(999);
 
         bytes32 proposalId = createProposal();
 
