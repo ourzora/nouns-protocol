@@ -27,21 +27,21 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
     /// @notice The EIP-712 typehash to vote with a signature
     bytes32 public constant VOTE_TYPEHASH = keccak256("Vote(address voter,uint256 proposalId,uint256 support,uint256 nonce,uint256 deadline)");
 
-    uint256 private constant MIN_VOTING_DELAY = 1 seconds;
-
-    uint256 private constant MAX_VOTING_DELAY = 4 weeks;
-
-    uint256 private constant MIN_VOTING_PERIOD = 10 minutes;
-
-    uint256 private constant MAX_VOTING_PERIOD = 4 weeks;
-
     uint256 private constant MIN_PROPOSAL_THRESHOLD_BPS = 1;
 
     uint256 private constant MAX_PROPOSAL_THRESHOLD_BPS = 1000;
 
     uint256 private constant MIN_QUORUM_THRESHOLD_BPS = 200;
 
-    uint256 private constant MAX_QUORUM_THRESHOLD_BPS = 6000;
+    uint256 private constant MAX_QUORUM_THRESHOLD_BPS = 2000;
+
+    uint256 private constant MIN_VOTING_DELAY = 1 seconds;
+
+    uint256 private constant MAX_VOTING_DELAY = 24 weeks;
+
+    uint256 private constant MIN_VOTING_PERIOD = 10 minutes;
+
+    uint256 private constant MAX_VOTING_PERIOD = 24 weeks;
 
     ///                                                          ///
     ///                         IMMUTABLES                       ///
@@ -591,10 +591,11 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
     /// @notice Updates the minimum proposal threshold
     /// @param _newProposalThresholdBps The new proposal threshold basis points
     function updateProposalThresholdBps(uint256 _newProposalThresholdBps) external onlyOwner {
-        if (_newProposalThresholdBps < MIN_PROPOSAL_THRESHOLD_BPS || _newProposalThresholdBps > MAX_PROPOSAL_THRESHOLD_BPS)
-            revert INVALID_PROPOSAL_THRESHOLD_BPS();
-
-        if (_newProposalThresholdBps >= settings.quorumThresholdBps) revert INVALID_PROPOSAL_THRESHOLD_BPS();
+        if (
+            _newProposalThresholdBps < MIN_PROPOSAL_THRESHOLD_BPS ||
+            _newProposalThresholdBps > MAX_PROPOSAL_THRESHOLD_BPS ||
+            _newProposalThresholdBps >= settings.quorumThresholdBps
+        ) revert INVALID_PROPOSAL_THRESHOLD_BPS();
 
         emit ProposalThresholdBpsUpdated(settings.proposalThresholdBps, _newProposalThresholdBps);
 
@@ -604,9 +605,11 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
     /// @notice Updates the minimum quorum threshold
     /// @param _newQuorumVotesBps The new quorum votes basis points
     function updateQuorumThresholdBps(uint256 _newQuorumVotesBps) external onlyOwner {
-        if (_newQuorumVotesBps < MIN_QUORUM_THRESHOLD_BPS || _newQuorumVotesBps > MAX_QUORUM_THRESHOLD_BPS) revert INVALID_QUORUM_THRESHOLD_BPS();
-
-        if (settings.proposalThresholdBps >= _newQuorumVotesBps) revert INVALID_QUORUM_THRESHOLD_BPS();
+        if (
+            _newQuorumVotesBps < MIN_QUORUM_THRESHOLD_BPS ||
+            _newQuorumVotesBps > MAX_QUORUM_THRESHOLD_BPS ||
+            settings.proposalThresholdBps >= _newQuorumVotesBps
+        ) revert INVALID_QUORUM_THRESHOLD_BPS();
 
         emit QuorumVotesBpsUpdated(settings.quorumThresholdBps, _newQuorumVotesBps);
 
