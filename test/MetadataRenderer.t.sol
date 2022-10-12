@@ -2,11 +2,6 @@
 pragma solidity 0.8.15;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
-
-import { Test } from "forge-std/Test.sol";
-import { ClonesUpgradeable } from "@openzeppelin/contracts-upgradeable/proxy/ClonesUpgradeable.sol";
-
-import { MetadataRenderer } from "../src/token/metadata/MetadataRenderer.sol";
 import { MetadataRendererTypesV1 } from "../src/token/metadata/types/MetadataRendererTypesV1.sol";
 
 contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
@@ -90,5 +85,55 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         vm.prank(address(token));
         bool response = metadataRenderer.onMinted(0);
         assertTrue(response);
+    }
+
+    function test_ContractURI() public {
+        /**
+        ContractURI Result Pretty JSON: 
+        {
+            "name": "Mock Token",
+            "description": "This is a mock token",
+            "image": "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j"
+        } 
+        */
+        assertEq(
+            token.contractURI(),
+            "data:application/json;base64,eyJuYW1lIjogIk1vY2sgVG9rZW4iLCJkZXNjcmlwdGlvbiI6ICJUaGlzIGlzIGEgbW9jayB0b2tlbiIsImltYWdlIjogImlwZnM6Ly9RbWV3N1RkeUduajZZUlVqUVI2OHNVSk4zMjM5TVlYUkQ4dXhvd3hGNnJHSzhqIn0="
+        );
+    }
+
+    function test_TokenURI() public {
+        string[] memory names = new string[](1);
+        names[0] = "mock-property";
+
+        ItemParam[] memory items = new ItemParam[](1);
+        items[0].propertyId = 0;
+        items[0].name = "mock-item";
+        items[0].isNewProperty = true;
+
+        IPFSGroup memory ipfsGroup = IPFSGroup({ baseUri: "https://nouns.build/api/test/", extension: ".json" });
+
+        vm.prank(founder);
+        metadataRenderer.addProperties(names, items, ipfsGroup);
+
+        vm.prank(address(auction));
+        token.mint();
+
+        /**
+        TokenURI Result Pretty JSON:
+        {
+            "name": "Mock Token #0",
+            "description": "This is a mock token",
+            "image": "http://localhost:5000/render?contractAddress=0xbe40948f30dea3de73b529044ef16e79ac8daf16&tokenId=0&images=https%3a%2f%2fnouns.build%2fapi%2ftest%2fmock-property%2fmock-item.json",
+            "properties": {
+                "mock-property": "mock-item"
+            }
+        }
+         */
+
+        assertEq(
+            token.tokenURI(0),
+            "data:application/json;base64,eyJuYW1lIjogIk1vY2sgVG9rZW4gIzAiLCJkZXNjcmlwdGlvbiI6ICJUaGlzIGlzIGEgbW9jayB0b2tlbiIsImltYWdlIjogImh0dHA6Ly9sb2NhbGhvc3Q6NTAwMC9yZW5kZXI/Y29udHJhY3RBZGRyZXNzPTB4YmU0MDk0OGYzMGRlYTNkZTczYjUyOTA0NGVmMTZlNzlhYzhkYWYxNiZ0b2tlbklkPTAmaW1hZ2VzPWh0dHBzJTNhJTJmJTJmbm91bnMuYnVpbGQlMmZhcGklMmZ0ZXN0JTJmbW9jay1wcm9wZXJ0eSUyZm1vY2staXRlbS5qc29uIiwicHJvcGVydGllcyI6IHsibW9jay1wcm9wZXJ0eSI6ICJtb2NrLWl0ZW0ifX0="
+        );
     }
 }
