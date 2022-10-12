@@ -136,7 +136,7 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
         IGovernor(governor).initialize(
             treasury,
             token,
-            founder,
+            _govParams.vetoer,
             _govParams.votingDelay,
             _govParams.votingPeriod,
             _govParams.proposalThresholdBps,
