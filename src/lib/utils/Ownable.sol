@@ -64,6 +64,8 @@ abstract contract Ownable is IOwnable, Initializable {
         emit OwnerUpdated(_owner, _newOwner);
 
         _owner = _newOwner;
+
+        if (_pendingOwner != address(0)) delete _pendingOwner;
     }
 
     /// @notice Initiates a two-step ownership transfer

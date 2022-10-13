@@ -71,12 +71,14 @@ interface IManager is IUUPS, IOwnable {
     /// @param votingPeriod The time period to vote on a proposal
     /// @param proposalThresholdBps The basis points of the token supply required to create a proposal
     /// @param quorumThresholdBps The basis points of the token supply required to reach quorum
+    /// @param vetoer The address authorized to veto proposals (address(0) if none desired)
     struct GovParams {
         uint256 timelockDelay;
         uint256 votingDelay;
         uint256 votingPeriod;
         uint256 proposalThresholdBps;
         uint256 quorumThresholdBps;
+        address vetoer;
     }
 
     ///                                                          ///

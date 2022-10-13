@@ -87,6 +87,26 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         assertTrue(response);
     }
 
+    function testRevert_CannotExceedMaxProperties() public {
+        string[] memory names = new string[](16);
+
+        MetadataRendererTypesV1.ItemParam[] memory items = new MetadataRendererTypesV1.ItemParam[](16);
+
+        for (uint256 j; j < 16; j++) {
+            names[j] = "aaa"; // Add random properties
+
+            items[j].name = "aaa"; // Add random items
+            items[j].propertyId = uint16(j); // Make sure all properties have items
+            items[j].isNewProperty = true;
+        }
+
+        MetadataRendererTypesV1.IPFSGroup memory group = MetadataRendererTypesV1.IPFSGroup("aaa", "aaa");
+
+        vm.prank(founder);
+        vm.expectRevert(abi.encodeWithSignature("TOO_MANY_PROPERTIES()"));
+        metadataRenderer.addProperties(names, items, group);
+    }
+
     function test_ContractURI() public {
         /**
         ContractURI Result Pretty JSON: 

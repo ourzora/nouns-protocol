@@ -87,6 +87,9 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
         if (_treasury == address(0)) revert ADDRESS_ZERO();
         if (_token == address(0)) revert ADDRESS_ZERO();
 
+        // If a vetoer is specified, store its address
+        if (_vetoer != address(0)) settings.vetoer = _vetoer;
+
         // Ensure the specified governance settings are valid
         if (_proposalThresholdBps < MIN_PROPOSAL_THRESHOLD_BPS || _proposalThresholdBps > MAX_PROPOSAL_THRESHOLD_BPS)
             revert INVALID_PROPOSAL_THRESHOLD_BPS();
@@ -98,11 +101,10 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
         // Store the governor settings
         settings.treasury = Treasury(payable(_treasury));
         settings.token = Token(_token);
-        settings.vetoer = _vetoer;
-        settings.votingDelay = uint48(_votingDelay);
-        settings.votingPeriod = uint48(_votingPeriod);
-        settings.proposalThresholdBps = uint16(_proposalThresholdBps);
-        settings.quorumThresholdBps = uint16(_quorumThresholdBps);
+        settings.votingDelay = SafeCast.toUint48(_votingDelay);
+        settings.votingPeriod = SafeCast.toUint48(_votingPeriod);
+        settings.proposalThresholdBps = SafeCast.toUint16(_proposalThresholdBps);
+        settings.quorumThresholdBps = SafeCast.toUint16(_quorumThresholdBps);
 
         // Initialize EIP-712 support
         __EIP712_init(string.concat(settings.token.symbol(), " GOV"), "1");
