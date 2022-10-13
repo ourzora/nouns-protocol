@@ -60,6 +60,14 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
     ///                            ERRORS                        ///
     ///                                                          ///
 
+    error INVALID_PROPOSAL_THRESHOLD_BPS();
+
+    error INVALID_QUORUM_THRESHOLD_BPS();
+
+    error INVALID_VOTING_DELAY();
+
+    error INVALID_VOTING_PERIOD();
+
     /// @dev Reverts if a proposal already exists
     /// @param proposalId The proposal id
     error PROPOSAL_EXISTS(bytes32 proposalId);
