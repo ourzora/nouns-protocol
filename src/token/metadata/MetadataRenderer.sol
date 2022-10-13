@@ -119,6 +119,9 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         }
 
         unchecked {
+            //
+            if (numStoredProperties + numNewProperties > 15) revert TOO_MANY_PROPERTIES();
+
             // For each new property:
             for (uint256 i = 0; i < numNewProperties; ++i) {
                 // Append storage space

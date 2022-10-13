@@ -43,6 +43,9 @@ interface IPropertyIPFSMetadataRenderer is IBaseMetadata, MetadataRendererTypesV
     /// @dev Reverts if an item is added for a non-existent property
     error INVALID_PROPERTY_SELECTED(uint256 selectedPropertyId);
 
+    ///
+    error TOO_MANY_PROPERTIES();
+
     ///                                                          ///
     ///                           FUNCTIONS                      ///
     ///                                                          ///
