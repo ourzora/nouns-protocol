@@ -46,7 +46,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         setAuctionParams(0, 1 days);
 
-        setGovParams(2 days, 1 days, 1 weeks, 25, 1000);
+        setGovParams(2 days, 1 days, 1 weeks, 25, 1000, founder);
 
         deploy(foundersArr, tokenParams, auctionParams, govParams);
 
@@ -73,7 +73,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         setAuctionParams(0, 1 days);
 
-        setGovParams(2 days, 1 days, 1 weeks, 100, 1000);
+        setGovParams(2 days, 1 days, 1 weeks, 100, 1000, founder);
 
         deploy(foundersArr, tokenParams, auctionParams, govParams);
 
