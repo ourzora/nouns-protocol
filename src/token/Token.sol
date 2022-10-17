@@ -79,8 +79,8 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
             revert ONLY_AUCTION();
         }
 
-        // Transfer ownership to the treasury
-        transferOwnership(IAuction(settings.auction).treasury());
+        // Force transfer ownership to the treasury
+        _transferOwnership(IAuction(settings.auction).treasury());
     }
 
     /// @notice Called upon initialization to add founders and compute their vesting allocations

@@ -98,5 +98,5 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1 {
     function owner() external view returns (address);
 
     /// @notice Callback called by auction on first auction started to transfer ownership to treasury from founder
-    function onFirstAuctionStarted() override external;
+    function onFirstAuctionStarted() external;
 }
