@@ -10,6 +10,7 @@ import { MetadataJSONKeys } from "micro-onchain-metadata-utils/MetadataJSONKeys.
 import { UUPS } from "../../lib/proxy/UUPS.sol";
 import { Initializable } from "../../lib/utils/Initializable.sol";
 import { IOwnable } from "../../lib/interfaces/IOwnable.sol";
+import { ERC721 } from "../../lib/token/ERC721.sol";
 
 import { MetadataRendererStorageV1 } from "./storage/MetadataRendererStorageV1.sol";
 import { IToken } from "../../token/IToken.sol";
@@ -66,7 +67,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
         // Decode the token initialization strings
         (, , string memory _description, string memory _contractImage, string memory _projectURI, string memory _rendererBase) = abi.decode(
             _initStrings,
-            (string, string, string, string, string)
+            (string, string, string, string, string, string)
         );
 
         // Store the renderer settings
@@ -296,7 +297,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
 
     /// @notice Internal getter function for token name
     function _name() internal view returns (string memory) {
-        return IToken(settings.token).name();
+        return ERC721(settings.token).name();
     }
 
     /// @notice The contract URI

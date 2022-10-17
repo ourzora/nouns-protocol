@@ -94,9 +94,6 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1 {
     /// @notice The token's metadata renderer
     function metadataRenderer() external view returns (address);
 
-    /// @notice The token's name
-    function name() external view returns (string memory);
-
     /// @notice The owner of the token and metadata renderer
     function owner() external view returns (address);
 

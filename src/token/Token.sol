@@ -64,7 +64,7 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
         _addFounders(_founders);
 
         // Decode the token name and symbol
-        (string memory _name, string memory _symbol, , , , ) = abi.decode(_initStrings, (string, string, string, string, string));
+        (string memory _name, string memory _symbol, , , , ) = abi.decode(_initStrings, (string, string, string, string, string, string));
 
         // Initialize the ERC-721 token
         __ERC721_init(_name, _symbol);
