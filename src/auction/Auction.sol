@@ -248,8 +248,11 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             // Mark the DAO as launched
             settings.launched = true;
 
-            // Transfer ownership of the contract to the DAO
+            // Transfer ownership of the auction contract to the DAO
             transferOwnership(settings.treasury);
+
+            // Transfer ownership of the token contract to the DAO
+            token.onFirstAuctionStarted();
 
             // Start the first auction
             _createAuction();

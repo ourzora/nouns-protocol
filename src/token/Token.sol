@@ -74,7 +74,7 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
         settings.auction = _auction;
     }
 
-    function onFirstAuctionStarted() external {
+    function onFirstAuctionStarted() override external {
         if (msg.sender != settings.auction) {
             revert ONLY_AUCTION();
         }
