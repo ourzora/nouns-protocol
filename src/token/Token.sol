@@ -5,16 +5,18 @@ import { UUPS } from "../lib/proxy/UUPS.sol";
 import { ReentrancyGuard } from "../lib/utils/ReentrancyGuard.sol";
 import { ERC721Votes } from "../lib/token/ERC721Votes.sol";
 import { ERC721 } from "../lib/token/ERC721.sol";
+import { Ownable } from "../lib/utils/Ownable.sol";
 
 import { TokenStorageV1 } from "./storage/TokenStorageV1.sol";
 import { IBaseMetadata } from "./metadata/interfaces/IBaseMetadata.sol";
 import { IManager } from "../manager/IManager.sol";
+import { IAuction } from "../auction/IAuction.sol";
 import { IToken } from "./IToken.sol";
 
 /// @title Token
 /// @author Rohan Kulkarni
 /// @notice A DAO's ERC-721 governance token
-contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
+contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
@@ -44,13 +46,19 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
         IManager.FounderParams[] calldata _founders,
         bytes calldata _initStrings,
         address _metadataRenderer,
-        address _auction
+        address _auction,
+        address _founder
     ) external initializer {
         // Ensure the caller is the contract manager
-        if (msg.sender != address(manager)) revert ONLY_MANAGER();
+        if (msg.sender != address(manager)) {
+            revert ONLY_MANAGER();
+        }
 
         // Initialize the reentrancy guard
         __ReentrancyGuard_init();
+
+        // Setup ownable
+        __Ownable_init(_founder);
 
         // Store the founders and compute their allocations
         _addFounders(_founders);
@@ -64,6 +72,15 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
         // Store the metadata renderer and auction house
         settings.metadataRenderer = IBaseMetadata(_metadataRenderer);
         settings.auction = _auction;
+    }
+
+    function onFirstAuctionStarted() external {
+        if (msg.sender != settings.auction) {
+            revert ONLY_AUCTION();
+        }
+
+        // Transfer ownership to the treasury
+        transferOwnership(settings.auction.treasury());
     }
 
     /// @notice Called upon initialization to add founders and compute their vesting allocations

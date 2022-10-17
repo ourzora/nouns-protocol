@@ -8,11 +8,11 @@ import { MetadataBuilder } from "micro-onchain-metadata-utils/MetadataBuilder.so
 import { MetadataJSONKeys } from "micro-onchain-metadata-utils/MetadataJSONKeys.sol";
 
 import { UUPS } from "../../lib/proxy/UUPS.sol";
-import { Ownable } from "../../lib/utils/Ownable.sol";
 
 import { MetadataRendererStorageV1 } from "./storage/MetadataRendererStorageV1.sol";
 import { IPropertyIPFSMetadataRenderer } from "./interfaces/IPropertyIPFSMetadataRenderer.sol";
 import { IManager } from "../../manager/IManager.sol";
+
 
 /// @title Metadata Renderer
 /// @author Iain Nash & Rohan Kulkarni
@@ -25,6 +25,19 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
     /// @notice The contract upgrade manager
     IManager private immutable manager;
 
+    ///                                                          ///
+    ///                          MODIFIERS                       ///
+    ///                                                          ///
+
+    /// @notice Checks the token owner if the current action is allowed
+    modifier onlyOwner() {
+        if (IOwnable(settings.token).owner() != msg.sender) {
+            revert IOwnable.ONLY_OWNER();
+        }
+
+        _;
+    }
+    
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
@@ -65,9 +78,6 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         settings.rendererBase = _rendererBase;
         settings.token = _token;
         settings.treasury = _treasury;
-
-        // Grant initial ownership to a founder
-        __Ownable_init(_founder);
     }
 
     ///                                                          ///
@@ -112,15 +122,16 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         // If this is the first time adding metadata:
         if (numStoredProperties == 0) {
             // Ensure at least one property and one item are included
-            if (numNewProperties == 0 || numNewItems == 0) revert ONE_PROPERTY_AND_ITEM_REQUIRED();
-
-            // Transfer contract ownership to the DAO treasury
-            transferOwnership(settings.treasury);
+            if (numNewProperties == 0 || numNewItems == 0) {
+                revert ONE_PROPERTY_AND_ITEM_REQUIRED();
+            }
         }
 
         unchecked {
-            //
-            if (numStoredProperties + numNewProperties > 15) revert TOO_MANY_PROPERTIES();
+            // Check if not too many items are stored
+            if (numStoredProperties + numNewProperties > 15) {
+                revert TOO_MANY_PROPERTIES();
+            }
 
             // For each new property:
             for (uint256 i = 0; i < numNewProperties; ++i) {
