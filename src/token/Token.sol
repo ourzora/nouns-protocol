@@ -64,7 +64,7 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
         _addFounders(_founders);
 
         // Decode the token name and symbol
-        (string memory _name, string memory _symbol, , , ) = abi.decode(_initStrings, (string, string, string, string, string));
+        (string memory _name, string memory _symbol, , , , ) = abi.decode(_initStrings, (string, string, string, string, string));
 
         // Initialize the ERC-721 token
         __ERC721_init(_name, _symbol);
@@ -74,7 +74,9 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
         settings.auction = _auction;
     }
 
-    function onFirstAuctionStarted() override external {
+    /// @notice Called by the auction upon the first unpause / token mint to transfer ownership from founder to treasury
+    /// @dev Only callable by the auction contract
+    function onFirstAuctionStarted() external override {
         if (msg.sender != settings.auction) {
             revert ONLY_AUCTION();
         }

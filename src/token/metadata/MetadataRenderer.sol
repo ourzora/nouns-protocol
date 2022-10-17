@@ -12,6 +12,7 @@ import { Initializable } from "../../lib/utils/Initializable.sol";
 import { IOwnable } from "../../lib/interfaces/IOwnable.sol";
 
 import { MetadataRendererStorageV1 } from "./storage/MetadataRendererStorageV1.sol";
+import { IToken } from "../../token/IToken.sol";
 import { IPropertyIPFSMetadataRenderer } from "./interfaces/IPropertyIPFSMetadataRenderer.sol";
 import { IManager } from "../../manager/IManager.sol";
 
@@ -63,16 +64,17 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
         }
 
         // Decode the token initialization strings
-        (string memory _name, , string memory _description, string memory _contractImage, string memory _rendererBase) = abi.decode(
+        (, , string memory _description, string memory _contractImage, string memory _projectURI, string memory _rendererBase) = abi.decode(
             _initStrings,
             (string, string, string, string, string)
         );
 
         // Store the renderer settings
-        settings.name = _name;
+        settings.projectURI = _projectURI;
         settings.description = _description;
         settings.contractImage = _contractImage;
         settings.rendererBase = _rendererBase;
+        settings.projectURI = _projectURI;
         settings.token = _token;
     }
 
@@ -292,13 +294,19 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
     ///                            URIs                          ///
     ///                                                          ///
 
+    /// @notice Internal getter function for token name
+    function _name() internal view returns (string memory) {
+        return IToken(settings.token).name();
+    }
+
     /// @notice The contract URI
     function contractURI() external view override returns (string memory) {
-        MetadataBuilder.JSONItem[] memory items = new MetadataBuilder.JSONItem[](3);
+        MetadataBuilder.JSONItem[] memory items = new MetadataBuilder.JSONItem[](4);
 
-        items[0] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyName, value: settings.name, quote: true });
+        items[0] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyName, value: _name(), quote: true });
         items[1] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyDescription, value: settings.description, quote: true });
         items[2] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyImage, value: settings.contractImage, quote: true });
+        items[3] = MetadataBuilder.JSONItem({ key: "external_url", value: settings.projectURI, quote: true });
 
         return MetadataBuilder.generateEncodedJSON(items);
     }
@@ -312,7 +320,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
 
         items[0] = MetadataBuilder.JSONItem({
             key: MetadataJSONKeys.keyName,
-            value: string.concat(settings.name, " #", Strings.toString(_tokenId)),
+            value: string.concat(_name(), " #", Strings.toString(_tokenId)),
             quote: true
         });
         items[1] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyDescription, value: settings.description, quote: true });
