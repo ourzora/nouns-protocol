@@ -35,8 +35,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
     /// @notice Checks the token owner if the current action is allowed
     modifier onlyOwner() {
         if (owner() != msg.sender) {
-            // revert IOwnable.ONLY_OWNER();
-            revert("ONLY OWNER VIA METADATA");
+            revert IOwnable.ONLY_OWNER();
         }
 
         _;
