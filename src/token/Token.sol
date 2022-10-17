@@ -80,7 +80,7 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
         }
 
         // Transfer ownership to the treasury
-        transferOwnership(settings.auction.treasury());
+        transferOwnership(IAuction(settings.auction).treasury());
     }
 
     /// @notice Called upon initialization to add founders and compute their vesting allocations
@@ -337,9 +337,8 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
         return address(settings.metadataRenderer);
     }
 
-    /// @notice The address of the owner
-    function owner() public view returns (address) {
-        return settings.metadataRenderer.owner();
+    function owner() public view override(IToken, Ownable) returns (address) {
+        return super.owner();
     }
 
     ///                                                          ///

@@ -180,7 +180,7 @@ contract NounsBuilderTest is Test {
 
         MetadataRendererTypesV1.IPFSGroup memory ipfsGroup = MetadataRendererTypesV1.IPFSGroup({ baseUri: "BASE_URI", extension: "EXTENSION" });
 
-        vm.prank(metadataRenderer.owner());
+        vm.prank(token.owner());
         metadataRenderer.addProperties(names, items, ipfsGroup);
     }
 

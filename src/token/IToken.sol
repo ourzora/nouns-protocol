@@ -27,9 +27,6 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1 {
     /// @dev Reverts if the founder ownership exceeds 100 percent
     error INVALID_FOUNDER_OWNERSHIP();
 
-    /// @dev Reverts if the caller was not the contract owner
-    error ONLY_OWNER();
-
     /// @dev Reverts if the caller was not the auction contract
     error ONLY_AUCTION();
 
@@ -52,7 +49,8 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1 {
         IManager.FounderParams[] calldata founders,
         bytes calldata initStrings,
         address metadataRenderer,
-        address auction
+        address auction,
+        address founder
     ) external;
 
     /// @notice Mints tokens to the auction house for bidding and handles founder vesting

@@ -130,7 +130,7 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
 
         // Initialize each instance with the provided settings
         IToken(token).initialize(_founderParams, _tokenParams.initStrings, metadata, auction, founder);
-        IBaseMetadata(metadata).initialize(_tokenParams.initStrings, token, treasury);
+        IBaseMetadata(metadata).initialize(_tokenParams.initStrings, token);
         IAuction(auction).initialize(token, founder, treasury, _auctionParams.duration, _auctionParams.reservePrice);
         ITreasury(treasury).initialize(governor, _govParams.timelockDelay);
         IGovernor(governor).initialize(
