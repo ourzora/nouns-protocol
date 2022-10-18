@@ -251,9 +251,7 @@ contract Treasury is ITreasury, UUPS, Ownable, ProposalHasher, TreasuryStorageV1
     }
 
     /// @dev Accepts ETH transfers
-    receive() external payable {
-        emit ReceivedFunds({ from: msg.sender, amount: msg.value });
-    }
+    receive() external payable {}
 
     ///                                                          ///
     ///                       TREASURY UPGRADE                   ///

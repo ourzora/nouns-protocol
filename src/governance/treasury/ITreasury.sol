@@ -27,9 +27,6 @@ interface ITreasury is IUUPS, IOwnable {
     /// @notice Emitted when the grace period is updated
     event GracePeriodUpdated(uint256 prevGracePeriod, uint256 newGracePeriod);
 
-    /// @notice Emitted when funds are received by the treasury
-    event ReceivedFunds(address from, uint256 amount);
-
     ///                                                          ///
     ///                            ERRORS                        ///
     ///                                                          ///
