@@ -38,17 +38,17 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
     ///                                                          ///
 
     /// @notice Initializes a DAO's ERC-721 token contract
-    /// @param _founders The DAO founders
-    /// @param _initStrings The encoded token and metadata initialization strings
-    /// @param _metadataRenderer The token's metadata renderer
-    /// @param _auction The token's auction house
-    /// @param _initialOwner The initial owner of the token
+    /// @param founders The DAO founders
+    /// @param initStrings The encoded token and metadata initialization strings
+    /// @param metadataRenderer The token's metadata renderer
+    /// @param auction The token's auction house
+    /// @param initialOwner The initial owner of the token
     function initialize(
-        IManager.FounderParams[] calldata _founders,
-        bytes calldata _initStrings,
-        address _metadataRenderer,
-        address _auction,
-        address _initialOwner
+        IManager.FounderParams[] calldata founders,
+        bytes calldata initStrings,
+        address metadataRenderer,
+        address auction,
+        address initialOwner
     ) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) {
@@ -59,20 +59,20 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
         __ReentrancyGuard_init();
 
         // Setup ownable
-        __Ownable_init(_initialOwner);
+        __Ownable_init(initialOwner);
 
         // Store the founders and compute their allocations
-        _addFounders(_founders);
+        _addFounders(founders);
 
         // Decode the token name and symbol
-        (string memory _name, string memory _symbol, , , , ) = abi.decode(_initStrings, (string, string, string, string, string, string));
+        (string memory _name, string memory _symbol, , , , ) = abi.decode(initStrings, (string, string, string, string, string, string));
 
         // Initialize the ERC-721 token
         __ERC721_init(_name, _symbol);
 
         // Store the metadata renderer and auction house
-        settings.metadataRenderer = IBaseMetadata(_metadataRenderer);
-        settings.auction = _auction;
+        settings.metadataRenderer = IBaseMetadata(metadataRenderer);
+        settings.auction = auction;
     }
 
     /// @notice Called by the auction upon the first unpause / token mint to transfer ownership from founder to treasury

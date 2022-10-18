@@ -130,26 +130,32 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
 
         // Initialize each instance with the provided settings
         IToken(token).initialize({
-            _founders: _founderParams,
-            _initStrings: _tokenParams.initStrings,
-            _metadataRenderer: metadata,
-            _auction: auction,
-            _initialOwner: founder
+            founders: _founderParams,
+            initStrings: _tokenParams.initStrings,
+            metadataRenderer: metadata,
+            auction: auction,
+            initialOwner: founder
         });
-        IBaseMetadata(metadata).initialize(_tokenParams.initStrings, token);
-        IAuction(auction).initialize(token, founder, treasury, _auctionParams.duration, _auctionParams.reservePrice);
-        ITreasury(treasury).initialize(governor, _govParams.timelockDelay);
-        IGovernor(governor).initialize(
-            treasury,
-            token,
-            _govParams.vetoer,
-            _govParams.votingDelay,
-            _govParams.votingPeriod,
-            _govParams.proposalThresholdBps,
-            _govParams.quorumThresholdBps
-        );
+        IBaseMetadata(metadata).initialize({ initStrings: _tokenParams.initStrings, token: token });
+        IAuction(auction).initialize({
+            token: token,
+            founder: founder,
+            treasury: treasury,
+            duration: _auctionParams.duration,
+            reservePrice: _auctionParams.reservePrice
+        });
+        ITreasury(treasury).initialize({ governor: governor, timelockDelay: _govParams.timelockDelay });
+        IGovernor(governor).initialize({
+            treasury: treasury,
+            token: token,
+            vetoer: _govParams.vetoer,
+            votingDelay: _govParams.votingDelay,
+            votingPeriod: _govParams.votingPeriod,
+            proposalThresholdBps: _govParams.proposalThresholdBps,
+            quorumThresholdBps: _govParams.quorumThresholdBps
+        });
 
-        emit DAODeployed(token, metadata, auction, treasury, governor);
+        emit DAODeployed({ token: token, metadata: metadata, auction: auction, treasury: treasury, governor: governor });
     }
 
     ///                                                          ///

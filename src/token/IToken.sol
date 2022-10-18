@@ -50,7 +50,7 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1 {
         bytes calldata initStrings,
         address metadataRenderer,
         address auction,
-        address founder
+        address initialOwner
     ) external;
 
     /// @notice Mints tokens to the auction house for bidding and handles founder vesting
