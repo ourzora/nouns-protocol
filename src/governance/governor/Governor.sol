@@ -43,6 +43,8 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
 
     uint256 private constant MAX_VOTING_PERIOD = 24 weeks;
 
+    uint256 private constant BPS_PER_100_PERCENT = 10_000;
+
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
@@ -476,14 +478,14 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
     /// @notice The current number of votes required to submit a proposal
     function proposalThreshold() public view returns (uint256) {
         unchecked {
-            return (settings.token.totalSupply() * settings.proposalThresholdBps) / 10_000;
+            return (settings.token.totalSupply() * settings.proposalThresholdBps) / BPS_PER_100_PERCENT;
         }
     }
 
     /// @notice The current number of votes required to be in favor of a proposal in order to reach quorum
     function quorum() public view returns (uint256) {
         unchecked {
-            return (settings.token.totalSupply() * settings.quorumThresholdBps) / 10_000;
+            return (settings.token.totalSupply() * settings.quorumThresholdBps) / BPS_PER_100_PERCENT;
         }
     }
 
