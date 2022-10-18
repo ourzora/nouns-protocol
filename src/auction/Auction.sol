@@ -88,6 +88,8 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
     /// @notice Creates a bid for the current token
     /// @param _tokenId The ERC-721 token id
     function createBid(uint256 _tokenId) external payable nonReentrant {
+        uint256 msgValue = msg.value;
+
         // Get a copy of the current auction
         Auction memory _auction = auction;
 
@@ -103,7 +105,7 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         // If this is the first bid:
         if (highestBidder == address(0)) {
             // Ensure the bid meets the reserve price
-            if (msg.value < settings.reservePrice) revert RESERVE_PRICE_NOT_MET();
+            if (msgValue < settings.reservePrice) revert RESERVE_PRICE_NOT_MET();
 
             // Else this is a subsequent bid:
         } else {
@@ -120,14 +122,14 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             }
 
             // Ensure the incoming bid meets the minimum
-            if (msg.value < minBid) revert MINIMUM_BID_NOT_MET();
+            if (msgValue < minBid) revert MINIMUM_BID_NOT_MET();
 
             // Refund the previous bidder
             _handleOutgoingTransfer(highestBidder, highestBid);
         }
 
         // Store the new highest bid
-        auction.highestBid = msg.value;
+        auction.highestBid = msgValue;
 
         // Store the new highest bidder
         auction.highestBidder = msg.sender;
@@ -150,7 +152,7 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             }
         }
 
-        emit AuctionBid(_tokenId, msg.sender, msg.value, extend, auction.endTime);
+        emit AuctionBid(_tokenId, msg.sender, msgValue, extend, auction.endTime);
     }
 
     ///                                                          ///
@@ -177,9 +179,6 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         // Ensure the auction is over
         if (block.timestamp < _auction.endTime) revert AUCTION_ACTIVE();
 
-        // Mark the auction as settled
-        auction.settled = true;
-
         // If a bid was placed:
         if (_auction.highestBidder != address(0)) {
             // Cache the amount of the highest bid
@@ -196,6 +195,9 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             // Burn the token
             token.burn(_auction.tokenId);
         }
+
+        // Mark the auction as settled
+        auction.settled = true;
 
         emit AuctionSettled(_auction.tokenId, _auction.highestBidder, _auction.highestBid);
     }
