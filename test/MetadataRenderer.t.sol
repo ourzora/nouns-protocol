@@ -153,7 +153,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
 
         assertEq(
             token.tokenURI(0),
-            "data:application/json;base64,eyJuYW1lIjogIk1vY2sgVG9rZW4gIzAiLCJkZXNjcmlwdGlvbiI6ICJUaGlzIGlzIGEgbW9jayB0b2tlbiIsImltYWdlIjogImh0dHA6Ly9sb2NhbGhvc3Q6NTAwMC9yZW5kZXI/Y29udHJhY3RBZGRyZXNzPTB4YmU0MDk0OGYzMGRlYTNkZTczYjUyOTA0NGVmMTZlNzlhYzhkYWYxNiZ0b2tlbklkPTAmaW1hZ2VzPWh0dHBzJTNhJTJmJTJmbm91bnMuYnVpbGQlMmZhcGklMmZ0ZXN0JTJmbW9jay1wcm9wZXJ0eSUyZm1vY2staXRlbS5qc29uIiwicHJvcGVydGllcyI6IHsibW9jay1wcm9wZXJ0eSI6ICJtb2NrLWl0ZW0ifX0="
+            "data:application/json;base64,eyJuYW1lIjogIk1vY2sgVG9rZW4gIzAiLCJkZXNjcmlwdGlvbiI6ICJUaGlzIGlzIGEgbW9jayB0b2tlbiIsImltYWdlIjogImh0dHA6Ly9sb2NhbGhvc3Q6NTAwMC9yZW5kZXI/Y29udHJhY3RBZGRyZXNzPTB4ODAzYmI1YzdhZGIwYmM0YzU1MDU3YmU1ZWZmNGIyZWU4NTc1MjBiNSZ0b2tlbklkPTAmaW1hZ2VzPWh0dHBzJTNhJTJmJTJmbm91bnMuYnVpbGQlMmZhcGklMmZ0ZXN0JTJmbW9jay1wcm9wZXJ0eSUyZm1vY2staXRlbS5qc29uIiwicHJvcGVydGllcyI6IHsibW9jay1wcm9wZXJ0eSI6ICJtb2NrLWl0ZW0ifX0="
         );
     }
 }
