@@ -42,12 +42,13 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
     /// @param _initStrings The encoded token and metadata initialization strings
     /// @param _metadataRenderer The token's metadata renderer
     /// @param _auction The token's auction house
+    /// @param _initialOwner The initial owner of the token
     function initialize(
         IManager.FounderParams[] calldata _founders,
         bytes calldata _initStrings,
         address _metadataRenderer,
         address _auction,
-        address _founder
+        address _initialOwner
     ) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) {
@@ -58,7 +59,7 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
         __ReentrancyGuard_init();
 
         // Setup ownable
-        __Ownable_init(_founder);
+        __Ownable_init(_initialOwner);
 
         // Store the founders and compute their allocations
         _addFounders(_founders);

@@ -129,7 +129,13 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
         governor = address(new ERC1967Proxy{ salt: salt }(governorImpl, ""));
 
         // Initialize each instance with the provided settings
-        IToken(token).initialize(_founderParams, _tokenParams.initStrings, metadata, auction, founder);
+        IToken(token).initialize({
+            _founders: _founderParams,
+            _initStrings: _tokenParams.initStrings,
+            _metadataRenderer: metadata,
+            _auction: auction,
+            _initialOwner: founder
+        });
         IBaseMetadata(metadata).initialize(_tokenParams.initStrings, token);
         IAuction(auction).initialize(token, founder, treasury, _auctionParams.duration, _auctionParams.reservePrice);
         ITreasury(treasury).initialize(governor, _govParams.timelockDelay);
