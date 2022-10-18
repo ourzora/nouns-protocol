@@ -196,21 +196,23 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
         // Get the base token id
         uint256 baseTokenId = _tokenId % 100;
 
+        Founder storage currentFounder = tokenRecipient[baseTokenId];
+
         // If there is no scheduled recipient:
-        if (tokenRecipient[baseTokenId].wallet == address(0)) {
+        if (currentFounder.wallet == address(0)) {
             return false;
 
             // Else if the founder is still vesting:
-        } else if (block.timestamp < tokenRecipient[baseTokenId].vestExpiry) {
+        } else if (block.timestamp < currentFounder.vestExpiry) {
             // Mint the token to the founder
-            _mint(tokenRecipient[baseTokenId].wallet, _tokenId);
+            _mint(currentFounder.wallet, _tokenId);
 
             return true;
 
             // Else the founder has finished vesting:
         } else {
             // Remove them from future lookups
-            delete tokenRecipient[baseTokenId];
+            delete currentFounder;
 
             return false;
         }

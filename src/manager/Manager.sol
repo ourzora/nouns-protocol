@@ -94,6 +94,7 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
     /// @param _tokenParams The ERC-721 token settings
     /// @param _auctionParams The auction settings
     /// @param _govParams The governance settings
+    /// @return returns deployed addresses for token, metadata, auction, treasury, and governor (in that order)
     function deploy(
         FounderParams[] calldata _founderParams,
         TokenParams calldata _tokenParams,
