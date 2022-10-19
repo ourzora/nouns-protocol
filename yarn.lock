@@ -1375,10 +1375,10 @@ merge-stream@^2.0.0:
   resolved "https://registry.yarnpkg.com/merge-stream/-/merge-stream-2.0.0.tgz#52823629a14dd00c9770fb6ad47dc6310f2c1f60"
   integrity sha512-abv/qOcuPfk3URPfDzmZU1LKmuw8kT+0nIHvKrKgFrwifol/doWcdA4ZqsWQ8ENrFKkd67Mfpo/LovbIUsbt3w==
 
-micro-onchain-metadata-utils@0.1.0:
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/micro-onchain-metadata-utils/-/micro-onchain-metadata-utils-0.1.0.tgz#b57c2102065869e18a2c1ab206ccd011a781fbb9"
-  integrity sha512-33H39sLFNqNz3MsUAeorMMkGEitjXWwsdRCcx+1rYpnKfTUutUZ1vOVuMM33k+VOz2NxF5qT5A98jwi0Pu8USg==
+micro-onchain-metadata-utils@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/micro-onchain-metadata-utils/-/micro-onchain-metadata-utils-0.1.1.tgz#7ee91d53c9f4da5b712cfb3c26f7cd2ff0898186"
+  integrity sha512-8EdHJH5q8ToAgPJGS7PFQZ04STyG4aj8e7Q+xB6dcIv0ySt37x0YmVlTak8O0Xd6qXl5QWnWktwmx886OllEOg==
 
 micromatch@^4.0.5:
   version "4.0.5"

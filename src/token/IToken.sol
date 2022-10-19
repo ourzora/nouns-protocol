@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 import { IUUPS } from "../lib/interfaces/IUUPS.sol";
 import { IERC721Votes } from "../lib/interfaces/IERC721Votes.sol";

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.16;
 
 import { IInitializable } from "../interfaces/IInitializable.sol";
 import { Address } from "../utils/Address.sol";

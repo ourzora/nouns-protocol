@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 import { ERC721 } from "../../../src/lib/token/ERC721.sol";
 import { UUPS } from "../../../src/lib/proxy/UUPS.sol";

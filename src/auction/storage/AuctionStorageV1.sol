@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 import { Token } from "../../token/Token.sol";
 import { AuctionTypesV1 } from "../types/AuctionTypesV1.sol";
