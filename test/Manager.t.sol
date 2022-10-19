@@ -46,10 +46,10 @@ contract ManagerTest is NounsBuilderTest {
     function test_DerivedAddresses() public {
         assertEq(address(manager), address(0x42997aC9251E5BB0A61F4Ff790E5B991ea07Fd9B));
         (address _metadata, address _auction, address _treasury, address _governor) = manager.getAddresses(address(0x123456));
-        assertEq(_metadata, address(0x96FA53596F55014Efc3B7c7b557df2227a43f0da));
-        assertEq(_auction, address(0x897dB62ebE788a11dE2cB4221cA86F57f252F3E5));
-        assertEq(_treasury, address(0x8EFFFc5f3DDbA015eb4F6A557ec674Eced4C1915));
-        assertEq(_governor, address(0xBAe859323C44e31421aA354A22541d7d5a04d4fD));
+        assertEq(_metadata, address(0xB09adBFEdA922aa01CA34982625219bA8D5dbc38));
+        assertEq(_auction, address(0xfD708b00A4bD8894516246DecA2082Cc0C367bE3));
+        assertEq(_treasury, address(0xc144D28789a723EcdA2a5a2AFa564672EC9E8F7d));
+        assertEq(_governor, address(0xe2821CC51719Aafa6a325A491Ca7C3233c2A08ec));
     }
 
     function test_AuctionInitialized() public {
