@@ -56,6 +56,15 @@ contract ManagerTest is NounsBuilderTest {
         assertEq(auction.minBidIncrement(), 10);
     }
 
+    function test_DerivedAddresses() public {
+        assertEq(address(manager), address(0x42997aC9251E5BB0A61F4Ff790E5B991ea07Fd9B));
+        (address _metadata, address _auction, address _treasury, address _governor) = manager.getAddresses(address(0x123456));
+        assertEq(_metadata, address(0x96FA53596F55014Efc3B7c7b557df2227a43f0da));
+        assertEq(_auction, address(0x897dB62ebE788a11dE2cB4221cA86F57f252F3E5));
+        assertEq(_treasury, address(0x8EFFFc5f3DDbA015eb4F6A557ec674Eced4C1915));
+        assertEq(_governor, address(0xBAe859323C44e31421aA354A22541d7d5a04d4fD));
+    }
+
     function test_TreasuryInitialized() public {
         deployMock();
 

@@ -100,6 +100,24 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         // Cache the address of the highest bidder
         address highestBidder = _auction.highestBidder;
 
+        // Store the new highest bid
+        auction.highestBid = msg.value;
+
+        // Store the new highest bidder
+        auction.highestBidder = msg.sender;
+
+        bool extend;
+
+        // Cannot underflow as `_auction.endTime` is ensured to be greater than the current time above
+        unchecked {
+            // Compute whether the time remaining is less than the buffer
+            extend = (_auction.endTime - block.timestamp) < settings.timeBuffer;
+            if (extend) {
+                // Extend the auction by the time buffer
+                auction.endTime = uint40(block.timestamp + settings.timeBuffer);
+            }
+        }
+
         // If this is the first bid:
         if (highestBidder == address(0)) {
             // Ensure the bid meets the reserve price
@@ -126,29 +144,6 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             _handleOutgoingTransfer(highestBidder, highestBid);
         }
 
-        // Store the new highest bid
-        auction.highestBid = msg.value;
-
-        // Store the new highest bidder
-        auction.highestBidder = msg.sender;
-
-        // Used to store if the auction will be extended
-        bool extend;
-
-        // Cannot underflow as `_auction.endTime` is ensured to be greater than the current time above
-        unchecked {
-            // Compute whether the time remaining is less than the buffer
-            extend = (_auction.endTime - block.timestamp) < settings.timeBuffer;
-        }
-
-        // If the time remaining is within the buffer:
-        if (extend) {
-            // Cannot realistically overflow
-            unchecked {
-                // Extend the auction by the time buffer
-                auction.endTime = uint40(block.timestamp + settings.timeBuffer);
-            }
-        }
 
         emit AuctionBid(_tokenId, msg.sender, msg.value, extend, auction.endTime);
     }
@@ -362,7 +357,10 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             IWETH(WETH).deposit{ value: _amount }();
 
             // Transfer WETH instead
-            IWETH(WETH).transfer(_to, _amount);
+            bool wethSuccess = IWETH(WETH).transfer(_to, _amount);
+            if (!wethSuccess) {
+                revert FAILING_WETH_TRANSFER();
+            }
         }
     }
 
