@@ -27,6 +27,9 @@ interface IPropertyIPFSMetadataRenderer is IBaseMetadata, MetadataRendererTypesV
     /// @notice Emitted when the collection description is updated
     event DescriptionUpdated(string prevDescription, string newDescription);
 
+    /// @notice Emitted when the collection uri is updated
+    event WebsiteURIUpdated(string lastURI, string newURI);
+
     ///                                                          ///
     ///                            ERRORS                        ///
     ///                                                          ///

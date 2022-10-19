@@ -119,6 +119,20 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         );
     }
 
+    function test_UpdateMetadata() public {
+        assertEq(metadataRenderer.description(), "This is a mock token");
+        assertEq(metadataRenderer.projectURI(), "https://nouns.build");
+
+        vm.startPrank(founder);
+        metadataRenderer.updateDescription("new description");
+        metadataRenderer.updateProjectURI("https://nouns.build/about");
+        vm.stopPrank();
+
+        assertEq(metadataRenderer.description(), "new description");
+        assertEq(metadataRenderer.projectURI(), "https://nouns.build/about");
+
+    }
+
     function test_TokenURI() public {
         string[] memory names = new string[](1);
         names[0] = "mock-property";

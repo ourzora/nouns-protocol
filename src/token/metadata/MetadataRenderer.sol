@@ -358,6 +358,11 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
         return settings.description;
     }
 
+    /// @notice The collection description
+    function projectURI() external view returns (string memory) {
+        return settings.projectURI;
+    }
+
     /// @notice Get the owner of the metadata (here delegated to the token owner)
     function owner() public view returns (address) {
         return IOwnable(settings.token).owner();
@@ -389,6 +394,12 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
         emit DescriptionUpdated(settings.description, _newDescription);
 
         settings.description = _newDescription;
+    }
+
+    function updateProjectURI(string memory _newProjectURI) external onlyOwner {
+        emit WebsiteURIUpdated(settings.projectURI, _newProjectURI);
+
+        settings.projectURI = _newProjectURI;
     }
 
     ///                                                          ///
