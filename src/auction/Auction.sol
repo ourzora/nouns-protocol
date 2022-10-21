@@ -170,6 +170,9 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         // Ensure the auction is over
         if (block.timestamp < _auction.endTime) revert AUCTION_ACTIVE();
 
+        // Mark the auction as settled
+        auction.settled = true;
+
         // If a bid was placed:
         if (_auction.highestBidder != address(0)) {
             // Cache the amount of the highest bid
@@ -186,9 +189,6 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             // Burn the token
             token.burn(_auction.tokenId);
         }
-
-        // Mark the auction as settled
-        auction.settled = true;
 
         emit AuctionSettled(_auction.tokenId, _auction.highestBidder, _auction.highestBid);
     }
