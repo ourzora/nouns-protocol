@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 
@@ -32,15 +32,19 @@ contract ManagerTest is NounsBuilderTest {
     function test_TokenInitialized() public {
         deployMock();
 
-        assertEq(token.owner(), address(treasury));
+        assertEq(token.owner(), address(founder));
         assertEq(token.auction(), address(auction));
         assertEq(token.totalSupply(), 0);
+        vm.prank(founder);
+        auction.unpause();
+        assertEq(token.owner(), address(treasury));
+        assertEq(token.totalSupply(), 3);
     }
 
     function test_MetadataRendererInitialized() public {
         deployMock();
 
-        assertEq(metadataRenderer.owner(), address(treasury));
+        assertEq(metadataRenderer.owner(), address(founder));
     }
 
     function test_AuctionInitialized() public {

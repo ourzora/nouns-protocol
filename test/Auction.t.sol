@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 import { MockERC721 } from "./utils/mocks/MockERC721.sol";
@@ -147,6 +147,26 @@ contract AuctionTest is NounsBuilderTest {
 
         assertEq(highestBid, 0.5 ether);
         assertEq(highestBidder, bidder2);
+    }
+
+
+    function testRevert_CannotBidZeroWithZeroBid() public {
+        deployMock();
+
+        vm.prank(founder);
+        auction.setReservePrice(0);
+
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(bidder1);
+        auction.createBid{ value: 0 ether }(2);
+
+        vm.warp(5 minutes);
+
+        vm.prank(bidder2);
+        vm.expectRevert(abi.encodeWithSignature("MINIMUM_BID_NOT_MET()"));
+        auction.createBid{ value: 0 ether }(2);
     }
 
     function testRevert_MustMeetMinBidIncrement() public {

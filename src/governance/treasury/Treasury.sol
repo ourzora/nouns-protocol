@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 import { UUPS } from "../../lib/proxy/UUPS.sol";
 import { Ownable } from "../../lib/utils/Ownable.sol";
@@ -18,6 +18,12 @@ import { IManager } from "../../manager/IManager.sol";
 /// - OpenZeppelin Contracts v4.7.3 (governance/TimelockController.sol)
 /// - NounsDAOExecutor.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
 contract Treasury is ITreasury, UUPS, Ownable, ProposalHasher, TreasuryStorageV1 {
+    ///                                                          ///
+    ///                         CONSTANTS                        ///
+    ///                                                          ///
+
+    uint128 private constant INITIAL_GRACE_PERIOD = 2 weeks;
+
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
@@ -55,7 +61,7 @@ contract Treasury is ITreasury, UUPS, Ownable, ProposalHasher, TreasuryStorageV1
         settings.delay = SafeCast.toUint128(_delay);
 
         // Set the default grace period
-        settings.gracePeriod = 2 weeks;
+        settings.gracePeriod = INITIAL_GRACE_PERIOD;
 
         emit DelayUpdated(0, _delay);
     }

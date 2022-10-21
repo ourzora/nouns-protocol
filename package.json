@@ -15,7 +15,7 @@
     "@openzeppelin/contracts": "^4.7.3",
     "@openzeppelin/contracts-upgradeable": "^4.8.0-rc.1",
     "@types/node": "^18.7.13",
-    "micro-onchain-metadata-utils": "0.1.0",
+    "micro-onchain-metadata-utils": "^0.1.1",
     "sol-uriencode": "0.1.0"
   },
   "devDependencies": {

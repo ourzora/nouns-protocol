@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 /// @title MetadataRendererTypesV1
 /// @author Iain Nash & Rohan Kulkarni
@@ -28,8 +28,7 @@ interface MetadataRendererTypesV1 {
 
     struct Settings {
         address token;
-        address treasury;
-        string name;
+        string projectURI;
         string description;
         string contractImage;
         string rendererBase;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 import { UUPS } from "../lib/proxy/UUPS.sol";
 import { Ownable } from "../lib/utils/Ownable.sol";
@@ -20,6 +20,15 @@ import { IWETH } from "../lib/interfaces/IWETH.sol";
 /// - NounsAuctionHouse.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
 /// - Zora V3 ReserveAuctionCoreEth module commit 795aeca - licensed under the GPL-3.0 license.
 contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionStorageV1 {
+    ///                                                          ///
+    ///                          CONSTANTS                       ///
+    ///                                                          ///
+
+    /// @notice Iniital time buffer for auction bids
+    uint40 private immutable INITIAL_TIME_BUFFER = 5 minutes;
+    /// @notice Min bid increment BPS
+    uint8 private immutable INITIAL_MIN_BID_INCREMENT_PERCENT = 10;
+
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -77,8 +86,8 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         settings.duration = SafeCast.toUint40(_duration);
         settings.reservePrice = _reservePrice;
         settings.treasury = _treasury;
-        settings.timeBuffer = 5 minutes;
-        settings.minBidIncrement = 10;
+        settings.timeBuffer = INITIAL_TIME_BUFFER;
+        settings.minBidIncrement = INITIAL_MIN_BID_INCREMENT_PERCENT;
     }
 
     ///                                                          ///
@@ -88,43 +97,19 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
     /// @notice Creates a bid for the current token
     /// @param _tokenId The ERC-721 token id
     function createBid(uint256 _tokenId) external payable nonReentrant {
-        // Get a copy of the current auction
-        Auction memory _auction = auction;
+        uint256 msgValue = msg.value;
 
         // Ensure the bid is for the current token
-        if (_auction.tokenId != _tokenId) revert INVALID_TOKEN_ID();
+        if (auction.tokenId != _tokenId) revert INVALID_TOKEN_ID();
 
         // Ensure the auction is still active
-        if (block.timestamp >= _auction.endTime) revert AUCTION_OVER();
+        if (block.timestamp >= auction.endTime) revert AUCTION_OVER();
 
         // Cache the address of the highest bidder
-        address highestBidder = _auction.highestBidder;
+        address lastHighestBidder = auction.highestBidder;
 
-        // If this is the first bid:
-        if (highestBidder == address(0)) {
-            // Ensure the bid meets the reserve price
-            if (msg.value < settings.reservePrice) revert RESERVE_PRICE_NOT_MET();
-
-            // Else this is a subsequent bid:
-        } else {
-            // Cache the highest bid
-            uint256 highestBid = _auction.highestBid;
-
-            // Used to store the minimum bid required
-            uint256 minBid;
-
-            // Cannot realistically overflow
-            unchecked {
-                // Compute the minimum bid
-                minBid = highestBid + ((highestBid * settings.minBidIncrement) / 100);
-            }
-
-            // Ensure the incoming bid meets the minimum
-            if (msg.value < minBid) revert MINIMUM_BID_NOT_MET();
-
-            // Refund the previous bidder
-            _handleOutgoingTransfer(highestBidder, highestBid);
-        }
+        // Cache the last highest bid
+        uint256 lastHighestBid = auction.highestBid;
 
         // Store the new highest bid
         auction.highestBid = msg.value;
@@ -132,25 +117,42 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         // Store the new highest bidder
         auction.highestBidder = msg.sender;
 
-        // Used to store if the auction will be extended
         bool extend;
 
         // Cannot underflow as `_auction.endTime` is ensured to be greater than the current time above
         unchecked {
             // Compute whether the time remaining is less than the buffer
-            extend = (_auction.endTime - block.timestamp) < settings.timeBuffer;
-        }
-
-        // If the time remaining is within the buffer:
-        if (extend) {
-            // Cannot realistically overflow
-            unchecked {
+            extend = (auction.endTime - block.timestamp) < settings.timeBuffer;
+            if (extend) {
                 // Extend the auction by the time buffer
                 auction.endTime = uint40(block.timestamp + settings.timeBuffer);
             }
         }
 
-        emit AuctionBid(_tokenId, msg.sender, msg.value, extend, auction.endTime);
+        // If this is the first bid:
+        if (lastHighestBidder == address(0)) {
+            // Ensure the bid meets the reserve price
+            if (msgValue < settings.reservePrice) revert RESERVE_PRICE_NOT_MET();
+
+            // Else this is a subsequent bid:
+        } else {
+            // Used to store the minimum bid required
+            uint256 minBid;
+
+            // Cannot realistically overflow
+            unchecked {
+                // Compute the minimum bid
+                minBid = lastHighestBid + ((lastHighestBid * settings.minBidIncrement) / 100);
+            }
+
+            // Ensure the incoming bid meets the minimum
+            if (msgValue < minBid || minBid == lastHighestBid) revert MINIMUM_BID_NOT_MET();
+
+            // Refund the previous bidder
+            _handleOutgoingTransfer(lastHighestBidder, lastHighestBid);
+        }
+
+        emit AuctionBid(_tokenId, msg.sender, msgValue, extend, auction.endTime);
     }
 
     ///                                                          ///
@@ -248,8 +250,11 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             // Mark the DAO as launched
             settings.launched = true;
 
-            // Transfer ownership of the contract to the DAO
+            // Transfer ownership of the auction contract to the DAO
             transferOwnership(settings.treasury);
+
+            // Transfer ownership of the token contract to the DAO
+            token.onFirstAuctionStarted();
 
             // Start the first auction
             _createAuction();
@@ -362,7 +367,10 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             IWETH(WETH).deposit{ value: _amount }();
 
             // Transfer WETH instead
-            IWETH(WETH).transfer(_to, _amount);
+            bool wethSuccess = IWETH(WETH).transfer(_to, _amount);
+            if (!wethSuccess) {
+                revert FAILING_WETH_TRANSFER();
+            }
         }
     }
 

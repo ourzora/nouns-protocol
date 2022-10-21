@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 import { MetadataRendererTypesV1 } from "../types/MetadataRendererTypesV1.sol";
 import { IBaseMetadata } from "./IBaseMetadata.sol";
@@ -26,6 +26,9 @@ interface IPropertyIPFSMetadataRenderer is IBaseMetadata, MetadataRendererTypesV
 
     /// @notice Emitted when the collection description is updated
     event DescriptionUpdated(string prevDescription, string newDescription);
+
+    /// @notice Emitted when the collection uri is updated
+    event WebsiteURIUpdated(string lastURI, string newURI);
 
     ///                                                          ///
     ///                            ERRORS                        ///

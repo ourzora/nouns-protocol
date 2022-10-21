@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 import { IOwnable } from "../../lib/utils/Ownable.sol";
 import { IUUPS } from "../../lib/interfaces/IUUPS.sol";
@@ -60,8 +60,8 @@ interface ITreasury is IUUPS, IOwnable {
 
     /// @notice Initializes a DAO's treasury
     /// @param governor The governor address
-    /// @param delay The time delay to execute a queued transaction
-    function initialize(address governor, uint256 delay) external;
+    /// @param timelockDelay The time delay to execute a queued transaction
+    function initialize(address governor, uint256 timelockDelay) external;
 
     /// @notice The timestamp that a proposal is valid to execute
     /// @param proposalId The proposal id

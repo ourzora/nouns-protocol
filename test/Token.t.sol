@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 
@@ -20,7 +20,8 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.name(), "Mock Token");
         assertEq(token.symbol(), "MOCK");
         assertEq(token.auction(), address(auction));
-        assertEq(token.owner(), address(treasury));
+        // Initial token owner until first auction is the founder.
+        assertEq(token.owner(), address(founder));
         assertEq(token.metadataRenderer(), address(metadataRenderer));
         assertEq(token.totalSupply(), 0);
     }

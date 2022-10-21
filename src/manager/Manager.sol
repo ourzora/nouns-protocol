@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 import { UUPS } from "../lib/proxy/UUPS.sol";
 import { Ownable } from "../lib/utils/Ownable.sol";
@@ -36,18 +36,6 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
     /// @notice The governor implementation address
     address public immutable governorImpl;
 
-    /// @notice The metadata renderer bytecode hash
-    bytes32 private immutable metadataHash;
-
-    /// @notice The auction bytecode hash
-    bytes32 private immutable auctionHash;
-
-    /// @notice The treasury bytecode hash
-    bytes32 private immutable treasuryHash;
-
-    /// @notice The governor bytecode hash
-    bytes32 private immutable governorHash;
-
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
@@ -64,11 +52,6 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
         auctionImpl = _auctionImpl;
         treasuryImpl = _treasuryImpl;
         governorImpl = _governorImpl;
-
-        metadataHash = keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(_metadataImpl, "")));
-        auctionHash = keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(_auctionImpl, "")));
-        treasuryHash = keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(_treasuryImpl, "")));
-        governorHash = keccak256(abi.encodePacked(type(ERC1967Proxy).creationCode, abi.encode(_governorImpl, "")));
     }
 
     ///                                                          ///
@@ -76,13 +59,13 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
     ///                                                          ///
 
     /// @notice Initializes ownership of the manager contract
-    /// @param _owner The owner address to set (will be transferred to the Builder DAO once its deployed)
-    function initialize(address _owner) external initializer {
+    /// @param _newOwner The owner address to set (will be transferred to the Builder DAO once its deployed)
+    function initialize(address _newOwner) external initializer {
         // Ensure an owner is specified
-        if (_owner == address(0)) revert ADDRESS_ZERO();
+        if (_newOwner == address(0)) revert ADDRESS_ZERO();
 
         // Set the contract owner
-        __Ownable_init(_owner);
+        __Ownable_init(_newOwner);
     }
 
     ///                                                          ///
@@ -128,22 +111,36 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
         treasury = address(new ERC1967Proxy{ salt: salt }(treasuryImpl, ""));
         governor = address(new ERC1967Proxy{ salt: salt }(governorImpl, ""));
 
-        // Initialize each instance with the provided settings
-        IToken(token).initialize(_founderParams, _tokenParams.initStrings, metadata, auction);
-        IBaseMetadata(metadata).initialize(_tokenParams.initStrings, token, founder, treasury);
-        IAuction(auction).initialize(token, founder, treasury, _auctionParams.duration, _auctionParams.reservePrice);
-        ITreasury(treasury).initialize(governor, _govParams.timelockDelay);
-        IGovernor(governor).initialize(
-            treasury,
-            token,
-            _govParams.vetoer,
-            _govParams.votingDelay,
-            _govParams.votingPeriod,
-            _govParams.proposalThresholdBps,
-            _govParams.quorumThresholdBps
-        );
+        daoAddressesByToken[token] = DAOAddresses({ metadata: metadata, auction: auction, treasury: treasury, governor: governor });
 
-        emit DAODeployed(token, metadata, auction, treasury, governor);
+        // Initialize each instance with the provided settings
+        IToken(token).initialize({
+            founders: _founderParams,
+            initStrings: _tokenParams.initStrings,
+            metadataRenderer: metadata,
+            auction: auction,
+            initialOwner: founder
+        });
+        IBaseMetadata(metadata).initialize({ initStrings: _tokenParams.initStrings, token: token });
+        IAuction(auction).initialize({
+            token: token,
+            founder: founder,
+            treasury: treasury,
+            duration: _auctionParams.duration,
+            reservePrice: _auctionParams.reservePrice
+        });
+        ITreasury(treasury).initialize({ governor: governor, timelockDelay: _govParams.timelockDelay });
+        IGovernor(governor).initialize({
+            treasury: treasury,
+            token: token,
+            vetoer: _govParams.vetoer,
+            votingDelay: _govParams.votingDelay,
+            votingPeriod: _govParams.votingPeriod,
+            proposalThresholdBps: _govParams.proposalThresholdBps,
+            quorumThresholdBps: _govParams.quorumThresholdBps
+        });
+
+        emit DAODeployed({ token: token, metadata: metadata, auction: auction, treasury: treasury, governor: governor });
     }
 
     ///                                                          ///
@@ -152,6 +149,10 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
 
     /// @notice A DAO's contract addresses from its token
     /// @param _token The ERC-721 token address
+    /// @return metadata Metadata deployed address
+    /// @return auction Auction deployed address
+    /// @return treasury Treasury deployed address
+    /// @return governor Governor deployed address
     function getAddresses(address _token)
         external
         view
@@ -162,12 +163,12 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
             address governor
         )
     {
-        bytes32 salt = bytes32(uint256(uint160(_token)) << 96);
+        DAOAddresses storage addresses = daoAddressesByToken[_token];
 
-        metadata = address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, metadataHash)))));
-        auction = address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, auctionHash)))));
-        treasury = address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, treasuryHash)))));
-        governor = address(uint160(uint256(keccak256(abi.encodePacked(bytes1(0xff), address(this), salt, governorHash)))));
+        metadata = addresses.metadata;
+        auction = addresses.auction;
+        treasury = addresses.treasury;
+        governor = addresses.governor;
     }
 
     ///                                                          ///

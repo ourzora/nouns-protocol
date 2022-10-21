@@ -1,20 +1,22 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 import { UUPS } from "../lib/proxy/UUPS.sol";
 import { ReentrancyGuard } from "../lib/utils/ReentrancyGuard.sol";
 import { ERC721Votes } from "../lib/token/ERC721Votes.sol";
 import { ERC721 } from "../lib/token/ERC721.sol";
+import { Ownable } from "../lib/utils/Ownable.sol";
 
 import { TokenStorageV1 } from "./storage/TokenStorageV1.sol";
 import { IBaseMetadata } from "./metadata/interfaces/IBaseMetadata.sol";
 import { IManager } from "../manager/IManager.sol";
+import { IAuction } from "../auction/IAuction.sol";
 import { IToken } from "./IToken.sol";
 
 /// @title Token
 /// @author Rohan Kulkarni
 /// @notice A DAO's ERC-721 governance token
-contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
+contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
@@ -40,23 +42,30 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     /// @param _initStrings The encoded token and metadata initialization strings
     /// @param _metadataRenderer The token's metadata renderer
     /// @param _auction The token's auction house
+    /// @param _initialOwner The initial owner of the token
     function initialize(
         IManager.FounderParams[] calldata _founders,
         bytes calldata _initStrings,
         address _metadataRenderer,
-        address _auction
+        address _auction,
+        address _initialOwner
     ) external initializer {
         // Ensure the caller is the contract manager
-        if (msg.sender != address(manager)) revert ONLY_MANAGER();
+        if (msg.sender != address(manager)) {
+            revert ONLY_MANAGER();
+        }
 
         // Initialize the reentrancy guard
         __ReentrancyGuard_init();
+
+        // Setup ownable
+        __Ownable_init(_initialOwner);
 
         // Store the founders and compute their allocations
         _addFounders(_founders);
 
         // Decode the token name and symbol
-        (string memory _name, string memory _symbol, , , ) = abi.decode(_initStrings, (string, string, string, string, string));
+        (string memory _name, string memory _symbol, , , , ) = abi.decode(_initStrings, (string, string, string, string, string, string));
 
         // Initialize the ERC-721 token
         __ERC721_init(_name, _symbol);
@@ -64,6 +73,17 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
         // Store the metadata renderer and auction house
         settings.metadataRenderer = IBaseMetadata(_metadataRenderer);
         settings.auction = _auction;
+    }
+
+    /// @notice Called by the auction upon the first unpause / token mint to transfer ownership from founder to treasury
+    /// @dev Only callable by the auction contract
+    function onFirstAuctionStarted() external override {
+        if (msg.sender != settings.auction) {
+            revert ONLY_AUCTION();
+        }
+
+        // Force transfer ownership to the treasury
+        _transferOwnership(IAuction(settings.auction).treasury());
     }
 
     /// @notice Called upon initialization to add founders and compute their vesting allocations
@@ -320,9 +340,8 @@ contract Token is IToken, UUPS, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
         return address(settings.metadataRenderer);
     }
 
-    /// @notice The address of the owner
-    function owner() public view returns (address) {
-        return settings.metadataRenderer.owner();
+    function owner() public view override(IToken, Ownable) returns (address) {
+        return super.owner();
     }
 
     ///                                                          ///

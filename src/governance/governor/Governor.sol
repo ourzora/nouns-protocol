@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 import { UUPS } from "../../lib/proxy/UUPS.sol";
 import { Ownable } from "../../lib/utils/Ownable.sol";
@@ -25,23 +25,25 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
     ///                                                          ///
 
     /// @notice The EIP-712 typehash to vote with a signature
-    bytes32 public constant VOTE_TYPEHASH = keccak256("Vote(address voter,uint256 proposalId,uint256 support,uint256 nonce,uint256 deadline)");
+    bytes32 public immutable VOTE_TYPEHASH = keccak256("Vote(address voter,uint256 proposalId,uint256 support,uint256 nonce,uint256 deadline)");
 
-    uint256 private constant MIN_PROPOSAL_THRESHOLD_BPS = 1;
+    uint256 private immutable MIN_PROPOSAL_THRESHOLD_BPS = 1;
 
-    uint256 private constant MAX_PROPOSAL_THRESHOLD_BPS = 1000;
+    uint256 private immutable MAX_PROPOSAL_THRESHOLD_BPS = 1000;
 
-    uint256 private constant MIN_QUORUM_THRESHOLD_BPS = 200;
+    uint256 private immutable MIN_QUORUM_THRESHOLD_BPS = 200;
 
-    uint256 private constant MAX_QUORUM_THRESHOLD_BPS = 2000;
+    uint256 private immutable MAX_QUORUM_THRESHOLD_BPS = 2000;
 
-    uint256 private constant MIN_VOTING_DELAY = 1 seconds;
+    uint256 private immutable MIN_VOTING_DELAY = 1 seconds;
 
-    uint256 private constant MAX_VOTING_DELAY = 24 weeks;
+    uint256 private immutable MAX_VOTING_DELAY = 24 weeks;
 
-    uint256 private constant MIN_VOTING_PERIOD = 10 minutes;
+    uint256 private immutable MIN_VOTING_PERIOD = 10 minutes;
 
-    uint256 private constant MAX_VOTING_PERIOD = 24 weeks;
+    uint256 private immutable MAX_VOTING_PERIOD = 24 weeks;
+
+    uint256 private immutable BPS_PER_100_PERCENT = 10_000;
 
     ///                                                          ///
     ///                         IMMUTABLES                       ///
@@ -171,12 +173,12 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
         }
 
         // Store the proposal data
-        proposal.voteStart = uint32(snapshot);
-        proposal.voteEnd = uint32(deadline);
-        proposal.proposalThreshold = uint32(currentProposalThreshold);
-        proposal.quorumVotes = uint32(quorum());
+        proposal.voteStart = SafeCast.toUint32(snapshot);
+        proposal.voteEnd = SafeCast.toUint32(deadline);
+        proposal.proposalThreshold = SafeCast.toUint32(currentProposalThreshold);
+        proposal.quorumVotes = SafeCast.toUint32(quorum());
         proposal.proposer = msg.sender;
-        proposal.timeCreated = uint32(block.timestamp);
+        proposal.timeCreated = SafeCast.toUint32(block.timestamp);
 
         emit ProposalCreated(proposalId, _targets, _values, _calldatas, _description, descriptionHash, proposal);
 
@@ -286,17 +288,17 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
             // If the vote is against:
             if (_support == 0) {
                 // Update the total number of votes against
-                proposal.againstVotes += uint32(weight);
+                proposal.againstVotes += SafeCast.toUint32(weight);
 
                 // Else if the vote is for:
             } else if (_support == 1) {
                 // Update the total number of votes for
-                proposal.forVotes += uint32(weight);
+                proposal.forVotes += SafeCast.toUint32(weight);
 
                 // Else if the vote is to abstain:
             } else if (_support == 2) {
                 // Update the total number of votes abstaining
-                proposal.abstainVotes += uint32(weight);
+                proposal.abstainVotes += SafeCast.toUint32(weight);
             }
         }
 
@@ -476,14 +478,14 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
     /// @notice The current number of votes required to submit a proposal
     function proposalThreshold() public view returns (uint256) {
         unchecked {
-            return (settings.token.totalSupply() * settings.proposalThresholdBps) / 10_000;
+            return (settings.token.totalSupply() * settings.proposalThresholdBps) / BPS_PER_100_PERCENT;
         }
     }
 
     /// @notice The current number of votes required to be in favor of a proposal in order to reach quorum
     function quorum() public view returns (uint256) {
         unchecked {
-            return (settings.token.totalSupply() * settings.quorumThresholdBps) / 10_000;
+            return (settings.token.totalSupply() * settings.quorumThresholdBps) / BPS_PER_100_PERCENT;
         }
     }
 
