@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity 0.8.15;
 
 import { IERC721Votes } from "../interfaces/IERC721Votes.sol";
 import { ERC721 } from "../token/ERC721.sol";

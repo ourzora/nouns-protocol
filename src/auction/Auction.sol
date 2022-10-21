@@ -21,6 +21,15 @@ import { IWETH } from "../lib/interfaces/IWETH.sol";
 /// - Zora V3 ReserveAuctionCoreEth module commit 795aeca - licensed under the GPL-3.0 license.
 contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionStorageV1 {
     ///                                                          ///
+    ///                          CONSTANTS                       ///
+    ///                                                          ///
+
+    /// @notice Iniital time buffer for auction bids
+    uint40 private immutable INITIAL_TIME_BUFFER = 5 minutes;
+    /// @notice Min bid increment BPS
+    uint8 private immutable INITIAL_MIN_BID_INCREMENT_PERCENT = 10;
+
+    ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
@@ -77,8 +86,8 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         settings.duration = SafeCast.toUint40(_duration);
         settings.reservePrice = _reservePrice;
         settings.treasury = _treasury;
-        settings.timeBuffer = 5 minutes;
-        settings.minBidIncrement = 10;
+        settings.timeBuffer = INITIAL_TIME_BUFFER;
+        settings.minBidIncrement = INITIAL_MIN_BID_INCREMENT_PERCENT;
     }
 
     ///                                                          ///

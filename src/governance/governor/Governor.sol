@@ -25,23 +25,25 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
     ///                                                          ///
 
     /// @notice The EIP-712 typehash to vote with a signature
-    bytes32 public constant VOTE_TYPEHASH = keccak256("Vote(address voter,uint256 proposalId,uint256 support,uint256 nonce,uint256 deadline)");
+    bytes32 public immutable VOTE_TYPEHASH = keccak256("Vote(address voter,uint256 proposalId,uint256 support,uint256 nonce,uint256 deadline)");
 
-    uint256 private constant MIN_PROPOSAL_THRESHOLD_BPS = 1;
+    uint256 private immutable MIN_PROPOSAL_THRESHOLD_BPS = 1;
 
-    uint256 private constant MAX_PROPOSAL_THRESHOLD_BPS = 1000;
+    uint256 private immutable MAX_PROPOSAL_THRESHOLD_BPS = 1000;
 
-    uint256 private constant MIN_QUORUM_THRESHOLD_BPS = 200;
+    uint256 private immutable MIN_QUORUM_THRESHOLD_BPS = 200;
 
-    uint256 private constant MAX_QUORUM_THRESHOLD_BPS = 2000;
+    uint256 private immutable MAX_QUORUM_THRESHOLD_BPS = 2000;
 
-    uint256 private constant MIN_VOTING_DELAY = 1 seconds;
+    uint256 private immutable MIN_VOTING_DELAY = 1 seconds;
 
-    uint256 private constant MAX_VOTING_DELAY = 24 weeks;
+    uint256 private immutable MAX_VOTING_DELAY = 24 weeks;
 
-    uint256 private constant MIN_VOTING_PERIOD = 10 minutes;
+    uint256 private immutable MIN_VOTING_PERIOD = 10 minutes;
 
-    uint256 private constant MAX_VOTING_PERIOD = 24 weeks;
+    uint256 private immutable MAX_VOTING_PERIOD = 24 weeks;
+
+    uint256 private immutable BPS_PER_100_PERCENT = 10_000;
 
     ///                                                          ///
     ///                         IMMUTABLES                       ///
@@ -476,14 +478,14 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
     /// @notice The current number of votes required to submit a proposal
     function proposalThreshold() public view returns (uint256) {
         unchecked {
-            return (settings.token.totalSupply() * settings.proposalThresholdBps) / 10_000;
+            return (settings.token.totalSupply() * settings.proposalThresholdBps) / BPS_PER_100_PERCENT;
         }
     }
 
     /// @notice The current number of votes required to be in favor of a proposal in order to reach quorum
     function quorum() public view returns (uint256) {
         unchecked {
-            return (settings.token.totalSupply() * settings.quorumThresholdBps) / 10_000;
+            return (settings.token.totalSupply() * settings.quorumThresholdBps) / BPS_PER_100_PERCENT;
         }
     }
 
