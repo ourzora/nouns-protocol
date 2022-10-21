@@ -90,17 +90,14 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
     function createBid(uint256 _tokenId) external payable nonReentrant {
         uint256 msgValue = msg.value;
 
-        // Get a copy of the current auction
-        Auction memory _auction = auction;
-
         // Ensure the bid is for the current token
-        if (_auction.tokenId != _tokenId) revert INVALID_TOKEN_ID();
+        if (auction.tokenId != _tokenId) revert INVALID_TOKEN_ID();
 
         // Ensure the auction is still active
-        if (block.timestamp >= _auction.endTime) revert AUCTION_OVER();
+        if (block.timestamp >= auction.endTime) revert AUCTION_OVER();
 
         // Cache the address of the highest bidder
-        address highestBidder = _auction.highestBidder;
+        address highestBidder = auction.highestBidder;
 
         // If this is the first bid:
         if (highestBidder == address(0)) {
@@ -110,7 +107,7 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             // Else this is a subsequent bid:
         } else {
             // Cache the highest bid
-            uint256 highestBid = _auction.highestBid;
+            uint256 highestBid = auction.highestBid;
 
             // Used to store the minimum bid required
             uint256 minBid;
@@ -140,7 +137,7 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         // Cannot underflow as `_auction.endTime` is ensured to be greater than the current time above
         unchecked {
             // Compute whether the time remaining is less than the buffer
-            extend = (_auction.endTime - block.timestamp) < settings.timeBuffer;
+            extend = (auction.endTime - block.timestamp) < settings.timeBuffer;
         }
 
         // If the time remaining is within the buffer:
