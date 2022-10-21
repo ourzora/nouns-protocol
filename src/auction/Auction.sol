@@ -120,7 +120,7 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             }
 
             // Ensure the incoming bid meets the minimum
-            if (msg.value < minBid) revert MINIMUM_BID_NOT_MET();
+            if (msg.value < minBid || minBid == highestBid) revert MINIMUM_BID_NOT_MET();
 
             // Refund the previous bidder
             _handleOutgoingTransfer(highestBidder, highestBid);
