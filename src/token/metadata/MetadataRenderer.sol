@@ -8,22 +8,38 @@ import { MetadataBuilder } from "micro-onchain-metadata-utils/MetadataBuilder.so
 import { MetadataJSONKeys } from "micro-onchain-metadata-utils/MetadataJSONKeys.sol";
 
 import { UUPS } from "../../lib/proxy/UUPS.sol";
-import { Ownable } from "../../lib/utils/Ownable.sol";
+import { Initializable } from "../../lib/utils/Initializable.sol";
+import { IOwnable } from "../../lib/interfaces/IOwnable.sol";
+import { ERC721 } from "../../lib/token/ERC721.sol";
 
 import { MetadataRendererStorageV1 } from "./storage/MetadataRendererStorageV1.sol";
+import { IToken } from "../../token/IToken.sol";
 import { IPropertyIPFSMetadataRenderer } from "./interfaces/IPropertyIPFSMetadataRenderer.sol";
 import { IManager } from "../../manager/IManager.sol";
 
 /// @title Metadata Renderer
 /// @author Iain Nash & Rohan Kulkarni
 /// @notice A DAO's artwork generator and renderer
-contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, MetadataRendererStorageV1 {
+contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS, MetadataRendererStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
     /// @notice The contract upgrade manager
     IManager private immutable manager;
+
+    ///                                                          ///
+    ///                          MODIFIERS                       ///
+    ///                                                          ///
+
+    /// @notice Checks the token owner if the current action is allowed
+    modifier onlyOwner() {
+        if (owner() != msg.sender) {
+            revert IOwnable.ONLY_OWNER();
+        }
+
+        _;
+    }
 
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
@@ -41,33 +57,25 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
     /// @notice Initializes a DAO's token metadata renderer
     /// @param _initStrings The encoded token and metadata initialization strings
     /// @param _token The ERC-721 token address
-    /// @param _founder The founder address responsible for adding initial properties
-    /// @param _treasury The DAO treasury that will own the contract
-    function initialize(
-        bytes calldata _initStrings,
-        address _token,
-        address _founder,
-        address _treasury
-    ) external initializer {
+    function initialize(bytes calldata _initStrings, address _token) external initializer {
         // Ensure the caller is the contract manager
-        if (msg.sender != address(manager)) revert ONLY_MANAGER();
+        if (msg.sender != address(manager)) {
+            revert ONLY_MANAGER();
+        }
 
         // Decode the token initialization strings
-        (string memory _name, , string memory _description, string memory _contractImage, string memory _rendererBase) = abi.decode(
+        (, , string memory _description, string memory _contractImage, string memory _projectURI, string memory _rendererBase) = abi.decode(
             _initStrings,
-            (string, string, string, string, string)
+            (string, string, string, string, string, string)
         );
 
         // Store the renderer settings
-        settings.name = _name;
+        settings.projectURI = _projectURI;
         settings.description = _description;
         settings.contractImage = _contractImage;
         settings.rendererBase = _rendererBase;
+        settings.projectURI = _projectURI;
         settings.token = _token;
-        settings.treasury = _treasury;
-
-        // Grant initial ownership to a founder
-        __Ownable_init(_founder);
     }
 
     ///                                                          ///
@@ -112,15 +120,16 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         // If this is the first time adding metadata:
         if (numStoredProperties == 0) {
             // Ensure at least one property and one item are included
-            if (numNewProperties == 0 || numNewItems == 0) revert ONE_PROPERTY_AND_ITEM_REQUIRED();
-
-            // Transfer contract ownership to the DAO treasury
-            transferOwnership(settings.treasury);
+            if (numNewProperties == 0 || numNewItems == 0) {
+                revert ONE_PROPERTY_AND_ITEM_REQUIRED();
+            }
         }
 
         unchecked {
-            //
-            if (numStoredProperties + numNewProperties > 15) revert TOO_MANY_PROPERTIES();
+            // Check if not too many items are stored
+            if (numStoredProperties + numNewProperties > 15) {
+                revert TOO_MANY_PROPERTIES();
+            }
 
             // For each new property:
             for (uint256 i = 0; i < numNewProperties; ++i) {
@@ -180,7 +189,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
 
     /// @notice Generates attributes for a token upon mint
     /// @param _tokenId The ERC-721 token id
-    function onMinted(uint256 _tokenId) external returns (bool) {
+    function onMinted(uint256 _tokenId) external override returns (bool) {
         // Ensure the caller is the token contract
         if (msg.sender != settings.token) revert ONLY_TOKEN();
 
@@ -285,13 +294,19 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
     ///                            URIs                          ///
     ///                                                          ///
 
-    /// @notice The contract URI
-    function contractURI() external view returns (string memory) {
-        MetadataBuilder.JSONItem[] memory items = new MetadataBuilder.JSONItem[](3);
+    /// @notice Internal getter function for token name
+    function _name() internal view returns (string memory) {
+        return ERC721(settings.token).name();
+    }
 
-        items[0] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyName, value: settings.name, quote: true });
+    /// @notice The contract URI
+    function contractURI() external view override returns (string memory) {
+        MetadataBuilder.JSONItem[] memory items = new MetadataBuilder.JSONItem[](4);
+
+        items[0] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyName, value: _name(), quote: true });
         items[1] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyDescription, value: settings.description, quote: true });
         items[2] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyImage, value: settings.contractImage, quote: true });
+        items[3] = MetadataBuilder.JSONItem({ key: "external_url", value: settings.projectURI, quote: true });
 
         return MetadataBuilder.generateEncodedJSON(items);
     }
@@ -299,13 +314,13 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
     /// @notice The token URI
     /// @param _tokenId The ERC-721 token id
     function tokenURI(uint256 _tokenId) external view returns (string memory) {
-        (string memory attributes, string memory queryString) = getAttributes(_tokenId);
+        (string memory _attributes, string memory queryString) = getAttributes(_tokenId);
 
         MetadataBuilder.JSONItem[] memory items = new MetadataBuilder.JSONItem[](4);
 
         items[0] = MetadataBuilder.JSONItem({
             key: MetadataJSONKeys.keyName,
-            value: string.concat(settings.name, " #", Strings.toString(_tokenId)),
+            value: string.concat(_name(), " #", Strings.toString(_tokenId)),
             quote: true
         });
         items[1] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyDescription, value: settings.description, quote: true });
@@ -314,7 +329,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
             value: string.concat(settings.rendererBase, queryString),
             quote: true
         });
-        items[3] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyProperties, value: attributes, quote: false });
+        items[3] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyProperties, value: _attributes, quote: false });
 
         return MetadataBuilder.generateEncodedJSON(items);
     }
@@ -326,11 +341,6 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
     /// @notice The associated ERC-721 token
     function token() external view returns (address) {
         return settings.token;
-    }
-
-    /// @notice The DAO treasury
-    function treasury() external view returns (address) {
-        return settings.treasury;
     }
 
     /// @notice The contract image
@@ -346,6 +356,16 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
     /// @notice The collection description
     function description() external view returns (string memory) {
         return settings.description;
+    }
+
+    /// @notice The collection description
+    function projectURI() external view returns (string memory) {
+        return settings.projectURI;
+    }
+
+    /// @notice Get the owner of the metadata (here delegated to the token owner)
+    function owner() public view returns (address) {
+        return IOwnable(settings.token).owner();
     }
 
     ///                                                          ///
@@ -374,6 +394,12 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, UUPS, Ownable, Metad
         emit DescriptionUpdated(settings.description, _newDescription);
 
         settings.description = _newDescription;
+    }
+
+    function updateProjectURI(string memory _newProjectURI) external onlyOwner {
+        emit WebsiteURIUpdated(settings.projectURI, _newProjectURI);
+
+        settings.projectURI = _newProjectURI;
     }
 
     ///                                                          ///

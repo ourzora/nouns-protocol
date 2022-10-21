@@ -28,8 +28,7 @@ interface MetadataRendererTypesV1 {
 
     struct Settings {
         address token;
-        address treasury;
-        string name;
+        string projectURI;
         string description;
         string contractImage;
         string rendererBase;

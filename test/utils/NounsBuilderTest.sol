@@ -124,6 +124,7 @@ contract NounsBuilderTest is Test {
             "MOCK",
             "This is a mock token",
             "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
+            "https://nouns.build",
             "http://localhost:5000/render"
         );
     }
@@ -133,9 +134,10 @@ contract NounsBuilderTest is Test {
         string memory _symbol,
         string memory _description,
         string memory _contractImage,
+        string memory _contractURI,
         string memory _rendererBase
     ) internal virtual {
-        bytes memory initStrings = abi.encode(_name, _symbol, _description, _contractImage, _rendererBase);
+        bytes memory initStrings = abi.encode(_name, _symbol, _description, _contractImage, _contractURI, _rendererBase);
 
         tokenParams = IManager.TokenParams({ initStrings: initStrings });
     }
@@ -231,11 +233,12 @@ contract NounsBuilderTest is Test {
         string memory _symbol,
         string memory _description,
         string memory _contractImage,
+        string memory _projectURI,
         string memory _rendererBase
     ) internal {
         setMockFounderParams();
 
-        setTokenParams(_name, _symbol, _description, _contractImage, _rendererBase);
+        setTokenParams(_name, _symbol, _description, _contractImage, _projectURI, _rendererBase);
 
         setMockAuctionParams();
 

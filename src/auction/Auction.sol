@@ -21,6 +21,15 @@ import { IWETH } from "../lib/interfaces/IWETH.sol";
 /// - Zora V3 ReserveAuctionCoreEth module commit 795aeca - licensed under the GPL-3.0 license.
 contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionStorageV1 {
     ///                                                          ///
+    ///                          CONSTANTS                       ///
+    ///                                                          ///
+
+    /// @notice Iniital time buffer for auction bids
+    uint40 private immutable INITIAL_TIME_BUFFER = 5 minutes;
+    /// @notice Min bid increment BPS
+    uint8 private immutable INITIAL_MIN_BID_INCREMENT_PERCENT = 10;
+
+    ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
@@ -77,8 +86,8 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         settings.duration = SafeCast.toUint40(_duration);
         settings.reservePrice = _reservePrice;
         settings.treasury = _treasury;
-        settings.timeBuffer = 5 minutes;
-        settings.minBidIncrement = 10;
+        settings.timeBuffer = INITIAL_TIME_BUFFER;
+        settings.minBidIncrement = INITIAL_MIN_BID_INCREMENT_PERCENT;
     }
 
     ///                                                          ///
@@ -100,6 +109,24 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         // Cache the address of the highest bidder
         address highestBidder = _auction.highestBidder;
 
+        // Store the new highest bid
+        auction.highestBid = msg.value;
+
+        // Store the new highest bidder
+        auction.highestBidder = msg.sender;
+
+        bool extend;
+
+        // Cannot underflow as `_auction.endTime` is ensured to be greater than the current time above
+        unchecked {
+            // Compute whether the time remaining is less than the buffer
+            extend = (_auction.endTime - block.timestamp) < settings.timeBuffer;
+            if (extend) {
+                // Extend the auction by the time buffer
+                auction.endTime = uint40(block.timestamp + settings.timeBuffer);
+            }
+        }
+
         // If this is the first bid:
         if (highestBidder == address(0)) {
             // Ensure the bid meets the reserve price
@@ -120,35 +147,12 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             }
 
             // Ensure the incoming bid meets the minimum
-            if (msg.value < minBid) revert MINIMUM_BID_NOT_MET();
+            if (msg.value < minBid || minBid == highestBid) revert MINIMUM_BID_NOT_MET();
 
             // Refund the previous bidder
             _handleOutgoingTransfer(highestBidder, highestBid);
         }
 
-        // Store the new highest bid
-        auction.highestBid = msg.value;
-
-        // Store the new highest bidder
-        auction.highestBidder = msg.sender;
-
-        // Used to store if the auction will be extended
-        bool extend;
-
-        // Cannot underflow as `_auction.endTime` is ensured to be greater than the current time above
-        unchecked {
-            // Compute whether the time remaining is less than the buffer
-            extend = (_auction.endTime - block.timestamp) < settings.timeBuffer;
-        }
-
-        // If the time remaining is within the buffer:
-        if (extend) {
-            // Cannot realistically overflow
-            unchecked {
-                // Extend the auction by the time buffer
-                auction.endTime = uint40(block.timestamp + settings.timeBuffer);
-            }
-        }
 
         emit AuctionBid(_tokenId, msg.sender, msg.value, extend, auction.endTime);
     }
@@ -248,8 +252,11 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             // Mark the DAO as launched
             settings.launched = true;
 
-            // Transfer ownership of the contract to the DAO
+            // Transfer ownership of the auction contract to the DAO
             transferOwnership(settings.treasury);
+
+            // Transfer ownership of the token contract to the DAO
+            token.onFirstAuctionStarted();
 
             // Start the first auction
             _createAuction();
@@ -362,7 +369,10 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             IWETH(WETH).deposit{ value: _amount }();
 
             // Transfer WETH instead
-            IWETH(WETH).transfer(_to, _amount);
+            bool wethSuccess = IWETH(WETH).transfer(_to, _amount);
+            if (!wethSuccess) {
+                revert FAILING_WETH_TRANSFER();
+            }
         }
     }
 
