@@ -59,13 +59,13 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
     ///                                                          ///
 
     /// @notice Initializes ownership of the manager contract
-    /// @param _owner The owner address to set (will be transferred to the Builder DAO once its deployed)
-    function initialize(address _owner) external initializer {
+    /// @param _newOwner The owner address to set (will be transferred to the Builder DAO once its deployed)
+    function initialize(address _newOwner) external initializer {
         // Ensure an owner is specified
-        if (_owner == address(0)) revert ADDRESS_ZERO();
+        if (_newOwner == address(0)) revert ADDRESS_ZERO();
 
         // Set the contract owner
-        __Ownable_init(_owner);
+        __Ownable_init(_newOwner);
     }
 
     ///                                                          ///
