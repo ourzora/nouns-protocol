@@ -149,6 +149,26 @@ contract AuctionTest is NounsBuilderTest {
         assertEq(highestBidder, bidder2);
     }
 
+
+    function testRevert_CannotBidZeroWithZeroBid() public {
+        deployMock();
+
+        vm.prank(founder);
+        auction.setReservePrice(0);
+
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(bidder1);
+        auction.createBid{ value: 0 ether }(2);
+
+        vm.warp(5 minutes);
+
+        vm.prank(bidder2);
+        vm.expectRevert(abi.encodeWithSignature("MINIMUM_BID_NOT_MET()"));
+        auction.createBid{ value: 0 ether }(2);
+    }
+
     function testRevert_MustMeetMinBidIncrement() public {
         deployMock();
 

@@ -2,12 +2,12 @@
 pragma solidity 0.8.15;
 
 import { IUUPS } from "../../../lib/interfaces/IUUPS.sol";
-import { IOwnable } from "../../../lib/utils/Ownable.sol";
+
 
 /// @title IBaseMetadata
 /// @author Rohan Kulkarni
 /// @notice The external Base Metadata errors and functions
-interface IBaseMetadata is IUUPS, IOwnable {
+interface IBaseMetadata is IUUPS {
     ///                                                          ///
     ///                            ERRORS                        ///
     ///                                                          ///
@@ -22,13 +22,9 @@ interface IBaseMetadata is IUUPS, IOwnable {
     /// @notice Initializes a DAO's token metadata renderer
     /// @param initStrings The encoded token and metadata initialization strings
     /// @param token The associated ERC-721 token address
-    /// @param founder The founder address responsible for adding
-    /// @param treasury The DAO treasury where ownership will be transferred
     function initialize(
         bytes calldata initStrings,
-        address token,
-        address founder,
-        address treasury
+        address token
     ) external;
 
     /// @notice Generates attributes for a token upon mint
@@ -45,6 +41,6 @@ interface IBaseMetadata is IUUPS, IOwnable {
     /// @notice The associated ERC-721 token
     function token() external view returns (address);
 
-    /// @notice The DAO treasury
-    function treasury() external view returns (address);
+    /// @notice Get metadata owner address
+    function owner() external view returns (address);
 }

@@ -80,6 +80,9 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @dev Reverts if the caller was not the contract manager
     error ONLY_MANAGER();
 
+    /// @dev Thrown if the WETH contract throws a failure on transfer
+    error FAILING_WETH_TRANSFER();
+
     ///                                                          ///
     ///                          FUNCTIONS                       ///
     ///                                                          ///
@@ -141,4 +144,7 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @notice Updates the minimum bid increment of each subsequent bid
     /// @param percentage The new percentage
     function setMinimumBidIncrement(uint256 percentage) external;
+
+    /// @notice Get the address of the treasury
+    function treasury() external returns (address);
 }
