@@ -83,6 +83,9 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @dev Thrown if the WETH contract throws a failure on transfer
     error FAILING_WETH_TRANSFER();
 
+    /// @dev Thrown if the auction creation failed
+    error AUCTION_CREATE_FAILED_TO_LAUNCH();
+
     ///                                                          ///
     ///                          FUNCTIONS                       ///
     ///                                                          ///

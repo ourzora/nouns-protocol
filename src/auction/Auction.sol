@@ -203,7 +203,7 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
     }
 
     /// @dev Creates an auction for the next token
-    function _createAuction() private {
+    function _createAuction() private returns (bool) {
         // Get the next token available for bidding
         try token.mint() returns (uint256 tokenId) {
             // Store the token id
@@ -231,9 +231,11 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             auction.settled = false;
 
             emit AuctionCreated(tokenId, startTime, endTime);
+            return true;
         } catch {
             // Pause the contract if token minting failed
             _pause();
+            return false;
         }
     }
 
@@ -257,7 +259,10 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             token.onFirstAuctionStarted();
 
             // Start the first auction
-            _createAuction();
+            if (!_createAuction()) {
+                // In cause of failure, revert.
+                revert AUCTION_CREATE_FAILED_TO_LAUNCH();
+            }
         }
         // Else if the contract was paused and the previous auction was settled:
         else if (auction.settled) {

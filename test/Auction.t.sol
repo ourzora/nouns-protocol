@@ -4,6 +4,8 @@ pragma solidity 0.8.16;
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 import { MockERC721 } from "./utils/mocks/MockERC721.sol";
 import { MockImpl } from "./utils/mocks/MockImpl.sol";
+import { MockPartialTokenImpl } from "./utils/mocks/MockPartialTokenImpl.sol";
+
 
 contract AuctionTest is NounsBuilderTest {
     MockImpl internal mockImpl;
@@ -148,7 +150,6 @@ contract AuctionTest is NounsBuilderTest {
         assertEq(highestBid, 0.5 ether);
         assertEq(highestBidder, bidder2);
     }
-
 
     function testRevert_CannotBidZeroWithZeroBid() public {
         deployMock();
@@ -320,6 +321,26 @@ contract AuctionTest is NounsBuilderTest {
         (, , , , , bool settled) = auction.auction();
 
         assertEq(settled, true);
+    }
+
+    function testRevert_AuctionFailedTokenMintOnCreate() public {
+        deployMock();
+
+        MockPartialTokenImpl mockTokenFailingImpl = new MockPartialTokenImpl();
+
+        vm.prank(zoraDAO);
+        manager.registerUpgrade(tokenImpl, address(mockTokenFailingImpl));
+
+        // Upgrade token to invalid contract
+        vm.prank(address(founder));
+        token.upgradeTo(address(mockTokenFailingImpl));
+
+        vm.prank(founder);
+        vm.expectRevert(abi.encodeWithSignature("AUCTION_CREATE_FAILED_TO_LAUNCH()"));
+        auction.unpause();
+
+        assertTrue(auction.paused());
+        assertEq(auction.owner(), founder);
     }
 
     function testRevert_CannotOnlySettleWhenNotPaused() public {
