@@ -19,16 +19,28 @@ contract DeployContracts is Script {
 
     function run() public {
         uint256 chainID = vm.envUint("CHAIN_ID");
-        console.log("CHAIN_ID", chainID);
         uint256 key = vm.envUint("PRIVATE_KEY");
-        address deployerAddress = vm.addr(key);
         address weth = vm.envAddress("WETH_ADDRESS");
+        address owner = vm.envAddress("MANAGER_OWNER");
+
+        address deployerAddress = vm.addr(key);
+
+        console2.log("~~~~~~~~~~ CHAIN ID ~~~~~~~~~~~");
+        console2.log(chainID);
+
+        console2.log("~~~~~~~~~~ DEPLOYER ~~~~~~~~~~~");
+        console2.log(deployerAddress);
+
+        console2.log("~~~~~~~~~~ OWNER ~~~~~~~~~~~");
+        console2.log(owner);
+        console2.log("");
 
         vm.startBroadcast(deployerAddress);
 
         // Deploy root manager implementation + proxy
         address managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0)));
-        Manager manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", deployerAddress))));
+
+        Manager manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", owner))));
 
         // Deploy token implementation
         address tokenImpl = address(new Token(address(manager)));
@@ -47,11 +59,13 @@ contract DeployContracts is Script {
 
         address managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
 
-        manager.upgradeTo(managerImpl);
+        // vm.prank(owner);
+        // manager.upgradeTo(managerImpl);
 
         vm.stopBroadcast();
 
         string memory filePath = string(abi.encodePacked("deploys/", chainID.toString(), ".txt"));
+
         vm.writeFile(filePath, "");
         vm.writeLine(filePath, string(abi.encodePacked("Manager: ", addressToString(address(manager)))));
         vm.writeLine(filePath, string(abi.encodePacked("Token implementation: ", addressToString(tokenImpl))));
@@ -60,6 +74,31 @@ contract DeployContracts is Script {
         vm.writeLine(filePath, string(abi.encodePacked("Treasury implementation: ", addressToString(treasuryImpl))));
         vm.writeLine(filePath, string(abi.encodePacked("Governor implementation: ", addressToString(governorImpl))));
         vm.writeLine(filePath, string(abi.encodePacked("Manager implementation: ", addressToString(managerImpl))));
+
+        console2.log("~~~~~~~~~~ MANAGER IMPL 0 ~~~~~~~~~~~");
+        console2.logAddress(managerImpl0);
+
+        console2.log("~~~~~~~~~~ MANAGER IMPL 1 ~~~~~~~~~~~");
+        console2.logAddress(managerImpl);
+
+        console2.log("~~~~~~~~~~ MANAGER PROXY ~~~~~~~~~~~");
+        console2.logAddress(address(manager));
+        console2.log("");
+
+        console2.log("~~~~~~~~~~ TOKEN IMPL ~~~~~~~~~~~");
+        console2.logAddress(tokenImpl);
+
+        console2.log("~~~~~~~~~~ METADATA RENDERER IMPL ~~~~~~~~~~~");
+        console2.logAddress(metadataRendererImpl);
+
+        console2.log("~~~~~~~~~~ AUCTION IMPL ~~~~~~~~~~~");
+        console2.logAddress(auctionImpl);
+
+        console2.log("~~~~~~~~~~ TREASURY IMPL ~~~~~~~~~~~");
+        console2.logAddress(treasuryImpl);
+
+        console2.log("~~~~~~~~~~ GOVERNOR IMPL ~~~~~~~~~~~");
+        console2.logAddress(governorImpl);
     }
 
     function addressToString(address _addr) private pure returns (string memory) {
