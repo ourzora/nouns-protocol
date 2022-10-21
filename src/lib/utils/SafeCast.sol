@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 /// @notice Modified from OpenZeppelin Contracts v4.7.3 (utils/math/SafeCast.sol)
 /// - Uses custom error `UNSAFE_CAST()`

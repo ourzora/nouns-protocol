@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.15;
+pragma solidity 0.8.16;
 
 /// @title IERC1967Upgrade
 /// @author Rohan Kulkarni
