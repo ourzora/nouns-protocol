@@ -25,9 +25,9 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
     ///                                                          ///
 
     /// @notice Iniital time buffer for auction bids
-    uint40 private constant INITIAL_TIME_BUFFER = 5 minutes;
+    uint40 private immutable INITIAL_TIME_BUFFER = 5 minutes;
     /// @notice Min bid increment BPS
-    uint8 private constant INITIAL_MIN_BID_INCREMENT_PERCENT = 10;
+    uint8 private immutable INITIAL_MIN_BID_INCREMENT_PERCENT = 10;
 
     ///                                                          ///
     ///                          IMMUTABLES                      ///
