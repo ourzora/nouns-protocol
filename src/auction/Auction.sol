@@ -106,7 +106,10 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         if (block.timestamp >= auction.endTime) revert AUCTION_OVER();
 
         // Cache the address of the highest bidder
-        address highestBidder = auction.highestBidder;
+        address lastHighestBidder = auction.highestBidder;
+
+        // Cache the last highest bid
+        uint256 lastHighestBid = auction.highestBid;
 
         // Store the new highest bid
         auction.highestBid = msg.value;
@@ -127,29 +130,26 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         }
 
         // If this is the first bid:
-        if (highestBidder == address(0)) {
+        if (lastHighestBidder == address(0)) {
             // Ensure the bid meets the reserve price
             if (msgValue < settings.reservePrice) revert RESERVE_PRICE_NOT_MET();
 
             // Else this is a subsequent bid:
         } else {
-            // Cache the highest bid
-            uint256 highestBid = auction.highestBid;
-
             // Used to store the minimum bid required
             uint256 minBid;
 
             // Cannot realistically overflow
             unchecked {
                 // Compute the minimum bid
-                minBid = highestBid + ((highestBid * settings.minBidIncrement) / 100);
+                minBid = lastHighestBid + ((lastHighestBid * settings.minBidIncrement) / 100);
             }
 
             // Ensure the incoming bid meets the minimum
-            if (msgValue < minBid || minBid == highestBid) revert MINIMUM_BID_NOT_MET();
+            if (msgValue < minBid || minBid == lastHighestBid) revert MINIMUM_BID_NOT_MET();
 
             // Refund the previous bidder
-            _handleOutgoingTransfer(highestBidder, highestBid);
+            _handleOutgoingTransfer(lastHighestBidder, lastHighestBid);
         }
 
         emit AuctionBid(_tokenId, msg.sender, msgValue, extend, auction.endTime);
