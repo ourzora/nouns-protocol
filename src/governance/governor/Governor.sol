@@ -173,12 +173,12 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
         }
 
         // Store the proposal data
-        proposal.voteStart = uint32(snapshot);
-        proposal.voteEnd = uint32(deadline);
-        proposal.proposalThreshold = uint32(currentProposalThreshold);
-        proposal.quorumVotes = uint32(quorum());
+        proposal.voteStart = SafeCast.toUint32(snapshot);
+        proposal.voteEnd = SafeCast.toUint32(deadline);
+        proposal.proposalThreshold = SafeCast.toUint32(currentProposalThreshold);
+        proposal.quorumVotes = SafeCast.toUint32(quorum());
         proposal.proposer = msg.sender;
-        proposal.timeCreated = uint32(block.timestamp);
+        proposal.timeCreated = SafeCast.toUint32(block.timestamp);
 
         emit ProposalCreated(proposalId, _targets, _values, _calldatas, _description, descriptionHash, proposal);
 
@@ -288,17 +288,17 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
             // If the vote is against:
             if (_support == 0) {
                 // Update the total number of votes against
-                proposal.againstVotes += uint32(weight);
+                proposal.againstVotes += SafeCast.toUint32(weight);
 
                 // Else if the vote is for:
             } else if (_support == 1) {
                 // Update the total number of votes for
-                proposal.forVotes += uint32(weight);
+                proposal.forVotes += SafeCast.toUint32(weight);
 
                 // Else if the vote is to abstain:
             } else if (_support == 2) {
                 // Update the total number of votes abstaining
-                proposal.abstainVotes += uint32(weight);
+                proposal.abstainVotes += SafeCast.toUint32(weight);
             }
         }
 

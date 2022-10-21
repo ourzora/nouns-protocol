@@ -97,17 +97,19 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
     /// @notice Creates a bid for the current token
     /// @param _tokenId The ERC-721 token id
     function createBid(uint256 _tokenId) external payable nonReentrant {
-        // Get a copy of the current auction
-        Auction memory _auction = auction;
+        uint256 msgValue = msg.value;
 
         // Ensure the bid is for the current token
-        if (_auction.tokenId != _tokenId) revert INVALID_TOKEN_ID();
+        if (auction.tokenId != _tokenId) revert INVALID_TOKEN_ID();
 
         // Ensure the auction is still active
-        if (block.timestamp >= _auction.endTime) revert AUCTION_OVER();
+        if (block.timestamp >= auction.endTime) revert AUCTION_OVER();
 
         // Cache the address of the highest bidder
-        address highestBidder = _auction.highestBidder;
+        address lastHighestBidder = auction.highestBidder;
+
+        // Cache the last highest bid
+        uint256 lastHighestBid = auction.highestBid;
 
         // Store the new highest bid
         auction.highestBid = msg.value;
@@ -120,7 +122,7 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         // Cannot underflow as `_auction.endTime` is ensured to be greater than the current time above
         unchecked {
             // Compute whether the time remaining is less than the buffer
-            extend = (_auction.endTime - block.timestamp) < settings.timeBuffer;
+            extend = (auction.endTime - block.timestamp) < settings.timeBuffer;
             if (extend) {
                 // Extend the auction by the time buffer
                 auction.endTime = uint40(block.timestamp + settings.timeBuffer);
@@ -128,33 +130,29 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         }
 
         // If this is the first bid:
-        if (highestBidder == address(0)) {
+        if (lastHighestBidder == address(0)) {
             // Ensure the bid meets the reserve price
-            if (msg.value < settings.reservePrice) revert RESERVE_PRICE_NOT_MET();
+            if (msgValue < settings.reservePrice) revert RESERVE_PRICE_NOT_MET();
 
             // Else this is a subsequent bid:
         } else {
-            // Cache the highest bid
-            uint256 highestBid = _auction.highestBid;
-
             // Used to store the minimum bid required
             uint256 minBid;
 
             // Cannot realistically overflow
             unchecked {
                 // Compute the minimum bid
-                minBid = highestBid + ((highestBid * settings.minBidIncrement) / 100);
+                minBid = lastHighestBid + ((lastHighestBid * settings.minBidIncrement) / 100);
             }
 
             // Ensure the incoming bid meets the minimum
-            if (msg.value < minBid || minBid == highestBid) revert MINIMUM_BID_NOT_MET();
+            if (msgValue < minBid || minBid == lastHighestBid) revert MINIMUM_BID_NOT_MET();
 
             // Refund the previous bidder
-            _handleOutgoingTransfer(highestBidder, highestBid);
+            _handleOutgoingTransfer(lastHighestBidder, lastHighestBid);
         }
 
-
-        emit AuctionBid(_tokenId, msg.sender, msg.value, extend, auction.endTime);
+        emit AuctionBid(_tokenId, msg.sender, msgValue, extend, auction.endTime);
     }
 
     ///                                                          ///
