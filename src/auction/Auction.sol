@@ -110,7 +110,7 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         // Cannot underflow as `_auction.endTime` is ensured to be greater than the current time above
         unchecked {
             // Compute whether the time remaining is less than the buffer
-            extend = (_auction.endTime - block.timestamp) < settings.timeBuffer;
+            extend = (auction.endTime - block.timestamp) < settings.timeBuffer;
             if (extend) {
                 // Extend the auction by the time buffer
                 auction.endTime = uint40(block.timestamp + settings.timeBuffer);
