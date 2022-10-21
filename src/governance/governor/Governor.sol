@@ -21,33 +21,38 @@ import { ProposalHasher } from "./ProposalHasher.sol";
 /// - NounsDAOLogicV1.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
 contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorStorageV1 {
     ///                                                          ///
-    ///                         CONSTANTS                        ///
+    ///                         IMMUTABLES                       ///
     ///                                                          ///
 
     /// @notice The EIP-712 typehash to vote with a signature
     bytes32 public immutable VOTE_TYPEHASH = keccak256("Vote(address voter,uint256 proposalId,uint256 support,uint256 nonce,uint256 deadline)");
 
-    uint256 private immutable MIN_PROPOSAL_THRESHOLD_BPS = 1;
+    /// @notice The minimum proposal threshold bps setting
+    uint256 public immutable MIN_PROPOSAL_THRESHOLD_BPS = 1;
 
-    uint256 private immutable MAX_PROPOSAL_THRESHOLD_BPS = 1000;
+    /// @notice The maximum proposal threshold bps setting
+    uint256 public immutable MAX_PROPOSAL_THRESHOLD_BPS = 1000;
 
-    uint256 private immutable MIN_QUORUM_THRESHOLD_BPS = 200;
+    /// @notice The minimum quorum threshold bps setting
+    uint256 public immutable MIN_QUORUM_THRESHOLD_BPS = 200;
 
-    uint256 private immutable MAX_QUORUM_THRESHOLD_BPS = 2000;
+    /// @notice The maximum quorum threshold bps setting
+    uint256 public immutable MAX_QUORUM_THRESHOLD_BPS = 2000;
 
-    uint256 private immutable MIN_VOTING_DELAY = 1 seconds;
+    /// @notice The minimum voting delay setting
+    uint256 public immutable MIN_VOTING_DELAY = 1 seconds;
 
-    uint256 private immutable MAX_VOTING_DELAY = 24 weeks;
+    /// @notice The maximum voting delay setting
+    uint256 public immutable MAX_VOTING_DELAY = 24 weeks;
 
-    uint256 private immutable MIN_VOTING_PERIOD = 10 minutes;
+    /// @notice The minimum voting period setting
+    uint256 public immutable MIN_VOTING_PERIOD = 10 minutes;
 
-    uint256 private immutable MAX_VOTING_PERIOD = 24 weeks;
+    /// @notice The maximum voting period setting
+    uint256 public immutable MAX_VOTING_PERIOD = 24 weeks;
 
+    /// @notice The basis points for 100%
     uint256 private immutable BPS_PER_100_PERCENT = 10_000;
-
-    ///                                                          ///
-    ///                         IMMUTABLES                       ///
-    ///                                                          ///
 
     /// @notice The contract upgrade manager
     IManager private immutable manager;

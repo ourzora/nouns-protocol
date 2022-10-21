@@ -22,13 +22,14 @@ contract Treasury is ITreasury, UUPS, Ownable, ProposalHasher, TreasuryStorageV1
     ///                         CONSTANTS                        ///
     ///                                                          ///
 
+    /// @notice The default grace period setting
     uint128 private constant INITIAL_GRACE_PERIOD = 2 weeks;
 
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
 
-    /// @dev The contract upgrade manager
+    /// @notice The contract upgrade manager
     IManager private immutable manager;
 
     ///                                                          ///
