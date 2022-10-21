@@ -21,17 +21,14 @@ import { IWETH } from "../lib/interfaces/IWETH.sol";
 /// - Zora V3 ReserveAuctionCoreEth module commit 795aeca - licensed under the GPL-3.0 license.
 contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionStorageV1 {
     ///                                                          ///
-    ///                          CONSTANTS                       ///
+    ///                          IMMUTABLES                      ///
     ///                                                          ///
 
     /// @notice Iniital time buffer for auction bids
     uint40 private immutable INITIAL_TIME_BUFFER = 5 minutes;
+
     /// @notice Min bid increment BPS
     uint8 private immutable INITIAL_MIN_BID_INCREMENT_PERCENT = 10;
-
-    ///                                                          ///
-    ///                          IMMUTABLES                      ///
-    ///                                                          ///
 
     /// @notice The address of WETH
     address private immutable WETH;
@@ -97,13 +94,14 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
     /// @notice Creates a bid for the current token
     /// @param _tokenId The ERC-721 token id
     function createBid(uint256 _tokenId) external payable nonReentrant {
-        uint256 msgValue = msg.value;
-
         // Ensure the bid is for the current token
         if (auction.tokenId != _tokenId) revert INVALID_TOKEN_ID();
 
         // Ensure the auction is still active
         if (block.timestamp >= auction.endTime) revert AUCTION_OVER();
+
+        // Cache the amount of ETH attached
+        uint256 msgValue = msg.value;
 
         // Cache the address of the highest bidder
         address lastHighestBidder = auction.highestBidder;
@@ -112,19 +110,22 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         uint256 lastHighestBid = auction.highestBid;
 
         // Store the new highest bid
-        auction.highestBid = msg.value;
+        auction.highestBid = msgValue;
 
         // Store the new highest bidder
         auction.highestBidder = msg.sender;
 
+        // Used to store whether to extend the auction
         bool extend;
 
         // Cannot underflow as `_auction.endTime` is ensured to be greater than the current time above
         unchecked {
             // Compute whether the time remaining is less than the buffer
             extend = (auction.endTime - block.timestamp) < settings.timeBuffer;
+
+            // If the auction should be extended
             if (extend) {
-                // Extend the auction by the time buffer
+                // Update the end time with the additional time buffer
                 auction.endTime = uint40(block.timestamp + settings.timeBuffer);
             }
         }
@@ -373,6 +374,8 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
 
             // Transfer WETH instead
             bool wethSuccess = IWETH(WETH).transfer(_to, _amount);
+
+            // Ensure successful transfer
             if (!wethSuccess) {
                 revert FAILING_WETH_TRANSFER();
             }

@@ -246,7 +246,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
         // Ensure the given token was minted
         if (numProperties == 0) revert TOKEN_NOT_MINTED(_tokenId);
 
-        //
+        // Get an array to store the token's generated attribtues
         MetadataBuilder.JSONItem[] memory arrayAttributesItems = new MetadataBuilder.JSONItem[](numProperties);
 
         unchecked {
