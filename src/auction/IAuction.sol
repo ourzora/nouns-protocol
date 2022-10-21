@@ -141,4 +141,7 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @notice Updates the minimum bid increment of each subsequent bid
     /// @param percentage The new percentage
     function setMinimumBidIncrement(uint256 percentage) external;
+
+    /// @notice Get the address of the treasury
+    function treasury() external returns (address);
 }

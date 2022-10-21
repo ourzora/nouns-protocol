@@ -49,7 +49,7 @@ abstract contract Ownable is IOwnable, Initializable {
     }
 
     /// @notice The address of the owner
-    function owner() public view returns (address) {
+    function owner() public virtual view returns (address) {
         return _owner;
     }
 
@@ -58,9 +58,16 @@ abstract contract Ownable is IOwnable, Initializable {
         return _pendingOwner;
     }
 
-    /// @notice Forces an ownership transfer
+    /// @notice Forces an ownership transfer from the last owner
     /// @param _newOwner The new owner address
     function transferOwnership(address _newOwner) public onlyOwner {
+        _transferOwnership(_newOwner);
+    }
+
+    /// @notice Forces an ownership transfer from any sender
+    /// @param _newOwner New owner to transfer contract to
+    /// @dev Ensure is called only from trusted internal code, no access control checks.
+    function _transferOwnership(address _newOwner) internal {
         emit OwnerUpdated(_owner, _newOwner);
 
         _owner = _newOwner;

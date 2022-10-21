@@ -109,17 +109,28 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
 
     function test_ContractURI() public {
         /**
-        ContractURI Result Pretty JSON: 
-        {
-            "name": "Mock Token",
-            "description": "This is a mock token",
-            "image": "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j"
-        } 
+            base64 -d
+            eyJuYW1lIjogIk1vY2sgVG9rZW4iLCJkZXNjcmlwdGlvbiI6ICJUaGlzIGlzIGEgbW9jayB0b2tlbiIsImltYWdlIjogImlwZnM6Ly9RbWV3N1RkeUduajZZUlVqUVI2OHNVSk4zMjM5TVlYUkQ4dXhvd3hGNnJHSzhqIiwiZXh0ZXJuYWxfdXJsIjogImh0dHBzOi8vbm91bnMuYnVpbGQifQ==
+            {"name": "Mock Token","description": "This is a mock token","image": "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j","external_url": "https://nouns.build"}
         */
         assertEq(
             token.contractURI(),
-            "data:application/json;base64,eyJuYW1lIjogIk1vY2sgVG9rZW4iLCJkZXNjcmlwdGlvbiI6ICJUaGlzIGlzIGEgbW9jayB0b2tlbiIsImltYWdlIjogImlwZnM6Ly9RbWV3N1RkeUduajZZUlVqUVI2OHNVSk4zMjM5TVlYUkQ4dXhvd3hGNnJHSzhqIn0="
+            "data:application/json;base64,eyJuYW1lIjogIk1vY2sgVG9rZW4iLCJkZXNjcmlwdGlvbiI6ICJUaGlzIGlzIGEgbW9jayB0b2tlbiIsImltYWdlIjogImlwZnM6Ly9RbWV3N1RkeUduajZZUlVqUVI2OHNVSk4zMjM5TVlYUkQ4dXhvd3hGNnJHSzhqIiwiZXh0ZXJuYWxfdXJsIjogImh0dHBzOi8vbm91bnMuYnVpbGQifQ=="
         );
+    }
+
+    function test_UpdateMetadata() public {
+        assertEq(metadataRenderer.description(), "This is a mock token");
+        assertEq(metadataRenderer.projectURI(), "https://nouns.build");
+
+        vm.startPrank(founder);
+        metadataRenderer.updateDescription("new description");
+        metadataRenderer.updateProjectURI("https://nouns.build/about");
+        vm.stopPrank();
+
+        assertEq(metadataRenderer.description(), "new description");
+        assertEq(metadataRenderer.projectURI(), "https://nouns.build/about");
+
     }
 
     function test_TokenURI() public {
