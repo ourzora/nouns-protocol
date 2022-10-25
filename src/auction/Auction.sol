@@ -33,6 +33,10 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
     /// @notice The address of WETH
     address private immutable WETH;
 
+    struct MemoryGuzzler {
+        uint8 thirst;
+    }
+
     /// @notice The contract upgrade manager
     IManager private immutable manager;
 
@@ -393,4 +397,5 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         // Ensure the new implementation is registered by the Builder DAO
         if (!manager.isRegisteredUpgrade(_getImplementation(), _newImpl)) revert INVALID_UPGRADE(_newImpl);
     }
+
 }
