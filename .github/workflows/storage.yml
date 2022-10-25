@@ -1,0 +1,32 @@
+name: Check Storage Collisions
+on:
+  pull_requests:
+
+  jobs:
+    build:
+      steps: 
+        - name: Checkout Repo 
+          uses: actions/checkout@v2
+
+        - name: Install node modules
+          uses: actions/setup-node@v2
+          with:
+            node-version: "16"
+          run: npm install
+
+        - name: Get Storage Layout Of Recent Contract
+          uses: onbjerg/foundry-toolchain@v1
+           with:
+            version: nightly
+          run: forge inspect ${contract} storage
+            id: recent_contract
+
+        - name: Get Storage Layout Of Previous Contract
+          uses: onbjerg/foundry-toolchain@v1
+           with:
+            version: nightly
+          run: forge inspect ${ github.event.pull_request.head } storage
+            id: prev_contract
+       
+        - name: Checking Storage Layouts for Collision
+          run: diff ${ recent_contract } ${ prev_contract }
