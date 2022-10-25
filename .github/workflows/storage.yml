@@ -15,9 +15,9 @@ on:
           run: npm install
 
         - name: Get Storage Layout Of Recent Contract
-          uses: onbjerg/foundry-toolchain@v1
-           with:
-            version: nightly
+          - uses: onbjerg/foundry-toolchain@v1
+              with:
+              version: nightly
           run: forge inspect ${ github.event.pull_request.head } storage
             id: recent_contract
 
