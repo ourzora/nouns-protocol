@@ -13,6 +13,7 @@ import { IOwnable } from "../../lib/interfaces/IOwnable.sol";
 import { ERC721 } from "../../lib/token/ERC721.sol";
 
 import { MetadataRendererStorageV1 } from "./storage/MetadataRendererStorageV1.sol";
+import { MetadataRendererStorageV2 } from "./storage/MetadataRendererStorageV2.sol";
 import { IToken } from "../../token/IToken.sol";
 import { IPropertyIPFSMetadataRenderer } from "./interfaces/IPropertyIPFSMetadataRenderer.sol";
 import { IManager } from "../../manager/IManager.sol";
@@ -20,7 +21,7 @@ import { IManager } from "../../manager/IManager.sol";
 /// @title Metadata Renderer
 /// @author Iain Nash & Rohan Kulkarni
 /// @notice A DAO's artwork generator and renderer
-contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS, MetadataRendererStorageV1 {
+contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS, MetadataRendererStorageV1, MetadataRendererStorageV2 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -91,6 +92,17 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
     /// @param _propertyId The property id
     function itemsCount(uint256 _propertyId) external view returns (uint256) {
         return properties[_propertyId].items.length;
+    }
+
+    /// @notice Updates the additional token properties associated with the metadata.
+    /// @dev Be careful to not conflict with already used keys such as "name", "description", "properties",
+    function setAdditionalTokenProperties(AdditionalTokenProperty[] memory _additionalTokenProperties) external onlyOwner {
+        delete additionalTokenProperties;
+        for (uint256 i = 0; i < _additionalTokenProperties.length; i++) {
+            additionalTokenProperties.push(_additionalTokenProperties[i]);
+        }
+
+        emit AdditionalTokenPropertiesSet(_additionalTokenProperties);
     }
 
     /// @notice Adds properties and/or items to be pseudo-randomly chosen from during token minting
@@ -177,8 +189,6 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
                 // Store the new item's name and reference slot
                 newItem.name = _items[i].name;
                 newItem.referenceSlot = uint16(dataLength);
-
-                emit ItemAdded(_propertyId, newItemIndex);
             }
         }
     }
@@ -316,7 +326,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
     function tokenURI(uint256 _tokenId) external view returns (string memory) {
         (string memory _attributes, string memory queryString) = getAttributes(_tokenId);
 
-        MetadataBuilder.JSONItem[] memory items = new MetadataBuilder.JSONItem[](4);
+        MetadataBuilder.JSONItem[] memory items = new MetadataBuilder.JSONItem[](4 + additionalTokenProperties.length);
 
         items[0] = MetadataBuilder.JSONItem({
             key: MetadataJSONKeys.keyName,
@@ -330,6 +340,11 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
             quote: true
         });
         items[3] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyProperties, value: _attributes, quote: false });
+
+        for (uint256 i = 0; i < additionalTokenProperties.length; i++) {
+            AdditionalTokenProperty memory tokenProperties = additionalTokenProperties[i];
+            items[4 + i] = MetadataBuilder.JSONItem({ key: tokenProperties.key, value: tokenProperties.value, quote: tokenProperties.quote });
+        }
 
         return MetadataBuilder.generateEncodedJSON(items);
     }
