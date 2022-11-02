@@ -18,15 +18,21 @@ on:
           - uses: onbjerg/foundry-toolchain@v1
               with:
               version: nightly
-          run: forge inspect ${ github.event.pull_request.head } storage
-            id: recent_contract
+          run: git checkout ${ github.event.pull_request.head.sha } 
+            with: 
+              name: contract
+
+          run: forge inspect ${ contract } storage
+            with: 
+              name: recent_contract
 
         - name: Get Storage Layout Of Previous Contract
           uses: onbjerg/foundry-toolchain@v1
            with:
             version: nightly
           run: forge inspect ${ github.event.pull_request_target.head } storage
-            id: prev_contract
+            with: 
+              name: prev_contract
        
         - name: Checking Storage Layouts for Collision
           run: diff ${ recent_contract } ${ prev_contract }
