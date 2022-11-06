@@ -4,6 +4,7 @@ cache
 out
 dist
 .env
+.env.*
 .DS_Store
 .vscode/
 broadcast/
