@@ -1778,10 +1778,10 @@ slice-ansi@^5.0.0:
     ansi-styles "^6.0.0"
     is-fullwidth-code-point "^4.0.0"
 
-sol-uriencode@0.1.0:
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/sol-uriencode/-/sol-uriencode-0.1.0.tgz#f2b0baf4c897084f4764720a7b1cc9d96a18f041"
-  integrity sha512-l3/bP29Yoq5XqMpqiWX/c3OoGYbWXM7ucZ6PRa1TMkIakQxLCmGotukYybjN7llL5Di/yNJWUhrDpa0Li5vljw==
+sol-uriencode@^0.2.0:
+  version "0.2.0"
+  resolved "https://registry.yarnpkg.com/sol-uriencode/-/sol-uriencode-0.2.0.tgz#9439fa97ad385036dac2540835fba67e9c2b1edb"
+  integrity sha512-PWXYwuLWmDsAoG3hOhK24Lbh/2fXjwXUDNJ6J7ji9jUj4CBRiwKdCNoU/UzgWLo7lYtxL4YM86P9hd30PDBdig==
 
 solhint-plugin-prettier@^0.0.5:
   version "0.0.5"
