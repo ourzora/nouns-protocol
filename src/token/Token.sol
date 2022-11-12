@@ -86,6 +86,67 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
         _transferOwnership(IAuction(settings.auction).treasury());
     }
 
+    /// @notice Update the founder allocations
+    /// @param _founders The list of DAO founders
+    function updateFounders(IManager.FounderParams[] calldata _founders) external onlyOwner {
+        _resetFounders();
+        _addFounders(_founders);
+    }
+
+    /// @notice Reset the founder allocations to a fresh state
+    /// @dev We do this by reverse engineering the schedule as defined by {_addFounders}, and explicitly setting any stored values to 0
+    function _resetFounders() internal {
+        // Cache the number of founders
+        uint256 numFounders = settings.numFounders;
+
+        // // Get a temporary array to hold all founders
+        Founder[] memory cachedFounders = new Founder[](numFounders);
+
+        // // Cannot realistically overflow
+        unchecked {
+            // Add each founder to the array
+            for (uint256 i; i < numFounders; ++i) {
+                cachedFounders[i] = founder[i];
+            }
+        }
+
+        // Keep a mapping of all the reserved token IDs we're set to clear.
+        bool[] memory clearedTokenIds = new bool[](100);
+        unchecked {
+            // for each existing founder:
+            for (uint256 i; i < cachedFounders.length; ++i) {
+                // copy the founder into memory
+                Founder memory cachedFounder = cachedFounders[i];
+
+                // using the ownership percentage, get reserved token percentages
+                uint256 schedule = 100 / cachedFounder.ownershipPct;
+
+                // Used to reverse engineer the indices the founder has reserved tokens in.
+                uint256 baseTokenId;
+
+                for (uint256 j; j < cachedFounder.ownershipPct; ++j) {
+                    // Get the next index that hasn't already been cleared
+                    while (clearedTokenIds[baseTokenId] != false) {
+                        baseTokenId = (++baseTokenId) % 100;
+                    }
+
+                    delete tokenRecipient[baseTokenId];
+                    clearedTokenIds[baseTokenId] = true;
+
+                    emit MintUnscheduled(baseTokenId, i, cachedFounder);
+
+                    // Update the base token id
+                    baseTokenId = (baseTokenId + schedule) % 100;
+                }
+
+                // Delete the founder from the stored mapping
+                delete founder[i];
+            }
+        }
+        settings.numFounders = 0;
+        settings.totalOwnership = 0;
+    }
+
     /// @notice Called upon initialization to add founders and compute their vesting allocations
     /// @dev We do this by reserving an mapping of [0-100] token indices, such that if a new token mint ID % 100 is reserved, it's sent to the appropriate founder.
     /// @param _founders The list of DAO founders

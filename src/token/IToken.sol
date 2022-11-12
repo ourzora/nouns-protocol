@@ -20,6 +20,12 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1 {
     /// @param founder The founder's vesting details
     event MintScheduled(uint256 baseTokenId, uint256 founderId, Founder founder);
 
+    /// @notice Emitted when a token allocation is unscheduled (removed)
+    /// @param baseTokenId The token ID % 100
+    /// @param founderId The founder's id
+    /// @param founder The founder's vesting details
+    event MintUnscheduled(uint256 baseTokenId, uint256 founderId, Founder founder);
+
     ///                                                          ///
     ///                            ERRORS                        ///
     ///                                                          ///
