@@ -108,6 +108,40 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         metadataRenderer.addProperties(names, items, group);
     }
 
+    function test_deleteAndRecreateProperties() public {
+        string[] memory names = new string[](1);
+        names[0] = "testing";
+
+        ItemParam[] memory items = new ItemParam[](2);
+        items[0] = ItemParam({ propertyId: 0, name: "failure1", isNewProperty: true });
+        items[1] = ItemParam({ propertyId: 0, name: "failure2", isNewProperty: true });
+
+        IPFSGroup memory ipfsGroup = IPFSGroup({ baseUri: "BASE_URI", extension: "EXTENSION" });
+
+        vm.prank(founder);
+        metadataRenderer.addProperties(names, items, ipfsGroup);
+
+        vm.prank(address(token));
+        bool response = metadataRenderer.onMinted(0);
+        assertTrue(response);
+
+        names = new string[](1);
+        names[0] = "testing upsert";
+
+        items = new ItemParam[](2);
+        items[0] = ItemParam({ propertyId: 0, name: "UPSERT1", isNewProperty: true });
+        items[1] = ItemParam({ propertyId: 0, name: "UPSERT2", isNewProperty: true });
+
+        ipfsGroup = IPFSGroup({ baseUri: "NEW_BASE_URI", extension: "EXTENSION" });
+
+        vm.prank(founder);
+        metadataRenderer.deleteAndRecreateProperties(names, items, ipfsGroup);
+
+        vm.prank(address(token));
+        response = metadataRenderer.onMinted(0);
+        assertTrue(response);
+    }
+
     function test_ContractURI() public {
         /**
             base64 -d
@@ -131,7 +165,6 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
 
         assertEq(metadataRenderer.description(), "new description");
         assertEq(metadataRenderer.projectURI(), "https://nouns.build/about");
-
     }
 
     function test_AddAdditionalProperties() public {
@@ -151,13 +184,8 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         vm.prank(address(auction));
         token.mint();
 
-
         MetadataRendererTypesV2.AdditionalTokenProperty[] memory additionalTokenProperties = new MetadataRendererTypesV2.AdditionalTokenProperty[](2);
-        additionalTokenProperties[0] = MetadataRendererTypesV2.AdditionalTokenProperty({
-            key: "testing",
-            value: "HELLO",
-            quote: true
-        });
+        additionalTokenProperties[0] = MetadataRendererTypesV2.AdditionalTokenProperty({ key: "testing", value: "HELLO", quote: true });
         additionalTokenProperties[1] = MetadataRendererTypesV2.AdditionalTokenProperty({
             key: "participationAgreement",
             value: "This is a JSON quoted participation agreement.",
@@ -205,13 +233,8 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         vm.prank(address(auction));
         token.mint();
 
-
         MetadataRendererTypesV2.AdditionalTokenProperty[] memory additionalTokenProperties = new MetadataRendererTypesV2.AdditionalTokenProperty[](2);
-        additionalTokenProperties[0] = MetadataRendererTypesV2.AdditionalTokenProperty({
-            key: "testing",
-            value: "HELLO",
-            quote: true
-        });
+        additionalTokenProperties[0] = MetadataRendererTypesV2.AdditionalTokenProperty({ key: "testing", value: "HELLO", quote: true });
         additionalTokenProperties[1] = MetadataRendererTypesV2.AdditionalTokenProperty({
             key: "participationAgreement",
             value: "This is a JSON quoted participation agreement.",
@@ -232,11 +255,8 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
             "data:application/json;base64,eyJuYW1lIjogIk1vY2sgVG9rZW4gIzAiLCJkZXNjcmlwdGlvbiI6ICJUaGlzIGlzIGEgbW9jayB0b2tlbiIsImltYWdlIjogImh0dHA6Ly9sb2NhbGhvc3Q6NTAwMC9yZW5kZXI/Y29udHJhY3RBZGRyZXNzPTB4YTM3YTY5NGYwMjkzODlkNTE2NzgwODc2MWMxYjYyZmNlZjc3NTI4OCZ0b2tlbklkPTAmaW1hZ2VzPWh0dHBzJTNhJTJmJTJmbm91bnMuYnVpbGQlMmZhcGklMmZ0ZXN0JTJmbW9jay1wcm9wZXJ0eSUyZm1vY2staXRlbS5qc29uIiwicHJvcGVydGllcyI6IHsibW9jay1wcm9wZXJ0eSI6ICJtb2NrLWl0ZW0ifX0="
         );
 
-        assertTrue(
-            keccak256(bytes(withAdditionalTokenProperties)) != keccak256(bytes(token.tokenURI(0)))
-        );
+        assertTrue(keccak256(bytes(withAdditionalTokenProperties)) != keccak256(bytes(token.tokenURI(0))));
     }
-
 
     function test_UnicodeProperties() public {
         string[] memory names = new string[](1);
@@ -244,7 +264,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
 
         ItemParam[] memory items = new ItemParam[](1);
         items[0].propertyId = 0;
-        items[0].name = unicode' ⌐◨-◨ ';
+        items[0].name = unicode" ⌐◨-◨ ";
         items[0].isNewProperty = true;
 
         IPFSGroup memory ipfsGroup = IPFSGroup({ baseUri: "https://nouns.build/api/test/", extension: ".json" });
@@ -255,13 +275,8 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         vm.prank(address(auction));
         token.mint();
 
-
         MetadataRendererTypesV2.AdditionalTokenProperty[] memory additionalTokenProperties = new MetadataRendererTypesV2.AdditionalTokenProperty[](2);
-        additionalTokenProperties[0] = MetadataRendererTypesV2.AdditionalTokenProperty({
-            key: "testing",
-            value: "HELLO",
-            quote: true
-        });
+        additionalTokenProperties[0] = MetadataRendererTypesV2.AdditionalTokenProperty({ key: "testing", value: "HELLO", quote: true });
         additionalTokenProperties[1] = MetadataRendererTypesV2.AdditionalTokenProperty({
             key: "participationAgreement",
             value: "This is a JSON quoted participation agreement.",
@@ -279,7 +294,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         // Ensure no additional properties are sent
 
         // result: {"name": "Mock Token #0","description": "This is a mock token","image": "http://localhost:5000/render?contractAddress=0xa37a694f029389d5167808761c1b62fcef775288&tokenId=0&images=https%3a%2f%2fnouns.build%2fapi%2ftest%2fmock-%e2%8c%90%20%e2%97%a8-%e2%97%a8-.%e2%88%86property%2f%20%e2%8c%90%e2%97%a8-%e2%97%a8%20.json","properties": {"mock-⌐ ◨-◨-.∆property": " ⌐◨-◨ "}}
-        // JSON parse: 
+        // JSON parse:
         // {
         //   name: 'Mock Token #0',
         //   description: 'This is a mock token',
@@ -294,9 +309,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
             "data:application/json;base64,eyJuYW1lIjogIk1vY2sgVG9rZW4gIzAiLCJkZXNjcmlwdGlvbiI6ICJUaGlzIGlzIGEgbW9jayB0b2tlbiIsImltYWdlIjogImh0dHA6Ly9sb2NhbGhvc3Q6NTAwMC9yZW5kZXI/Y29udHJhY3RBZGRyZXNzPTB4YTM3YTY5NGYwMjkzODlkNTE2NzgwODc2MWMxYjYyZmNlZjc3NTI4OCZ0b2tlbklkPTAmaW1hZ2VzPWh0dHBzJTNhJTJmJTJmbm91bnMuYnVpbGQlMmZhcGklMmZ0ZXN0JTJmbW9jay0lZTIlOGMlOTAlMjAlZTIlOTclYTgtJWUyJTk3JWE4LS4lZTIlODglODZwcm9wZXJ0eSUyZiUyMCVlMiU4YyU5MCVlMiU5NyVhOC0lZTIlOTclYTglMjAuanNvbiIsInByb3BlcnRpZXMiOiB7Im1vY2st4oyQIOKXqC3il6gtLuKIhnByb3BlcnR5IjogIiDijJDil6gt4peoICJ9fQ=="
         );
 
-        assertTrue(
-            keccak256(bytes(withAdditionalTokenProperties)) != keccak256(bytes(token.tokenURI(0)))
-        );
+        assertTrue(keccak256(bytes(withAdditionalTokenProperties)) != keccak256(bytes(token.tokenURI(0))));
     }
 
     function test_TokenURI() public {
