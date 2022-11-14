@@ -1100,4 +1100,13 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         mock1155.mintBatch(address(governor), _tokenIds, _amounts);
     }
+
+    function testFail_GovernorCannotUpdateEmptyNewFounders() public {}
+
+    function testFail_GovernorCannotUpdateSameFounders() public {}
+
+    function testFail_GovernorCannotUpdateNullAddressInNewFounders public {}
+
+    function test_GovernorCanUpdateNewFounders public {}
+
 }

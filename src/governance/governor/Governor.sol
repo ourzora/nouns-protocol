@@ -635,6 +635,18 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
         settings.vetoer = _newVetoer;
     }
 
+    /// @notice Update the list of allocation owners
+    /// @param newFounders the full list of founders 
+    function updateFounders(IManager.FounderParams[] calldata _newFounders) external onlyOwner {
+        Token token;
+        Founder[] memory _founders = token.getFounders();
+        emit FounderAllocationsCleared(_founders, _newFounders);
+        
+        delete _founders;
+
+        token._addFounders(_newFounders);
+    }
+
     /// @notice Burns the vetoer
     function burnVetoer() external onlyOwner {
         emit VetoerUpdated(settings.vetoer, address(0));
