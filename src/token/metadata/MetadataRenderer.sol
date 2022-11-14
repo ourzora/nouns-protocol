@@ -117,12 +117,12 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
         _addProperties(_names, _items, _ipfsGroup);
     }
 
-    /// @notice Upserts existing properties and/or items to be pseudo-randomly chosen from during token minting. WARNING: This function can alter or break existing token metadata if the number of properties for this renderer change before/after the upsert.
-    /// @dev We do not require the number of properties for an upsert to match the existing property length, to allow multi-stage property additions (for e.g. when there are more properties than can fit in a single transaction)
+    /// @notice Deletes existing properties and/or items to be pseudo-randomly chosen from during token minting, replacing them with provided properties. WARNING: This function can alter or break existing token metadata if the number of properties for this renderer change before/after the upsert. If the properties selected in any tokens do not exist in the new version those token will not render
+    /// @dev We do not require the number of properties for an reset to match the existing property length, to allow multi-stage property additions (for e.g. when there are more properties than can fit in a single transaction)
     /// @param _names The names of the properties to add
     /// @param _items The items to add to each property
     /// @param _ipfsGroup The IPFS base URI and extension
-    function upsertProperties(
+    function deleteAndRecreateProperties(
         string[] calldata _names,
         ItemParam[] calldata _items,
         IPFSGroup calldata _ipfsGroup

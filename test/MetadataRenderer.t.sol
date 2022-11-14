@@ -108,7 +108,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         metadataRenderer.addProperties(names, items, group);
     }
 
-    function test_upsertProperties() public {
+    function test_deleteAndRecreateProperties() public {
         string[] memory names = new string[](1);
         names[0] = "testing";
 
@@ -135,7 +135,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         ipfsGroup = IPFSGroup({ baseUri: "NEW_BASE_URI", extension: "EXTENSION" });
 
         vm.prank(founder);
-        metadataRenderer.upsertProperties(names, items, ipfsGroup);
+        metadataRenderer.deleteAndRecreateProperties(names, items, ipfsGroup);
 
         vm.prank(address(token));
         response = metadataRenderer.onMinted(0);
