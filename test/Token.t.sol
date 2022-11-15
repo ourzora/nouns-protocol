@@ -483,13 +483,10 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         address f2Wallet = address(0x2);
         address f3Wallet = address(0x3);
 
-        vm.bound(f1Percentage, 0, 100);
-        vm.bound(f2Percentage, 0, 100);
-        vm.bound(f3Percentage, 0, 100);
-
-        uint256 collectivePct = f1Percentage + f2Percentage + f3Percentage;
-
-        vm.bound(collectivePct, 0, 99);
+        vm.assume(f1Percentage > 0 && f1Percentage < 100);
+        vm.assume(f2Percentage > 0 && f2Percentage < 100);
+        vm.assume(f3Percentage > 0 && f3Percentage < 100);
+        vm.assume(f1Percentage + f2Percentage + f3Percentage < 99);
 
         address[] memory founders = new address[](3);
         uint256[] memory percents = new uint256[](3);
