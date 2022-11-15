@@ -322,7 +322,7 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
     }
 
     /// @notice Update the list of allocation owners
-    /// @param newFounders the full list of founders 
+    /// @param newFounders the full list of founders
     function updateFounders(IManager.FounderParams[] calldata newFounders) external onlyOwner {
         // Cache the number of founders
         uint256 numFounders = settings.numFounders;
@@ -330,7 +330,7 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
         // Get a temporary array to hold all founders
         Founder[] memory cachedFounders = new Founder[](numFounders);
 
-         // Cannot realistically overflow
+        // Cannot realistically overflow
         unchecked {
             // Add each founder to the array
             for (uint256 i; i < numFounders; ++i) {
@@ -342,7 +342,7 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
         bool[] memory clearedTokenIds = new bool[](100);
 
         unchecked {
-        // for each existing founder:
+            // for each existing founder:
             for (uint256 i; i < cachedFounders.length; ++i) {
                 // copy the founder into memory
                 Founder memory cachedFounder = cachedFounders[i];
@@ -377,9 +377,8 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
         settings.totalOwnership = 0;
         emit FounderAllocationsCleared(newFounders);
 
-        _addFounders(newFounders);        
+        _addFounders(newFounders);
     }
-
 
     ///                                                          ///
     ///                           SETTINGS                       ///

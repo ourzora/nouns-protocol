@@ -473,8 +473,8 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function test_UpdateFounderShareAllocationFuzz(
-        uint256 f1Percentage, 
-        uint256 f2Percentage, 
+        uint256 f1Percentage,
+        uint256 f2Percentage,
         uint256 f3Percentage
     ) public {
         deployMock();
@@ -506,6 +506,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
 
         setFounderParams(founders, percents, vestingEnds);
 
+        vm.prank(address(founder));
         token.updateFounders(foundersArr);
 
         Founder memory f1 = token.getFounder(0);
