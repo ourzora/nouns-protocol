@@ -323,7 +323,7 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
 
     /// @notice Update the list of allocation owners
     /// @param newFounders the full list of founders 
-    function updateFounders(IManager.FounderParams[] calldata _newFounders) external onlyOwner {
+    function updateFounders(IManager.FounderParams[] calldata newFounders) external onlyOwner {
         // Cache the number of founders
         uint256 numFounders = settings.numFounders;
 
@@ -375,9 +375,9 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
 
         settings.numFounders = 0;
         settings.totalOwnership = 0;
-        emit FounderAllocationsCleared(_newFounders);
+        emit FounderAllocationsCleared(newFounders);
 
-        token._addFounders(_newFounders);        
+        _addFounders(newFounders);        
     }
 
 

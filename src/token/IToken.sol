@@ -92,7 +92,7 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1 {
 
     /// @notice Update the list of allocation owners
     /// @param newFounders the full list of FounderParam structs
-    function updateFounders(IManager.FounderParams[] calldata _newFounders) external;                                                         
+    function updateFounders(IManager.FounderParams[] calldata newFounders) external;                                                         
        
 
     /// @notice The founder scheduled to receive the given token id
