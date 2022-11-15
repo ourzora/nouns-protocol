@@ -57,9 +57,6 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
     //// @notice Emitted when the governor's vetoer is updated
     event VetoerUpdated(address prevVetoer, address newVetoer);
 
-    /// @notice Emitted when founder allocation is adjusted
-    event FounderAllocationsCleared(IManager.FounderParams[] oldFounders, IManager.FounderParams[] newFounders);
-
     ///                                                          ///
     ///                            ERRORS                        ///
     ///                                                          ///
@@ -292,10 +289,6 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
     /// @param newVetoer The new vetoer addresss
     function updateVetoer(address newVetoer) external;
 
-    /// @notice Update the list of allocation owners
-    /// @param newFounders the full list of FounderParam structs
-    function updateFounders(IManager.FounderParams[] calldata _newFounders) external;                                                         
-       
     /// @notice Burns the vetoer
     function burnVetoer() external;
 

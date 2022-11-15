@@ -20,6 +20,16 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1 {
     /// @param founder The founder's vesting details
     event MintScheduled(uint256 baseTokenId, uint256 founderId, Founder founder);
 
+    /// @notice Emitted when a token allocation is unscheduled (removed)
+    /// @param baseTokenId The token ID % 100
+    /// @param founderId The founder's id
+    /// @param founder The founder's vesting details
+    event MintUnscheduled(uint256 baseTokenId, uint256 founderId, Founder founder);
+
+    /// @notice Emitted when a tokens founders are deleted from storage
+    /// @param newFounders the list of founders
+    event FounderAllocationsCleared(IManager.FounderParams[] newFounders);
+
     ///                                                          ///
     ///                            ERRORS                        ///
     ///                                                          ///
@@ -79,6 +89,11 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1 {
 
     /// @notice The vesting details of all founders
     function getFounders() external view returns (Founder[] memory);
+
+    /// @notice Update the list of allocation owners
+    /// @param newFounders the full list of FounderParam structs
+    function updateFounders(IManager.FounderParams[] calldata _newFounders) external;                                                         
+       
 
     /// @notice The founder scheduled to receive the given token id
     /// NOTE: If a founder is returned, there's no guarantee they'll receive the token as vesting expiration is not considered
