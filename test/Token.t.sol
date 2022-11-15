@@ -441,7 +441,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         auction.unpause();
     }
 
-    function testFail_OnlyOwnerUpdateFounders() public {
+    function testRevert_OnlyOwnerUpdateFounders() public {
         deployMock();
 
         address f1Wallet = address(0x1);
