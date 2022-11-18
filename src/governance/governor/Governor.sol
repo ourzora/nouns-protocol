@@ -635,6 +635,7 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
         settings.vetoer = _newVetoer;
     }
 
+   
     /// @notice Burns the vetoer
     function burnVetoer() external onlyOwner {
         emit VetoerUpdated(settings.vetoer, address(0));

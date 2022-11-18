@@ -5,6 +5,7 @@ import { IUUPS } from "../../lib/interfaces/IUUPS.sol";
 import { IOwnable } from "../../lib/utils/Ownable.sol";
 import { IEIP712 } from "../../lib/utils/EIP712.sol";
 import { GovernorTypesV1 } from "./types/GovernorTypesV1.sol";
+import { IManager } from "../../manager/IManager.sol";
 
 /// @title IGovernor
 /// @author Rohan Kulkarni

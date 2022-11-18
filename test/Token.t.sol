@@ -440,4 +440,97 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         vm.prank(otherUsers[0]);
         auction.unpause();
     }
+
+    function testRevert_OnlyOwnerUpdateFounders() public {
+        deployMock();
+
+        address f1Wallet = address(0x1);
+        address f2Wallet = address(0x2);
+        address f3Wallet = address(0x3);
+
+        address[] memory founders = new address[](3);
+        uint256[] memory percents = new uint256[](3);
+        uint256[] memory vestingEnds = new uint256[](3);
+
+        founders[0] = f1Wallet;
+        founders[1] = f2Wallet;
+        founders[2] = f3Wallet;
+
+        percents[0] = 1;
+        percents[1] = 2;
+        percents[2] = 3;
+
+        vestingEnds[0] = 4 weeks;
+        vestingEnds[1] = 4 weeks;
+        vestingEnds[2] = 4 weeks;
+
+        setFounderParams(founders, percents, vestingEnds);
+
+        vm.prank(f1Wallet);
+        vm.expectRevert(abi.encodeWithSignature("ONLY_OWNER()"));
+
+        token.updateFounders(foundersArr);
+    }
+
+    function test_UpdateFounderShareAllocationFuzz(
+        uint256 f1Percentage,
+        uint256 f2Percentage,
+        uint256 f3Percentage
+    ) public {
+        deployMock();
+
+        address f1Wallet = address(0x1);
+        address f2Wallet = address(0x2);
+        address f3Wallet = address(0x3);
+
+        vm.assume(f1Percentage > 0 && f1Percentage < 100);
+        vm.assume(f2Percentage > 0 && f2Percentage < 100);
+        vm.assume(f3Percentage > 0 && f3Percentage < 100);
+        vm.assume(f1Percentage + f2Percentage + f3Percentage < 99);
+
+        address[] memory founders = new address[](3);
+        uint256[] memory percents = new uint256[](3);
+        uint256[] memory vestingEnds = new uint256[](3);
+
+        founders[0] = f1Wallet;
+        founders[1] = f2Wallet;
+        founders[2] = f3Wallet;
+
+        percents[0] = f1Percentage;
+        percents[1] = f2Percentage;
+        percents[2] = f3Percentage;
+
+        vestingEnds[0] = 4 weeks;
+        vestingEnds[1] = 4 weeks;
+        vestingEnds[2] = 4 weeks;
+
+        setFounderParams(founders, percents, vestingEnds);
+
+        vm.prank(address(founder));
+        token.updateFounders(foundersArr);
+
+        Founder memory f1 = token.getFounder(0);
+        Founder memory f2 = token.getFounder(1);
+        Founder memory f3 = token.getFounder(2);
+
+        assertEq(f1.ownershipPct, f1Percentage);
+        assertEq(f2.ownershipPct, f2Percentage);
+        assertEq(f3.ownershipPct, f3Percentage);
+
+        // Mint 100 tokens
+        for (uint256 i = 0; i < 100; i++) {
+            vm.prank(address(auction));
+            token.mint();
+
+            mintedTokens[token.ownerOf(i)] += 1;
+        }
+
+        // Read the ownership of only the first 100 minted tokens
+        // Note that the # of tokens minted above can exceed 100, therefore
+        // we do our own count because we cannot use balanceOf().
+
+        assertEq(mintedTokens[f1Wallet], f1Percentage);
+        assertEq(mintedTokens[f2Wallet], f2Percentage);
+        assertEq(mintedTokens[f3Wallet], f3Percentage);
+    }
 }
