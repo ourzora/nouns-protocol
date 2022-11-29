@@ -23,16 +23,12 @@ contract DeployTokenUpgrade is Script {
         uint256 key = vm.envUint("PRIVATE_KEY");
         address deployerAddress = vm.addr(key);
         address managerProxy = vm.envAddress("MANAGER_PROXY");
-        address tokenImpl = vm.envAddress("TOKEN_IMPLEMENTATION");
         address auctionImpl = vm.envAddress("AUCTION_IMPLEMENTATION");
         address treasuryImpl = vm.envAddress("TREASURY_IMPLEMENTATION");
         address governorImpl = vm.envAddress("GOVERNOR_IMPLEMENTATION");
 
         console2.log("~~~~~~~~~~ DEPLOYER ADDRESS ~~~~~~~~~~~");
         console2.logAddress(deployerAddress);
-
-        console2.log("~~~~~~~~~~ TOKEN IMPL ~~~~~~~~~~~");
-        console2.logAddress(tokenImpl);
 
         console2.log("~~~~~~~~~~ MANAGER PROXY ~~~~~~~~~~~");
         console2.logAddress(managerProxy);
