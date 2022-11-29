@@ -28,23 +28,6 @@ contract DeployMetadataUpgrade is Script {
         address treasuryImpl = vm.envAddress("TREASURY_IMPLEMENTATION");
         address governorImpl = vm.envAddress("GOVERNOR_IMPLEMENTATION");
 
-        console2.log("~~~~~~~~~~ DEPLOYER ADDRESS ~~~~~~~~~~~");
-        console2.logAddress(deployerAddress);
-
-        console2.log("~~~~~~~~~~ TOKEN IMPL ~~~~~~~~~~~");
-        console2.logAddress(tokenImpl);
-
-        console2.log("~~~~~~~~~~ MANAGER PROXY ~~~~~~~~~~~");
-        console2.logAddress(managerProxy);
-
-        console2.log("~~~~~~~~~~ AUCTION IMPL ~~~~~~~~~~~");
-        console2.logAddress(auctionImpl);
-
-        console2.log("~~~~~~~~~~ TREASURY IMPL ~~~~~~~~~~~");
-        console2.logAddress(treasuryImpl);
-
-        console2.log("~~~~~~~~~~ GOVERNOR IMPL ~~~~~~~~~~~");
-        console2.logAddress(governorImpl);
 
         vm.startBroadcast(deployerAddress);
 
@@ -56,11 +39,7 @@ contract DeployMetadataUpgrade is Script {
 
         address managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
 
-        console2.log("MR");
-        console2.log(metadataRendererImpl);
 
-        console2.log("M");
-        console2.log(managerImpl);
 
         // console2.log("OWNER", manager.owner());
 

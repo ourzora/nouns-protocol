@@ -1,2 +1,2 @@
-Metadata Renderer implementation: 0x57a592f9a34e705d0d41f009872d8886de354a18
-Manager implementation: 0x6f6a4cb735ac570a109326d1097f8d3e27c33440
+Metadata Renderer implementation: 0x5d48d87eccc97d5a59be048e128d9ab2458edcc7
+Manager implementation: 0x76a13169f347cea8dfe5e8bf10d79ef6ce1aee83
