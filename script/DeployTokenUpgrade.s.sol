@@ -54,7 +54,7 @@ contract DeployTokenUpgrade is Script {
         // Deploy token upgrade implementation
         address tokenUpgradeImpl = address(new Token(managerProxy));
 
-        address managerImpl = address(new Manager(tokenImpl, tokenUpgradeImpl, auctionImpl, treasuryImpl, governorImpl));
+        address managerImpl = address(new Manager(tokenUpgradeImpl, auctionImpl, treasuryImpl, governorImpl));
 
         console2.log("TU");
         console2.log(tokenUpgradeImpl);
