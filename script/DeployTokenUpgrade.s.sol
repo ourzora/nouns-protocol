@@ -17,16 +17,29 @@ import { ERC1967Proxy } from "../src/lib/proxy/ERC1967Proxy.sol";
 contract DeployTokenUpgrade is Script {
     using Strings for uint256;
 
+    string configFile;
+
+    function _getKey(string memory key) internal returns (address result) {
+        (result) = abi.decode(vm.parseJson(configFile, key), (address));
+    }
+
     function run() public {
         uint256 chainID = vm.envUint("CHAIN_ID");
         console.log("CHAIN_ID", chainID);
         uint256 key = vm.envUint("PRIVATE_KEY");
         address deployerAddress = vm.addr(key);
-        address managerProxy = vm.envAddress("MANAGER_PROXY");
-        address tokenImpl = vm.envAddress("TOKEN_IMPLEMENTATION");
-        address auctionImpl = vm.envAddress("AUCTION_IMPLEMENTATION");
-        address treasuryImpl = vm.envAddress("TREASURY_IMPLEMENTATION");
-        address governorImpl = vm.envAddress("GOVERNOR_IMPLEMENTATION");
+
+        configFile = vm.readFile(
+            string.concat("./addresses/", Strings.toString(chainID), ".json")
+        );
+
+        address auctionImpl = _getKey("Auction");
+        address governorImpl = _getKey("Governor");
+        address managerProxy = _getKey("Manager");
+        address metadataImpl = _getKey("MetadataRenderer");
+        address tokenImpl = _getKey("Token");
+        address treasuryImpl = _getKey("Treasury");
+   
 
         console2.log("~~~~~~~~~~ DEPLOYER ADDRESS ~~~~~~~~~~~");
         console2.logAddress(deployerAddress);
@@ -52,12 +65,9 @@ contract DeployTokenUpgrade is Script {
         Manager manager = Manager(managerProxy);
 
         // Deploy token upgrade implementation
-        address tokenUpgradeImpl = address(new Token(managerProxy));
+        address tokenUpgradeImpl = address(new TokenImpl(managerProxy));
 
-        // Deploy metadata renderer implementation
-        address metadataRendererImpl = address(new MetadataRenderer(managerProxy));
-
-        address managerImpl = address(new Manager(tokenUpgradeImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
+        address managerImpl = address(new Manager(tokenUpgradeImpl, metadataImpl, auctionImpl, treasuryImpl, governorImpl));
 
         console2.log("TU");
         console2.log(tokenUpgradeImpl);
@@ -67,7 +77,7 @@ contract DeployTokenUpgrade is Script {
 
         // console2.log("OWNER", manager.owner());
 
-        // manager.upgradeTo(managerImpl);
+        manager.upgradeTo(managerImpl);
 
         vm.stopBroadcast();
 
