@@ -77,7 +77,7 @@ contract DeployTokenUpgrade is Script {
 
         // console2.log("OWNER", manager.owner());
 
-        manager.upgradeTo(managerImpl);
+        // manager.upgradeTo(managerImpl);
 
         vm.stopBroadcast();
 

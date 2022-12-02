@@ -7,7 +7,7 @@ optimizer_runs = 500000
 out = 'dist/artifacts'
 src = 'src'
 test = 'test'
-fs_permissions = [{ access = "read", path = "./addresses"}]
+fs_permissions = [{ access = "read-write", path = "./"}]
 
 [fmt]
 bracket_spacing = true
