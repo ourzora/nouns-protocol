@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
+import "forge-std/console2.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
@@ -40,7 +41,6 @@ contract DeployTokenUpgrade is Script {
         address tokenImpl = _getKey("Token");
         address treasuryImpl = _getKey("Treasury");
    
-
         console2.log("~~~~~~~~~~ DEPLOYER ADDRESS ~~~~~~~~~~~");
         console2.logAddress(deployerAddress);
 
@@ -65,7 +65,7 @@ contract DeployTokenUpgrade is Script {
         Manager manager = Manager(managerProxy);
 
         // Deploy token upgrade implementation
-        address tokenUpgradeImpl = address(new TokenImpl(managerProxy));
+        address tokenUpgradeImpl = address(new Token(managerProxy));
 
         address managerImpl = address(new Manager(tokenUpgradeImpl, metadataImpl, auctionImpl, treasuryImpl, governorImpl));
 
