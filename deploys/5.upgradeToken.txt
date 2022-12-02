@@ -1,2 +1,2 @@
-Token Upgrade implementation: 0xfd951abc6700af759fefe5bc4a814c8d1fc31f9e
-Manager implementation: 0xbd358684b22cee6edcad05850b2f7d2d30bd244e
+Token Upgrade implementation: 0x6836408a7fa1287f2a2cd3e7dc57dfffd007c7b3
+Manager implementation: 0xc20dac0b62b28edde0c44ab1be2206a1c48e6a67

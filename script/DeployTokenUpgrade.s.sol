@@ -30,9 +30,7 @@ contract DeployTokenUpgrade is Script {
         uint256 key = vm.envUint("PRIVATE_KEY");
         address deployerAddress = vm.addr(key);
 
-        configFile = vm.readFile(
-            string.concat("./addresses/", Strings.toString(chainID), ".json")
-        );
+        configFile = vm.readFile(string.concat("./addresses/", Strings.toString(chainID), ".json"));
 
         address auctionImpl = _getKey("Auction");
         address governorImpl = _getKey("Governor");
@@ -40,12 +38,12 @@ contract DeployTokenUpgrade is Script {
         address metadataImpl = _getKey("MetadataRenderer");
         address tokenImpl = _getKey("Token");
         address treasuryImpl = _getKey("Treasury");
-   
+
         console2.log("~~~~~~~~~~ DEPLOYER ADDRESS ~~~~~~~~~~~");
         console2.logAddress(deployerAddress);
 
-        console2.log("~~~~~~~~~~ TOKEN IMPL ~~~~~~~~~~~");
-        console2.logAddress(tokenImpl);
+        console2.log("~~~~~~~~~~ METADATA IMPL ~~~~~~~~~~~");
+        console2.logAddress(metadataImpl);
 
         console2.log("~~~~~~~~~~ MANAGER PROXY ~~~~~~~~~~~");
         console2.logAddress(managerProxy);
