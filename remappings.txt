@@ -1,5 +1,6 @@
-forge-std/=lib/forge-std/src/
 @openzeppelin/=node_modules/@openzeppelin/
 sol2string/=node_modules/sol2string/
 sol-uriencode/=node_modules/sol-uriencode/
+forge-std/=node_modules/forge-std/src/
+ds-test/=node_modules/ds-test/src/
 micro-onchain-metadata-utils/=node_modules/micro-onchain-metadata-utils/src/

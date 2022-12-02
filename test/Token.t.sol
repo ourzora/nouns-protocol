@@ -246,7 +246,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         // avoid overflows specific to this test, shouldn't occur in practice
         vm.assume(mintCount < 100);
 
-        uint256 lastTokenId = UINT256_MAX;
+        uint256 lastTokenId = type(uint256).max;
 
         for (uint8 i = 0; i <= mintCount; i++) {
             vm.prank(address(auction));
