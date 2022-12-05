@@ -1,5 +1,5 @@
 [profile.default]
-auto_detect_solc = true
+solc_version = '0.8.16'
 fuzz_runs = 500
 libs = ['lib']
 optimizer = true
