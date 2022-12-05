@@ -1,0 +1,10 @@
+{
+  "Manager": "0xd310a3041dfcf14def5ccbc508668974b5da7174",
+  "ManagerImpl": "0x96d1c6452c7c12a2ae5478f4664835a0eb18f43a",
+  "WETH": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+  "Auction": "0x5e97b8cfEa96d7571585f79922d134003BD4Dc60",
+  "Token": "0xb69dc36182fe5dad045bd4b08ffb042d10d0fb77",
+  "MetadataRenderer": "0xAc193e2126F0E7734F2aC8DA9D4002935b3c1d75",
+  "Treasury": "0xc8F8Ac74600D5A1c1ba677B10D1da0E7e806CF23",
+  "Governor": "0xb42d8E37DCBA5Fe5323C4a6722ba6DEd9E8E84Da"
+}
