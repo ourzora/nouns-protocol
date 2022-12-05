@@ -5,6 +5,7 @@ import { Test } from "forge-std/Test.sol";
 
 import { IManager, Manager } from "../../src/manager/Manager.sol";
 import { IToken, Token } from "../../src/token/Token.sol";
+import { ExistingCommunityToken } from "../../src/token/ExistingCommunityToken.sol";
 import { MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol";
 import { IAuction, Auction } from "../../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../../src/governance/governor/Governor.sol";
@@ -27,6 +28,7 @@ contract NounsBuilderTest is Test {
     address internal managerImpl0;
     address internal managerImpl;
     address internal tokenImpl;
+    address internal existingCommunityTokenImpl;
     address internal metadataRendererImpl;
     address internal auctionImpl;
     address internal treasuryImpl;
@@ -63,6 +65,7 @@ contract NounsBuilderTest is Test {
         manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", zoraDAO))));
 
         tokenImpl = address(new Token(address(manager)));
+        existingCommunityTokenImpl = address(new ExistingCommunityToken(address(manager)));
         metadataRendererImpl = address(new MetadataRenderer(address(manager)));
         auctionImpl = address(new Auction(address(manager), weth));
         treasuryImpl = address(new Treasury(address(manager)));
@@ -208,6 +211,11 @@ contract NounsBuilderTest is Test {
         deploy(foundersArr, tokenParams, auctionParams, govParams);
 
         setMockMetadata();
+    }
+
+    function tokenUpgrade() internal virtual {
+        vm.prank(token.owner());
+        token.upgradeTo(existingCommunityTokenImpl);
     }
 
     function deployWithCustomFounders(
