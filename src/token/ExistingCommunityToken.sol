@@ -451,8 +451,10 @@ contract ExistingCommunityToken is IToken, UUPS, Ownable, ReentrancyGuard, ERC72
     /// @param _proof The merkle proof
     function claim(address _to, uint256 _tokenId, bytes32[] calldata _proof) external {
         require(isClaimOpen, "Claim is not open");
+        require(!claimed[_tokenId], "Token already claimed");
         bytes32 leaf = keccak256(abi.encodePacked(_to, _tokenId));
         require(MerkleProof.verify(_proof, merkleRoot, leaf), "Invalid proof");
+        claimed[_tokenId] = true;
         _mint(_to, _tokenId);
     }
 

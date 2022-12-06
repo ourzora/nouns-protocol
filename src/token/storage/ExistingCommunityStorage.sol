@@ -18,6 +18,8 @@ contract ExistingCommunityStorage is TokenTypesV1 {
     /// @dev ERC-721 token id => Founder
     mapping(uint256 => Founder) internal tokenRecipient;
 
+    mapping(uint256 => bool) internal claimed;
+
     bytes32 public merkleRoot;
 
     uint256 public auctionOffset;
