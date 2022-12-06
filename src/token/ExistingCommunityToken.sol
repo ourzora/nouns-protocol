@@ -1,4 +1,22 @@
 // SPDX-License-Identifier: MIT
+
+/*
+   _      ΞΞΞΞ      _
+  /_;-.__ / _\  _.-;_\
+     `-._`'`_/'`.-'
+         `\   /`
+          |  /
+         /-.(
+         \_._\
+          \ \`;
+           > |/
+          / //
+          |//
+          \(\
+           ``
+     defijesus.eth
+*/
+
 pragma solidity 0.8.16;
 
 import { UUPS } from "../lib/proxy/UUPS.sol";
@@ -194,26 +212,6 @@ contract ExistingCommunityToken is IToken, UUPS, Ownable, ReentrancyGuard, ERC72
 
         // Mint the next available token to the auction house for bidding
         _mint(minter, tokenId);
-    }
-
-    /// Custom functions 
-    function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
-        merkleRoot = _merkleRoot;
-    }
-
-    function setAuctionOffset(uint256 _auctionOffset) external onlyOwner {
-        auctionOffset = _auctionOffset;
-    }
-
-    function setIsClaimOpen(bool _isClaimOpen) external onlyOwner {
-        isClaimOpen = _isClaimOpen;
-    }
-
-    function claim(address to, uint256 tokenId, bytes32[] calldata proof) external {
-        require(isClaimOpen, "Claim is not open");
-        bytes32 leaf = keccak256(abi.encodePacked(to, tokenId));
-        require(MerkleProof.verify(proof, merkleRoot, leaf), "Invalid proof");
-        _mint(to, tokenId);
     }
 
     /// @dev Overrides _mint to include attribute generation
@@ -423,6 +421,39 @@ contract ExistingCommunityToken is IToken, UUPS, Ownable, ReentrancyGuard, ERC72
 
     function owner() public view override(IToken, Ownable) returns (address) {
         return super.owner();
+    }
+
+    ///                                                          ///
+    ///                    EXISTING COMMUNITY                    ///
+    ///                                                          /// 
+
+    /// @dev Sets a new merkle root
+    /// @param _merkleRoot The new merkle root
+    function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
+        merkleRoot = _merkleRoot;
+    }
+
+    /// @dev Sets a new auction offset
+    /// @param _auctionOffset The new auction offset
+    function setAuctionOffset(uint256 _auctionOffset) external onlyOwner {
+        auctionOffset = _auctionOffset;
+    }
+
+    /// @dev Sets a new is claim open value
+    /// @param _isClaimOpen The new is claim open
+    function setIsClaimOpen(bool _isClaimOpen) external onlyOwner {
+        isClaimOpen = _isClaimOpen;
+    }
+
+    /// @dev Claims a token for a given address if proof is valid
+    /// @param _to The receiver address
+    /// @param _tokenId The token id
+    /// @param _proof The merkle proof
+    function claim(address _to, uint256 _tokenId, bytes32[] calldata _proof) external {
+        require(isClaimOpen, "Claim is not open");
+        bytes32 leaf = keccak256(abi.encodePacked(_to, _tokenId));
+        require(MerkleProof.verify(_proof, merkleRoot, leaf), "Invalid proof");
+        _mint(_to, _tokenId);
     }
 
     ///                                                          ///
