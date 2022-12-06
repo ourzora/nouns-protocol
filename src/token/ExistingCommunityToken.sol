@@ -458,6 +458,26 @@ contract ExistingCommunityToken is IToken, UUPS, Ownable, ReentrancyGuard, ERC72
         _mint(_to, _tokenId);
     }
 
+    /// @dev Claims multiple tokens for their given addresses if proofs are valid
+    /// @param _to an array of receiver addresses
+    /// @param _tokenId an array of token ids
+    /// @param _proof an array of merkle proofs
+    function claim(address[] calldata _to, uint256[] calldata _tokenId, bytes32[][] calldata _proof) external {
+        require(isClaimOpen, "Claim is not open");
+        require(
+            _to.length == _tokenId.length &&
+            _to.length == _proof.length &&
+            _to.length <= 30
+        , "Invalid input");
+        for (uint256 i = 0; i < _to.length; i++) {
+            require(!claimed[_tokenId[i]], "Token already claimed");
+            bytes32 leaf = keccak256(abi.encodePacked(_to[i], _tokenId[i]));
+            require(MerkleProof.verify(_proof[i], merkleRoot, leaf), "Invalid proof");
+            claimed[_tokenId[i]] = true;
+            _mint(_to[i], _tokenId[i]);
+        }
+    }
+
     ///                                                          ///
     ///                         TOKEN UPGRADE                    ///
     ///                                                          ///

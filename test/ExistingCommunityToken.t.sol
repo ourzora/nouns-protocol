@@ -36,13 +36,26 @@ contract ExistingCommunityTokenTest is NounsBuilderTest, TokenTypesV1 {
         ExistingCommunityToken(address(token)).setIsClaimOpen(true);
         vm.stopPrank();
 
-        bytes32[] memory proof = new bytes32[](1);
-        proof[0] = MOCK_PROOF_1;
+        bytes32[][] memory proofs = new bytes32[][](2);
+        proofs[0] = new bytes32[](1);
+        proofs[0][0] = MOCK_PROOF_1;
+        proofs[1] = new bytes32[](1);
+        proofs[1][0] = MOCK_PROOF_2;
+
+        address[] memory  tos = new address[](2);
+        tos[0] = AIRDROP_RECIPIENT_1;
+        tos[1] = AIRDROP_RECIPIENT_2;
+
+        uint256[] memory tokenIds = new uint256[](2);
+        tokenIds[0] = AIRDROP_TOKEN_ID_1;
+        tokenIds[1] = AIRDROP_TOKEN_ID_2;
+
         vm.prank(AIRDROP_RECIPIENT_1);
-        ExistingCommunityToken(address(token)).claim(AIRDROP_RECIPIENT_1, AIRDROP_TOKEN_ID_1, proof);
+        ExistingCommunityToken(address(token)).claim(tos, tokenIds, proofs);
         
         assertEq(token.ownerOf(AIRDROP_TOKEN_ID_1), AIRDROP_RECIPIENT_1);
-        assertEq(token.totalSupply(), 1);
+        assertEq(token.ownerOf(AIRDROP_TOKEN_ID_2), AIRDROP_RECIPIENT_2);
+        assertEq(token.totalSupply(), 2);
     }
 
 
