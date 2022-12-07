@@ -39,6 +39,8 @@
     "clean": "forge clean && rm -rf ./dist",
     "prepublishOnly": "rm -rf ./dist && forge clean && mkdir -p ./dist/artifacts && yarn build && cp -R src dist && cp -R addresses dist",
     "test": "forge test",
-    "typechain": "typechain --target=ethers-v5 'dist/artifacts/*/*.json' --out-dir dist/typechain"
+    "typechain": "typechain --target=ethers-v5 'dist/artifacts/*/*.json' --out-dir dist/typechain",
+    "storage-inspect:check": "./script/storage-check.sh check Manager Auction Governor Treasury Token",
+    "storage-inspect:generate": "./script/storage-check.sh generate Manager Auction Governor Treasury Token"
   }
 }
