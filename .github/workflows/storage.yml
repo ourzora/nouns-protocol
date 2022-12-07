@@ -19,8 +19,6 @@ jobs:
       - run: |
           yarn install --immutable --immutable-cache
       - run: |
-          yarn lint
-      - run: |
           yarn build
       - name: "Inspect Storage Layout"
         continue-on-error: false
