@@ -102,6 +102,8 @@ contract ExistingCommunityToken is IToken, UUPS, Ownable, ReentrancyGuard, ERC72
             revert ONLY_AUCTION();
         }
 
+        manager.getAddresses(address(this));
+
         // Force transfer ownership to the treasury
         _transferOwnership(IAuction(settings.auction).treasury());
     }
@@ -449,7 +451,7 @@ contract ExistingCommunityToken is IToken, UUPS, Ownable, ReentrancyGuard, ERC72
     /// @param _to The receiver address
     /// @param _tokenId The token id
     /// @param _proof The merkle proof
-    function claim(address _to, uint256 _tokenId, bytes32[] calldata _proof) external {
+    function claim(address _to, uint256 _tokenId, bytes32[] calldata _proof) external payable {
         require(isClaimOpen, "Claim is not open");
         require(!claimed[_tokenId], "Token already claimed");
         bytes32 leaf = keccak256(abi.encodePacked(_to, _tokenId));
@@ -462,12 +464,12 @@ contract ExistingCommunityToken is IToken, UUPS, Ownable, ReentrancyGuard, ERC72
     /// @param _to an array of receiver addresses
     /// @param _tokenId an array of token ids
     /// @param _proof an array of merkle proofs
-    function claim(address[] calldata _to, uint256[] calldata _tokenId, bytes32[][] calldata _proof) external {
+    function claim(address[] calldata _to, uint256[] calldata _tokenId, bytes32[][] calldata _proof) external payable {
         require(isClaimOpen, "Claim is not open");
         require(
+            _to.length <= 30 &&
             _to.length == _tokenId.length &&
-            _to.length == _proof.length &&
-            _to.length <= 30
+            _to.length == _proof.length
         , "Invalid input");
         for (uint256 i = 0; i < _to.length; i++) {
             require(!claimed[_tokenId[i]], "Token already claimed");
@@ -476,6 +478,13 @@ contract ExistingCommunityToken is IToken, UUPS, Ownable, ReentrancyGuard, ERC72
             claimed[_tokenId[i]] = true;
             _mint(_to[i], _tokenId[i]);
         }
+    }
+
+    /// @dev Sends all ETH to the treasury
+    function rescueEth() external {
+        (, , address treasury, ) = manager.getAddresses(address(this));
+        (bool success, ) = treasury.call{value: address(this).balance}("");
+        require(success);
     }
 
     ///                                                          ///
