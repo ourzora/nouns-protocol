@@ -33,10 +33,6 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
     /// @notice The address of WETH
     address private immutable WETH;
 
-    struct MemoryGuzzler {
-        uint8 thirst;
-    }
-
     /// @notice The contract upgrade manager
     IManager private immutable manager;
 
