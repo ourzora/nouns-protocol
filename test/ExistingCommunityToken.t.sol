@@ -27,13 +27,52 @@ contract ExistingCommunityTokenTest is NounsBuilderTest, TokenTypesV1 {
         vm.stopPrank();
     }
 
+    function test_DonateOnClaimAndWithdraw() public {
+        deployMock();
+        tokenUpgrade();
+
+        ExistingCommunityToken newToken = ExistingCommunityToken(address(token));
+
+        vm.startPrank(token.owner());
+        newToken.setMerkleRoot(MOCK_MERKLE_ROOT);
+        newToken.setIsClaimOpen(true);
+        vm.stopPrank();
+
+        bytes32[][] memory proofs = new bytes32[][](2);
+        proofs[0] = new bytes32[](1);
+        proofs[0][0] = MOCK_PROOF_1;
+        proofs[1] = new bytes32[](1);
+        proofs[1][0] = MOCK_PROOF_2;
+
+        address[] memory  tos = new address[](2);
+        tos[0] = AIRDROP_RECIPIENT_1;
+        tos[1] = AIRDROP_RECIPIENT_2;
+
+        uint256[] memory tokenIds = new uint256[](2);
+        tokenIds[0] = AIRDROP_TOKEN_ID_1;
+        tokenIds[1] = AIRDROP_TOKEN_ID_2;
+
+        vm.deal(AIRDROP_RECIPIENT_1, 1 ether);
+        vm.prank(AIRDROP_RECIPIENT_1);
+        newToken.claim{value: 1 ether}(tos, tokenIds, proofs);
+        newToken.rescueEth();
+        
+        assertEq(address(token).balance, 0);
+        assertEq(address(treasury).balance, 1 ether);
+        assertEq(token.ownerOf(AIRDROP_TOKEN_ID_1), AIRDROP_RECIPIENT_1);
+        assertEq(token.ownerOf(AIRDROP_TOKEN_ID_2), AIRDROP_RECIPIENT_2);
+        assertEq(token.totalSupply(), 2);
+    }
+
     function test_UpgradedTokenImplMerkleTree() public {
         deployMock();
         tokenUpgrade();
 
+        ExistingCommunityToken newToken = ExistingCommunityToken(address(token));
+
         vm.startPrank(token.owner());
-        ExistingCommunityToken(address(token)).setMerkleRoot(MOCK_MERKLE_ROOT);
-        ExistingCommunityToken(address(token)).setIsClaimOpen(true);
+        newToken.setMerkleRoot(MOCK_MERKLE_ROOT);
+        newToken.setIsClaimOpen(true);
         vm.stopPrank();
 
         bytes32[][] memory proofs = new bytes32[][](2);
@@ -51,7 +90,7 @@ contract ExistingCommunityTokenTest is NounsBuilderTest, TokenTypesV1 {
         tokenIds[1] = AIRDROP_TOKEN_ID_2;
 
         vm.prank(AIRDROP_RECIPIENT_1);
-        ExistingCommunityToken(address(token)).claim(tos, tokenIds, proofs);
+        newToken.claim(tos, tokenIds, proofs);
         
         assertEq(token.ownerOf(AIRDROP_TOKEN_ID_1), AIRDROP_RECIPIENT_1);
         assertEq(token.ownerOf(AIRDROP_TOKEN_ID_2), AIRDROP_RECIPIENT_2);
@@ -63,6 +102,8 @@ contract ExistingCommunityTokenTest is NounsBuilderTest, TokenTypesV1 {
         deployMock();
         tokenUpgrade();
 
+        ExistingCommunityToken newToken = ExistingCommunityToken(address(token));
+
         address bidder1 = vm.addr(0xB1);
         address bidder2 = vm.addr(0xB2);
         uint256 NEW_AUCTION_OFFSET = 123;
@@ -71,9 +112,9 @@ contract ExistingCommunityTokenTest is NounsBuilderTest, TokenTypesV1 {
         vm.deal(bidder2, 1000 ether);
 
         vm.startPrank(token.owner());
-        ExistingCommunityToken(address(token)).setAuctionOffset(NEW_AUCTION_OFFSET);
-        ExistingCommunityToken(address(token)).setMerkleRoot(MOCK_MERKLE_ROOT);
-        ExistingCommunityToken(address(token)).setIsClaimOpen(true);
+        newToken.setAuctionOffset(NEW_AUCTION_OFFSET);
+        newToken.setMerkleRoot(MOCK_MERKLE_ROOT);
+        newToken.setIsClaimOpen(true);
         vm.stopPrank();
 
         vm.prank(founder);
@@ -92,7 +133,7 @@ contract ExistingCommunityTokenTest is NounsBuilderTest, TokenTypesV1 {
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = MOCK_PROOF_1;
         vm.prank(AIRDROP_RECIPIENT_1);
-        ExistingCommunityToken(address(token)).claim(AIRDROP_RECIPIENT_1, AIRDROP_TOKEN_ID_1, proof);
+        newToken.claim(AIRDROP_RECIPIENT_1, AIRDROP_TOKEN_ID_1, proof);
 
         assertEq(token.ownerOf(NEW_AUCTION_OFFSET), bidder2);
         assertEq(token.ownerOf(AIRDROP_TOKEN_ID_1), AIRDROP_RECIPIENT_1);
