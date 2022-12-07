@@ -1,8 +1,8 @@
-name: Build and Test Packages
-on: [pull_request, workflow_dispatch]
+name: Check Contract Storage Layout
+on: [pull_request]
 
 jobs:
-  build-and-test:
+  inspect-storage:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
