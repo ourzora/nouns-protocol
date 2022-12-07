@@ -16,8 +16,7 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
-      - run: |
-          yarn install --immutable --immutable-cache
+  
       - name: "Inspect Storage Layout"
         continue-on-error: false
         id: storage-inspect-check
