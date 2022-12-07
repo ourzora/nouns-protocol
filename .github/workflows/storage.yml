@@ -18,8 +18,6 @@ jobs:
           version: nightly
       - run: |
           yarn install --immutable --immutable-cache
-      - run: |
-          yarn build
       - name: "Inspect Storage Layout"
         continue-on-error: false
         id: storage-inspect-check
