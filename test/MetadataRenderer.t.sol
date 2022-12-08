@@ -170,7 +170,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         assertEq(metadataRenderer.projectURI(), "https://nouns.build/about");
     }
 
-    function test_AddAdditionalProperties() public {
+    function test_AddAdditionalPropertiesWithAddress() public {
         string[] memory names = new string[](1);
         names[0] = "mock-property";
 
@@ -221,7 +221,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         );
     }
 
-    function test_AddAndClearAdditionalProperties() public {
+    function test_AddAndClearAdditionalPropertiesWithAddress() public {
         string[] memory names = new string[](1);
         names[0] = "mock-property";
 
@@ -265,7 +265,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         assertTrue(keccak256(bytes(withAdditionalTokenProperties)) != keccak256(bytes(token.tokenURI(0))));
     }
 
-    function test_UnicodeProperties() public {
+    function test_UnicodePropertiesWithAddress() public {
         string[] memory names = new string[](1);
         names[0] = unicode"mock-⌐ ◨-◨-.∆property";
 
@@ -321,7 +321,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         assertTrue(keccak256(bytes(withAdditionalTokenProperties)) != keccak256(bytes(token.tokenURI(0))));
     }
 
-    function test_TokenURI() public {
+    function test_TokenURIWithAddress() public {
         string[] memory names = new string[](1);
         names[0] = "mock-property";
 
