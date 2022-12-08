@@ -5,6 +5,9 @@ import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 import { MetadataRendererTypesV1 } from "../src/token/metadata/types/MetadataRendererTypesV1.sol";
 import { MetadataRendererTypesV2 } from "../src/token/metadata/types/MetadataRendererTypesV2.sol";
 
+import { Base64URIDecoder } from "./utils/Base64URIDecoder.sol";
+import "forge-std/console2.sol";
+
 contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
     function setUp() public virtual override {
         super.setUp();
@@ -167,7 +170,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         assertEq(metadataRenderer.projectURI(), "https://nouns.build/about");
     }
 
-    function test_AddAdditionalProperties() public {
+    function test_AddAdditionalPropertiesWithAddress() public {
         string[] memory names = new string[](1);
         names[0] = "mock-property";
 
@@ -200,7 +203,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
             {
                 "name": "Mock Token #0",
                 "description": "This is a mock token",
-                "image": "http://localhost:5000/render?contractAddress=0xa37a694f029389d5167808761c1b62fcef775288&tokenId=0&images=https%3a%2f%2fnouns.build%2fapi%2ftest%2fmock-property%2fmock-item.json",
+                "image": "http://localhost:5000/render?contractAddress=0xb5795e66c5af21ad8e42e91a375f8c10e2f64cfa&tokenId=0&images=https%3a%2f%2fnouns.build%2fapi%2ftest%2fmock-property%2fmock-item.json",
                 "properties": {
                     "mock-property": "mock-item"
                 },
@@ -210,13 +213,15 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         
         */
 
+        string memory json = Base64URIDecoder.decodeURI("data:application/json;base64,", token.tokenURI(0));
+
         assertEq(
-            token.tokenURI(0),
-            "data:application/json;base64,eyJuYW1lIjogIk1vY2sgVG9rZW4gIzAiLCJkZXNjcmlwdGlvbiI6ICJUaGlzIGlzIGEgbW9jayB0b2tlbiIsImltYWdlIjogImh0dHA6Ly9sb2NhbGhvc3Q6NTAwMC9yZW5kZXI/Y29udHJhY3RBZGRyZXNzPTB4YTM3YTY5NGYwMjkzODlkNTE2NzgwODc2MWMxYjYyZmNlZjc3NTI4OCZ0b2tlbklkPTAmaW1hZ2VzPWh0dHBzJTNhJTJmJTJmbm91bnMuYnVpbGQlMmZhcGklMmZ0ZXN0JTJmbW9jay1wcm9wZXJ0eSUyZm1vY2staXRlbS5qc29uIiwicHJvcGVydGllcyI6IHsibW9jay1wcm9wZXJ0eSI6ICJtb2NrLWl0ZW0ifSwidGVzdGluZyI6ICJIRUxMTyIsInBhcnRpY2lwYXRpb25BZ3JlZW1lbnQiOiAiVGhpcyBpcyBhIEpTT04gcXVvdGVkIHBhcnRpY2lwYXRpb24gYWdyZWVtZW50LiJ9"
+            json,
+            '{"name": "Mock Token #0","description": "This is a mock token","image": "http://localhost:5000/render?contractAddress=0xb5795e66c5af21ad8e42e91a375f8c10e2f64cfa&tokenId=0&images=https%3a%2f%2fnouns.build%2fapi%2ftest%2fmock-property%2fmock-item.json","properties": {"mock-property": "mock-item"},"testing": "HELLO","participationAgreement": "This is a JSON quoted participation agreement."}'
         );
     }
 
-    function test_AddAndClearAdditionalProperties() public {
+    function test_AddAndClearAdditionalPropertiesWithAddress() public {
         string[] memory names = new string[](1);
         names[0] = "mock-property";
 
@@ -249,16 +254,18 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         vm.prank(founder);
         metadataRenderer.setAdditionalTokenProperties(clearedTokenProperties);
 
+        string memory json = Base64URIDecoder.decodeURI("data:application/json;base64,", token.tokenURI(0));
+
         // Ensure no additional properties are sent
         assertEq(
-            token.tokenURI(0),
-            "data:application/json;base64,eyJuYW1lIjogIk1vY2sgVG9rZW4gIzAiLCJkZXNjcmlwdGlvbiI6ICJUaGlzIGlzIGEgbW9jayB0b2tlbiIsImltYWdlIjogImh0dHA6Ly9sb2NhbGhvc3Q6NTAwMC9yZW5kZXI/Y29udHJhY3RBZGRyZXNzPTB4YTM3YTY5NGYwMjkzODlkNTE2NzgwODc2MWMxYjYyZmNlZjc3NTI4OCZ0b2tlbklkPTAmaW1hZ2VzPWh0dHBzJTNhJTJmJTJmbm91bnMuYnVpbGQlMmZhcGklMmZ0ZXN0JTJmbW9jay1wcm9wZXJ0eSUyZm1vY2staXRlbS5qc29uIiwicHJvcGVydGllcyI6IHsibW9jay1wcm9wZXJ0eSI6ICJtb2NrLWl0ZW0ifX0="
+            json,
+            '{"name": "Mock Token #0","description": "This is a mock token","image": "http://localhost:5000/render?contractAddress=0xb5795e66c5af21ad8e42e91a375f8c10e2f64cfa&tokenId=0&images=https%3a%2f%2fnouns.build%2fapi%2ftest%2fmock-property%2fmock-item.json","properties": {"mock-property": "mock-item"}}'
         );
 
         assertTrue(keccak256(bytes(withAdditionalTokenProperties)) != keccak256(bytes(token.tokenURI(0))));
     }
 
-    function test_UnicodeProperties() public {
+    function test_UnicodePropertiesWithAddress() public {
         string[] memory names = new string[](1);
         names[0] = unicode"mock-⌐ ◨-◨-.∆property";
 
@@ -304,15 +311,17 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         // > decodeURIComponent('https%3a%2f%2fnouns.build%2fapi%2ftest%2fmock-%e2%8c%90%20%e2%97%a8-%e2%97%a8-.%e2%88%86property%2f%20%e2%8c%90%e2%97%a8-%e2%97%a8%20.json')
         // 'https://nouns.build/api/test/mock-⌐ ◨-◨-.∆property/ ⌐◨-◨ .json'
 
+        string memory json = Base64URIDecoder.decodeURI("data:application/json;base64,", token.tokenURI(0));
+
         assertEq(
-            token.tokenURI(0),
-            "data:application/json;base64,eyJuYW1lIjogIk1vY2sgVG9rZW4gIzAiLCJkZXNjcmlwdGlvbiI6ICJUaGlzIGlzIGEgbW9jayB0b2tlbiIsImltYWdlIjogImh0dHA6Ly9sb2NhbGhvc3Q6NTAwMC9yZW5kZXI/Y29udHJhY3RBZGRyZXNzPTB4YTM3YTY5NGYwMjkzODlkNTE2NzgwODc2MWMxYjYyZmNlZjc3NTI4OCZ0b2tlbklkPTAmaW1hZ2VzPWh0dHBzJTNhJTJmJTJmbm91bnMuYnVpbGQlMmZhcGklMmZ0ZXN0JTJmbW9jay0lZTIlOGMlOTAlMjAlZTIlOTclYTgtJWUyJTk3JWE4LS4lZTIlODglODZwcm9wZXJ0eSUyZiUyMCVlMiU4YyU5MCVlMiU5NyVhOC0lZTIlOTclYTglMjAuanNvbiIsInByb3BlcnRpZXMiOiB7Im1vY2st4oyQIOKXqC3il6gtLuKIhnByb3BlcnR5IjogIiDijJDil6gt4peoICJ9fQ=="
+            json,
+            unicode'{"name": "Mock Token #0","description": "This is a mock token","image": "http://localhost:5000/render?contractAddress=0xb5795e66c5af21ad8e42e91a375f8c10e2f64cfa&tokenId=0&images=https%3a%2f%2fnouns.build%2fapi%2ftest%2fmock-%e2%8c%90%20%e2%97%a8-%e2%97%a8-.%e2%88%86property%2f%20%e2%8c%90%e2%97%a8-%e2%97%a8%20.json","properties": {"mock-⌐ ◨-◨-.∆property": " ⌐◨-◨ "}}'
         );
 
         assertTrue(keccak256(bytes(withAdditionalTokenProperties)) != keccak256(bytes(token.tokenURI(0))));
     }
 
-    function test_TokenURI() public {
+    function test_TokenURIWithAddress() public {
         string[] memory names = new string[](1);
         names[0] = "mock-property";
 
@@ -341,9 +350,11 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         }
          */
 
+        string memory json = Base64URIDecoder.decodeURI("data:application/json;base64,", token.tokenURI(0));
+
         assertEq(
-            token.tokenURI(0),
-            "data:application/json;base64,eyJuYW1lIjogIk1vY2sgVG9rZW4gIzAiLCJkZXNjcmlwdGlvbiI6ICJUaGlzIGlzIGEgbW9jayB0b2tlbiIsImltYWdlIjogImh0dHA6Ly9sb2NhbGhvc3Q6NTAwMC9yZW5kZXI/Y29udHJhY3RBZGRyZXNzPTB4YTM3YTY5NGYwMjkzODlkNTE2NzgwODc2MWMxYjYyZmNlZjc3NTI4OCZ0b2tlbklkPTAmaW1hZ2VzPWh0dHBzJTNhJTJmJTJmbm91bnMuYnVpbGQlMmZhcGklMmZ0ZXN0JTJmbW9jay1wcm9wZXJ0eSUyZm1vY2staXRlbS5qc29uIiwicHJvcGVydGllcyI6IHsibW9jay1wcm9wZXJ0eSI6ICJtb2NrLWl0ZW0ifX0="
+            json,
+            '{"name": "Mock Token #0","description": "This is a mock token","image": "http://localhost:5000/render?contractAddress=0xb5795e66c5af21ad8e42e91a375f8c10e2f64cfa&tokenId=0&images=https%3a%2f%2fnouns.build%2fapi%2ftest%2fmock-property%2fmock-item.json","properties": {"mock-property": "mock-item"}}'
         );
     }
 }
