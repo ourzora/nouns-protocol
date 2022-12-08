@@ -360,15 +360,16 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         governor.propose(targets, values, calldatas, "");
     }
 
-    function testRevert_BelowProposalThreshold() public {
+    function testRevert_BelowProposalThreshold(uint32 bps) public {
+        vm.assume(bps < 1000 && bps > 0);
         deployMock();
 
         mintVoter1();
 
         vm.prank(address(treasury));
-        governor.updateProposalThresholdBps(999);
+        governor.updateProposalThresholdBps(bps);
 
-        assertEq(governor.proposalThreshold(), ((token.totalSupply() * 999) / 10_000));
+        assertEq(governor.proposalThreshold(), 0);
 
         address[] memory targets = new address[](1);
         uint256[] memory values = new uint256[](1);
