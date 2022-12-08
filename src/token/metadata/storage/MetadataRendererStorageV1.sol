@@ -16,6 +16,8 @@ contract MetadataRendererStorageV1 is MetadataRendererTypesV1 {
     /// @notice The IPFS data of all property items
     IPFSGroup[] public ipfsData;
 
-    /// @notice The attributes generated for a token
+    /// @notice The attributes generated for a token - mapping of tokenID uint16 array
+    /// @dev Array of size 16 1st element [0] used for number of attributes chosen, next N elements for those selections
+    /// @dev token ID
     mapping(uint256 => uint16[16]) public attributes;
 }

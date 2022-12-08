@@ -99,7 +99,7 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
     /// @notice The number of items in the IPFS data store
     /// @return ipfs data array size
     function ipfsDataCount() external view returns (uint256) {
-        return ipfsData.count;
+        return ipfsData.length;
     }
 
     /// @notice Updates the additional token properties associated with the metadata.
