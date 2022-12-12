@@ -47,6 +47,12 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         WETH = _weth;
     }
 
+    /// @notice Standard Convience Method to get deployed contract version
+    /// @return Contract version semver string
+    function contractVersion() external returns (string memory) {
+        return "1.0.2";
+    }
+
     ///                                                          ///
     ///                          INITIALIZER                     ///
     ///                                                          ///

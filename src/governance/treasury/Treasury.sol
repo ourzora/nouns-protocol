@@ -41,6 +41,13 @@ contract Treasury is ITreasury, UUPS, Ownable, ProposalHasher, TreasuryStorageV1
         manager = IManager(_manager);
     }
 
+    /// @notice Standard Convience Method to get deployed contract version
+    /// @return Contract version semver string
+    function contractVersion() external returns (string memory) {
+        return "1.0.2";
+    }
+
+
     ///                                                          ///
     ///                         INITIALIZER                      ///
     ///                                                          ///

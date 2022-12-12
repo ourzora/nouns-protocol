@@ -16,7 +16,7 @@ import { IGovernor } from "../governance/governor/IGovernor.sol";
 /// @title Manager
 /// @author Rohan Kulkarni
 /// @notice The DAO deployer and upgrade manager
-contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
+contract Manager is IContractVersion, IManager, UUPS, Ownable, ManagerStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -66,6 +66,12 @@ contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
 
         // Set the contract owner
         __Ownable_init(_newOwner);
+    }
+
+    /// @notice Standard Convience Method to get deployed contract version
+    /// @return Contract version semver string
+    function contractVersion() external returns (string memory) {
+        return "1.0.2";
     }
 
     ///                                                          ///
