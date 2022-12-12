@@ -2,12 +2,13 @@
 pragma solidity 0.8.16;
 
 import { MetadataRendererTypesV1 } from "../types/MetadataRendererTypesV1.sol";
+import { MetadataRendererTypesV2 } from "../types/MetadataRendererTypesV2.sol";
 import { IBaseMetadata } from "./IBaseMetadata.sol";
 
 /// @title IPropertyIPFSMetadataRenderer
 /// @author Iain Nash & Rohan Kulkarni
 /// @notice The external Metadata Renderer events, errors, and functions
-interface IPropertyIPFSMetadataRenderer is IBaseMetadata, MetadataRendererTypesV1 {
+interface IPropertyIPFSMetadataRenderer is IBaseMetadata, MetadataRendererTypesV1, MetadataRendererTypesV2 {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///
@@ -15,8 +16,8 @@ interface IPropertyIPFSMetadataRenderer is IBaseMetadata, MetadataRendererTypesV
     /// @notice Emitted when a property is added
     event PropertyAdded(uint256 id, string name);
 
-    /// @notice Emitted when an item is added
-    event ItemAdded(uint256 propertyId, uint256 index);
+    /// @notice Additional token properties have been set
+    event AdditionalTokenPropertiesSet(AdditionalTokenProperty[] _additionalJsonProperties);
 
     /// @notice Emitted when the contract image is updated
     event ContractImageUpdated(string prevImage, string newImage);
