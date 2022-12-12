@@ -24,7 +24,7 @@ contract PurpleTests is Test {
     string internal description;
 
     function setUp() public {
-        uint256 mainnetFork = vm.createFork(vm.envString("MAINNET_RPC_URL"));
+        uint256 mainnetFork = vm.createFork(vm.envString("ETH_RPC_MAINNET"));
         vm.selectFork(mainnetFork);
         vm.rollFork(16171761);
 
