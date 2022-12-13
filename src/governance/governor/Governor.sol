@@ -12,6 +12,7 @@ import { Treasury } from "../treasury/Treasury.sol";
 import { IManager } from "../../manager/IManager.sol";
 import { IGovernor } from "./IGovernor.sol";
 import { ProposalHasher } from "./ProposalHasher.sol";
+import { VersionedContract } from "../../VersionedContract.sol";
 
 /// @title Governor
 /// @author Rohan Kulkarni
@@ -19,7 +20,7 @@ import { ProposalHasher } from "./ProposalHasher.sol";
 /// Modified from:
 /// - OpenZeppelin Contracts v4.7.3 (governance/extensions/GovernorTimelockControl.sol)
 /// - NounsDAOLogicV1.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
-contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorStorageV1 {
+contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, ProposalHasher, GovernorStorageV1 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
@@ -64,13 +65,6 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
     /// @param _manager The contract upgrade manager address
     constructor(address _manager) payable initializer {
         manager = IManager(_manager);
-    }
-
-
-    /// @notice Standard Convience Method to get deployed contract version
-    /// @return Contract version semver string
-    function contractVersion() external returns (string memory) {
-        return "1.0.2";
     }
 
     ///                                                          ///
@@ -642,7 +636,6 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
         settings.vetoer = _newVetoer;
     }
 
-   
     /// @notice Burns the vetoer
     function burnVetoer() external onlyOwner {
         emit VetoerUpdated(settings.vetoer, address(0));

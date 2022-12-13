@@ -17,11 +17,19 @@ import { MetadataRendererStorageV2 } from "./storage/MetadataRendererStorageV2.s
 import { IToken } from "../../token/IToken.sol";
 import { IPropertyIPFSMetadataRenderer } from "./interfaces/IPropertyIPFSMetadataRenderer.sol";
 import { IManager } from "../../manager/IManager.sol";
+import { VersionedContract } from "../../VersionedContract.sol";
 
 /// @title Metadata Renderer
 /// @author Iain Nash & Rohan Kulkarni
 /// @notice A DAO's artwork generator and renderer
-contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS, MetadataRendererStorageV1, MetadataRendererStorageV2 {
+contract MetadataRenderer is
+    IPropertyIPFSMetadataRenderer,
+    VersionedContract,
+    Initializable,
+    UUPS,
+    MetadataRendererStorageV1,
+    MetadataRendererStorageV2
+{
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -49,12 +57,6 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
     /// @param _manager The contract upgrade manager address
     constructor(address _manager) payable initializer {
         manager = IManager(_manager);
-    }
-
-    /// @notice Standard Convience Method to get deployed contract version
-    /// @return Contract version semver string
-    function contractVersion() external returns (string memory) {
-        return "1.0.2";
     }
 
     ///                                                          ///
