@@ -12,6 +12,7 @@ import { Treasury } from "../treasury/Treasury.sol";
 import { IManager } from "../../manager/IManager.sol";
 import { IGovernor } from "./IGovernor.sol";
 import { ProposalHasher } from "./ProposalHasher.sol";
+import { IVersionedContract } from "../../lib/interfaces/IVersionedContract.sol";
 
 /// @title Governor
 /// @author Rohan Kulkarni
@@ -19,7 +20,7 @@ import { ProposalHasher } from "./ProposalHasher.sol";
 /// Modified from:
 /// - OpenZeppelin Contracts v4.7.3 (governance/extensions/GovernorTimelockControl.sol)
 /// - NounsDAOLogicV1.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
-contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorStorageV1 {
+contract Governor is IGovernor, IVersionedContract, UUPS, Ownable, EIP712, ProposalHasher, GovernorStorageV1 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///

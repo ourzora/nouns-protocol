@@ -13,10 +13,12 @@ import { IManager } from "../manager/IManager.sol";
 import { IAuction } from "../auction/IAuction.sol";
 import { IToken } from "./IToken.sol";
 
+import { IVersionedContract } from "../lib/interfaces/IVersionedContract.sol";
+
 /// @title Token
 /// @author Rohan Kulkarni
 /// @notice A DAO's ERC-721 governance token
-contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
+contract Token is IToken, IVersionedContract, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///

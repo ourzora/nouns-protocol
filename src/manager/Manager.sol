@@ -4,6 +4,7 @@ pragma solidity 0.8.16;
 import { UUPS } from "../lib/proxy/UUPS.sol";
 import { Ownable } from "../lib/utils/Ownable.sol";
 import { ERC1967Proxy } from "../lib/proxy/ERC1967Proxy.sol";
+import { IVersionedContract } from "../lib/interfaces/IVersionedContract.sol";
 
 import { ManagerStorageV1 } from "./storage/ManagerStorageV1.sol";
 import { IManager } from "./IManager.sol";
@@ -16,7 +17,7 @@ import { IGovernor } from "../governance/governor/IGovernor.sol";
 /// @title Manager
 /// @author Rohan Kulkarni
 /// @notice The DAO deployer and upgrade manager
-contract Manager is IContractVersion, IManager, UUPS, Ownable, ManagerStorageV1 {
+contract Manager is IVersionedContract, IManager, UUPS, Ownable, ManagerStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
