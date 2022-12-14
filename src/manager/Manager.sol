@@ -17,6 +17,7 @@ import { VersionedContract } from "../VersionedContract.sol";
 
 /// @title Manager
 /// @author Rohan Kulkarni
+/// @custom:repo github.com/ourzora/nouns-protocol 
 /// @notice The DAO deployer and upgrade manager
 contract Manager is VersionedContract, IManager, UUPS, Ownable, ManagerStorageV1 {
     ///                                                          ///

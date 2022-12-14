@@ -17,6 +17,7 @@ import { VersionedContract } from "../../VersionedContract.sol";
 /// @title Governor
 /// @author Rohan Kulkarni
 /// @notice A DAO's proposal manager and transaction scheduler
+/// @custom:repo github.com/ourzora/nouns-protocol 
 /// Modified from:
 /// - OpenZeppelin Contracts v4.7.3 (governance/extensions/GovernorTimelockControl.sol)
 /// - NounsDAOLogicV1.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
