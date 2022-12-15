@@ -13,10 +13,13 @@ import { IAuction } from "../auction/IAuction.sol";
 import { ITreasury } from "../governance/treasury/ITreasury.sol";
 import { IGovernor } from "../governance/governor/IGovernor.sol";
 
+import { VersionedContract } from "../VersionedContract.sol";
+
 /// @title Manager
 /// @author Rohan Kulkarni
+/// @custom:repo github.com/ourzora/nouns-protocol 
 /// @notice The DAO deployer and upgrade manager
-contract Manager is IManager, UUPS, Ownable, ManagerStorageV1 {
+contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///

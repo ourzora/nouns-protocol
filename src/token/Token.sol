@@ -12,11 +12,13 @@ import { IBaseMetadata } from "./metadata/interfaces/IBaseMetadata.sol";
 import { IManager } from "../manager/IManager.sol";
 import { IAuction } from "../auction/IAuction.sol";
 import { IToken } from "./IToken.sol";
+import { VersionedContract } from "../VersionedContract.sol";
 
 /// @title Token
 /// @author Rohan Kulkarni
+/// @custom:repo github.com/ourzora/nouns-protocol 
 /// @notice A DAO's ERC-721 governance token
-contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
+contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
