@@ -143,7 +143,9 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
         // Cannot realistically underflow and `getVotes` would revert
         unchecked {
             // Ensure the caller's voting weight is greater than or equal to the threshold
-            if (getVotes(msg.sender, block.timestamp - 1) < proposalThreshold()) revert BELOW_PROPOSAL_THRESHOLD();
+            if (getVotes(msg.sender, block.timestamp - 1) <= proposalThreshold()) {
+                revert BELOW_PROPOSAL_THRESHOLD();
+            }
         }
 
         // Cache the number of targets

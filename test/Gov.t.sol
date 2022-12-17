@@ -101,8 +101,9 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         vm.prank(voter1);
         auction.createBid{ value: 0.420 ether }(2);
 
-        vm.warp(auctionParams.duration + 1 seconds);
+        vm.warp(block.timestamp + auctionParams.duration + 1 seconds);
         auction.settleCurrentAndCreateNewAuction();
+        vm.warp(block.timestamp + 20);
     }
 
     function mintVoter2() internal {
@@ -111,6 +112,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         vm.warp(block.timestamp + auctionParams.duration + 1 seconds);
         auction.settleCurrentAndCreateNewAuction();
+        vm.warp(block.timestamp + 20);
     }
 
     function castVotes(
@@ -162,6 +164,16 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
     function createProposal() internal returns (bytes32 proposalId) {
         (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
+
+        vm.startPrank(address(auction));
+        uint256 newTokenId = token.mint();
+        token.transferFrom(address(auction), voter1, newTokenId);
+        vm.stopPrank();
+
+        vm.prank(address(treasury));
+        governor.updateProposalThresholdBps(1);
+
+        vm.warp(block.timestamp + 20);
 
         vm.prank(voter1);
         proposalId = governor.propose(targets, values, calldatas, "");
@@ -227,6 +239,9 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         mintVoter1();
 
+        vm.prank(address(treasury));
+        governor.updateProposalThresholdBps(1);
+
         (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
 
         bytes32 descriptionHash = keccak256(bytes(""));
@@ -271,6 +286,9 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     function test_VerifySubmittedProposalHash() public {
         deployMock();
 
+        // Mint a token to voter 1 to have quorum       
+        mintVoter1();
+
         (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
 
         vm.prank(voter1);
@@ -304,6 +322,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         calldatas[0] = abi.encodeWithSignature("pause()");
 
         vm.expectRevert(abi.encodeWithSignature("PROPOSAL_TARGET_MISSING()"));
+        vm.prank(voter1);
         governor.propose(targets, values, calldatas, "");
     }
 
@@ -320,6 +339,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         calldatas[0] = abi.encodeWithSignature("pause()");
 
         vm.expectRevert(abi.encodeWithSignature("PROPOSAL_LENGTH_MISMATCH()"));
+        vm.prank(voter1);
         governor.propose(targets, values, calldatas, "");
     }
 
@@ -335,6 +355,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         targets[0] = address(auction);
 
         vm.expectRevert(abi.encodeWithSignature("PROPOSAL_LENGTH_MISMATCH()"));
+        vm.prank(voter1);
         governor.propose(targets, values, calldatas, "");
     }
 
@@ -352,23 +373,28 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         bytes32 descriptionHash = keccak256(bytes(""));
 
-        bytes32 proposalId = governor.hashProposal(targets, values, calldatas, descriptionHash, address(this));
-
+        vm.startPrank(voter1);
+        bytes32 proposalId = governor.hashProposal(targets, values, calldatas, descriptionHash, voter1);
         governor.propose(targets, values, calldatas, "");
 
         vm.expectRevert(abi.encodeWithSignature("PROPOSAL_EXISTS(bytes32)", proposalId));
         governor.propose(targets, values, calldatas, "");
+        vm.stopPrank();
     }
 
-    function testRevert_BelowProposalThreshold() public {
+    function testRevert_BelowProposalThreshold(uint32 bps) public {
+        vm.assume(bps < 1000 && bps > 0);
         deployMock();
 
         mintVoter1();
 
         vm.prank(address(treasury));
-        governor.updateProposalThresholdBps(999);
+        governor.updateProposalThresholdBps(bps);
 
-        assertEq(governor.proposalThreshold(), ((token.totalSupply() * 999) / 10_000));
+        // Go back in time before voter1 token is minted
+        vm.warp(1);
+
+        assertEq(governor.proposalThreshold(), 0);
 
         address[] memory targets = new address[](1);
         uint256[] memory values = new uint256[](1);
@@ -383,14 +409,14 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         }
 
         vm.expectRevert(abi.encodeWithSignature("BELOW_PROPOSAL_THRESHOLD()"));
+        vm.prank(voter1);
         governor.propose(targets, values, calldatas, "");
     }
 
     function test_CastVote() public {
         deployMock();
 
-        mintVoter1();
-
+        // This mints a token to voter1           
         bytes32 proposalId = createProposal();
 
         uint256 votingDelay = governor.votingDelay();
@@ -429,8 +455,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     function test_CastVoteWithSig() public {
         deployMock();
 
-        mintVoter1();
-
+        // This mints a token to voter1           
         bytes32 proposalId = createProposal();
 
         uint256 votingDelay = governor.votingDelay();
@@ -446,7 +471,6 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         );
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(voter1PK, digest);
-
         governor.castVoteBySig(voter1, proposalId, FOR, deadline, v, r, s);
 
         (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes) = governor.proposalVotes(proposalId);
@@ -781,7 +805,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         vm.warp(block.timestamp + governor.votingDelay());
 
-        vm.prank(voter1);
+        vm.startPrank(voter1);
         token.transferFrom(voter1, address(this), 2);
 
         vm.warp(block.timestamp + governor.votingPeriod());
@@ -791,6 +815,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         Proposal memory proposal = governor.getProposal(proposalId);
 
         assertTrue(proposal.canceled);
+        vm.stopPrank();
     }
 
     function testRevert_CannotCancelIfExactThreshold() public {
