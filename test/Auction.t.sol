@@ -5,7 +5,7 @@ import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 import { MockERC721 } from "./utils/mocks/MockERC721.sol";
 import { MockImpl } from "./utils/mocks/MockImpl.sol";
 import { MockPartialTokenImpl } from "./utils/mocks/MockPartialTokenImpl.sol";
-
+import { IAuction } from "../src/auction/IAuction.sol";
 
 contract AuctionTest is NounsBuilderTest {
     MockImpl internal mockImpl;
@@ -71,6 +71,68 @@ contract AuctionTest is NounsBuilderTest {
 
         vm.expectRevert(abi.encodeWithSignature("ONLY_OWNER()"));
         auction.unpause();
+    }
+
+    function test_ZeroBidIncrementNotAllowed() public {
+        deployMock();
+
+        vm.prank(founder);
+        vm.expectRevert(IAuction.MIN_BID_INCREMENT_1_PERCENT.selector);
+        auction.setMinimumBidIncrement(0);
+    }
+
+    function test_CreateMultipleBidsAfterZero(uint256 _amount) public {
+        deployMock();
+        vm.assume(_amount > 0 && _amount <= bidder1.balance);
+
+        vm.startPrank(founder);
+        // Set minimum possible bid increment
+        auction.setMinimumBidIncrement(1);
+        auction.setReservePrice(0);
+
+        auction.unpause();
+        vm.stopPrank();
+
+        vm.prank(bidder1);
+
+        // 0 value bid placed
+        auction.createBid{value: 0}(2);
+
+        (, uint256 highestBidOriginal, address highestBidderOriginal, , , ) = auction.auction();
+        assertEq(highestBidOriginal, 0);
+        assertEq(highestBidderOriginal, bidder1);
+
+        uint256 bidder2BalanceBefore = bidder2.balance;
+
+        vm.prank(bidder2);
+        auction.createBid{ value: _amount }(2);
+
+        (, uint256 highestBid, address highestBidder, , , ) = auction.auction();
+        assertEq(highestBid, _amount);
+        assertEq(highestBidder, bidder2);
+        assertEq(bidder2BalanceBefore - bidder2.balance, _amount);
+    }
+
+    function test_NoTwoZeroValueBids() public {
+        deployMock();
+
+        // Set minimum possible bid increment
+        vm.startPrank(founder);
+        auction.setMinimumBidIncrement(1);
+        auction.setReservePrice(0);
+        vm.stopPrank();
+
+        vm.prank(founder);
+        auction.unpause();
+
+        // 0 value bid placed
+        vm.prank(bidder1);
+        auction.createBid{value: 0}(2);
+
+        // another 0 value bid should not be able to be
+        vm.prank(bidder2);
+        vm.expectRevert(IAuction.MINIMUM_BID_NOT_MET.selector);
+        auction.createBid{value: 0}(2);
     }
 
     function test_CreateBid(uint256 _amount) public {
