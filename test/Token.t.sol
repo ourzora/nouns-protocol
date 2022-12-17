@@ -472,25 +472,6 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         token.updateFounders(foundersArr);
     }
 
-    function test_UpdateFoundersZeroOwnership() public {
-        IManager.FounderParams[] memory newFoundersArr = new IManager.FounderParams[](2);
-        newFoundersArr[0] = IManager.FounderParams({
-            wallet: address(0x06B59d0b6AdCc6A5Dc63553782750dc0b41266a3),
-            ownershipPct: 0,
-            vestExpiry: 2556057600
-        });
-        newFoundersArr[1] = IManager.FounderParams({
-            wallet: address(0x06B59d0b6AdCc6A5Dc63553782750dc0b41266a3),
-            ownershipPct: 10,
-            vestExpiry: 2556057600
-        });
-
-        vm.prank(address(founder));
-        token.updateFounders(newFoundersArr);
-
-        assertEq(token.getFounders().length, 1);
-    }
-
     function test_UpdateFounderShareAllocationFuzz(
         uint256 f1Percentage,
         uint256 f2Percentage,

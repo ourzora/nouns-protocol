@@ -6,16 +6,19 @@ import { ReentrancyGuard } from "../lib/utils/ReentrancyGuard.sol";
 import { ERC721Votes } from "../lib/token/ERC721Votes.sol";
 import { ERC721 } from "../lib/token/ERC721.sol";
 import { Ownable } from "../lib/utils/Ownable.sol";
+
 import { TokenStorageV1 } from "./storage/TokenStorageV1.sol";
 import { IBaseMetadata } from "./metadata/interfaces/IBaseMetadata.sol";
 import { IManager } from "../manager/IManager.sol";
 import { IAuction } from "../auction/IAuction.sol";
 import { IToken } from "./IToken.sol";
+import { VersionedContract } from "../VersionedContract.sol";
 
 /// @title Token
 /// @author Rohan Kulkarni
+/// @custom:repo github.com/ourzora/nouns-protocol 
 /// @notice A DAO's ERC-721 governance token
-contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
+contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
@@ -346,15 +349,6 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
                 // copy the founder into memory
                 Founder memory cachedFounder = cachedFounders[i];
 
-                // Delete the founder from the stored mapping
-                delete founder[i];
-
-                // Some DAOs were initialized with 0 percentage ownership.
-                // This skips them to avoid a division by zero error.
-                if (cachedFounder.ownershipPct == 0) {
-                    continue;
-                }
-
                 // using the ownership percentage, get reserved token percentages
                 uint256 schedule = 100 / cachedFounder.ownershipPct;
 
@@ -375,6 +369,9 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
                     // Update the base token id
                     baseTokenId = (baseTokenId + schedule) % 100;
                 }
+
+                // Delete the founder from the stored mapping
+                delete founder[i];
             }
         }
 
