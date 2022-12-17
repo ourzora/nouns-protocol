@@ -51,6 +51,15 @@ interface IManager is IUUPS, IOwnable {
         uint256 vestExpiry;
     }
 
+    /// @notice DAO Version Information information struct
+    struct DAOVersionInfo {
+        string token;
+        string metadata;
+        string auction;
+        string treasury;
+        string governor; 
+    }
+
     /// @notice The ERC-721 token parameters
     /// @param initStrings The encoded token name, symbol, collection description, collection image uri, renderer base uri
     struct TokenParams {
