@@ -10,14 +10,16 @@ import { TreasuryStorageV1 } from "./storage/TreasuryStorageV1.sol";
 import { ITreasury } from "./ITreasury.sol";
 import { ProposalHasher } from "../governor/ProposalHasher.sol";
 import { IManager } from "../../manager/IManager.sol";
+import { VersionedContract } from "../../VersionedContract.sol";
 
 /// @title Treasury
 /// @author Rohan Kulkarni
 /// @notice A DAO's treasury and transaction executor
+/// @custom:repo github.com/ourzora/nouns-protocol 
 /// Modified from:
 /// - OpenZeppelin Contracts v4.7.3 (governance/TimelockController.sol)
 /// - NounsDAOExecutor.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
-contract Treasury is ITreasury, UUPS, Ownable, ProposalHasher, TreasuryStorageV1 {
+contract Treasury is ITreasury, VersionedContract, UUPS, Ownable, ProposalHasher, TreasuryStorageV1 {
     ///                                                          ///
     ///                         CONSTANTS                        ///
     ///                                                          ///

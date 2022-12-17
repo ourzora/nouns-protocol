@@ -47,6 +47,30 @@ contract ManagerTest is NounsBuilderTest {
         assertEq(metadataRenderer.owner(), address(founder));
     }
 
+    function test_GetLatestVersions() public {
+        deployMock();
+
+        string memory version = manager.contractVersion();
+        IManager.DAOVersionInfo memory versionInfo = manager.getLatestVersions();
+        assertEq(versionInfo.token, version);
+        assertEq(versionInfo.metadata, version);
+        assertEq(versionInfo.governor, version);
+        assertEq(versionInfo.auction, version);
+        assertEq(versionInfo.treasury, version);
+    }
+
+    function test_GetDAOVersions() public {
+        deployMock();
+
+        string memory version = manager.contractVersion();
+        IManager.DAOVersionInfo memory versionInfo = manager.getDAOVersions(address(token));
+        assertEq(versionInfo.token, version);
+        assertEq(versionInfo.metadata, version);
+        assertEq(versionInfo.governor, version);
+        assertEq(versionInfo.auction, version);
+        assertEq(versionInfo.treasury, version);
+    }
+
     function test_AuctionInitialized() public {
         deployMock();
 
@@ -59,6 +83,8 @@ contract ManagerTest is NounsBuilderTest {
         assertEq(auction.timeBuffer(), 5 minutes);
         assertEq(auction.minBidIncrement(), 10);
     }
+
+
 
     function test_TreasuryInitialized() public {
         deployMock();

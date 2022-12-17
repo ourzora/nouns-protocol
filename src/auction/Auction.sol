@@ -13,13 +13,16 @@ import { IManager } from "../manager/IManager.sol";
 import { IAuction } from "./IAuction.sol";
 import { IWETH } from "../lib/interfaces/IWETH.sol";
 
+import { VersionedContract } from "../VersionedContract.sol";
+
 /// @title Auction
 /// @author Rohan Kulkarni
 /// @notice A DAO's auction house
+/// @custom:repo github.com/ourzora/nouns-protocol 
 /// Modified from:
 /// - NounsAuctionHouse.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
 /// - Zora V3 ReserveAuctionCoreEth module commit 795aeca - licensed under the GPL-3.0 license.
-contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionStorageV1 {
+contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
