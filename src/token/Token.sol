@@ -89,15 +89,14 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
     /// @dev We do this by reserving an mapping of [0-100] token indices, such that if a new token mint ID % 100 is reserved, it's sent to the appropriate founder.
     /// @param _founders The list of DAO founders
     function _addFounders(IManager.FounderParams[] calldata _founders) internal {
-        // Cache the number of founders
-        uint256 numFounders = _founders.length;
-
         // Used to store the total percent ownership among the founders
         uint256 totalOwnership;
 
+        uint8 numFoundersAdded = 0;
+
         unchecked {
             // For each founder:
-            for (uint256 i; i < numFounders; ++i) {
+            for (uint256 i; i < _founders.length; ++i) {
                 // Cache the percent ownership
                 uint256 founderPct = _founders[i].ownershipPct;
 
@@ -115,7 +114,7 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
                 }
 
                 // Compute the founder's id
-                uint256 founderId = settings.numFounders++;
+                uint256 founderId = numFoundersAdded++;
 
                 // Get the pointer to store the founder
                 Founder storage newFounder = founder[founderId];
@@ -149,7 +148,7 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
 
             // Store the founders' details
             settings.totalOwnership = uint8(totalOwnership);
-            settings.numFounders = uint8(numFounders);
+            settings.numFounders = numFoundersAdded;
         }
     }
 
