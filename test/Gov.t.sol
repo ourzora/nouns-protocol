@@ -3,8 +3,6 @@ pragma solidity 0.8.16;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 
-import "forge-std/console2.sol";
-
 import { IManager } from "../src/manager/IManager.sol";
 import { IGovernor } from "../src/governance/governor/IGovernor.sol";
 import { GovernorTypesV1 } from "../src/governance/governor/types/GovernorTypesV1.sol";
