@@ -5,7 +5,7 @@ import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 import { MockERC721 } from "./utils/mocks/MockERC721.sol";
 import { MockImpl } from "./utils/mocks/MockImpl.sol";
 import { MockPartialTokenImpl } from "./utils/mocks/MockPartialTokenImpl.sol";
-import { IAuction } from "../src/Auction/IAuction.sol";
+import { IAuction } from "../src/auction/IAuction.sol";
 
 contract AuctionTest is NounsBuilderTest {
     MockImpl internal mockImpl;
