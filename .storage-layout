@@ -90,3 +90,4 @@
 | settings                 | struct TokenTypesV1.Settings                                           | 17   | 0      | 64    | src/token/Token.sol:Token |
 | founder                  | mapping(uint256 => struct TokenTypesV1.Founder)                        | 19   | 0      | 32    | src/token/Token.sol:Token |
 | tokenRecipient           | mapping(uint256 => struct TokenTypesV1.Founder)                        | 20   | 0      | 32    | src/token/Token.sol:Token |
+| minter                   | mapping(address => bool)                                               | 21   | 0      | 32    | src/token/Token.sol:Token |
