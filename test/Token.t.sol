@@ -6,6 +6,7 @@ import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 import { IManager, Manager } from "../src/manager/Manager.sol";
 import { IToken, Token } from "../src/token/Token.sol";
 import { TokenTypesV1 } from "../src/token/types/TokenTypesV1.sol";
+import { TokenTypesV2 } from "../src/token/types/TokenTypesV2.sol";
 
 contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     mapping(address => uint256) public mintedTokens;
@@ -363,24 +364,35 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.getPastVotes(founder, block.timestamp - 1), 2);
     }
 
-    function testRevert_OnlyAuctionCanMint() public {
+    function test_AuctionCanMintAfterDeploy() public {
         deployMock();
 
         vm.prank(founder);
         auction.unpause();
 
-        vm.expectRevert(abi.encodeWithSignature("ONLY_AUCTION()"));
+        vm.expectRevert(abi.encodeWithSignature("ONLY_MINTER()"));
         token.mint();
+
+        vm.prank(address(auction));
+        uint256 tokenId = token.mint();
+        assertEq(token.ownerOf(tokenId), address(auction));
     }
 
-    function testRevert_OnlyAuctionCanBurn() public {
+    function testRevert_OnlyMinterCanMint(address newMinter) public {
+        vm.assume(newMinter != founder && newMinter != address(0) && newMinter != address(auction));
         deployMock();
 
-        vm.prank(founder);
-        auction.unpause();
+        TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: newMinter, authorized: true });
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        minters[0] = params;
+        vm.prank(address(founder));
+        token.updateMinters(minters);
 
-        vm.expectRevert(abi.encodeWithSignature("ONLY_AUCTION()"));
-        token.burn(1);
+        vm.expectRevert(abi.encodeWithSignature("ONLY_MINTER()"));
+        token.mint();
+        vm.prank(newMinter);
+        uint256 tokenId = token.mint();
+        assertEq(token.ownerOf(tokenId), newMinter);
     }
 
     function testRevert_OnlyDAOCanUpgrade() public {
@@ -532,5 +544,110 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(mintedTokens[f1Wallet], f1Percentage);
         assertEq(mintedTokens[f2Wallet], f2Percentage);
         assertEq(mintedTokens[f3Wallet], f3Percentage);
+    }
+
+    function test_UpdateMintersOwnerCanAddMinters(address m1, address m2) public {
+        vm.assume(m1 != founder && m1 != address(0) && m1 != address(auction));
+        vm.assume(m2 != founder && m2 != address(0) && m2 != address(auction));
+
+        deployMock();
+
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: m1, authorized: true });
+        TokenTypesV2.MinterParams memory p2 = TokenTypesV2.MinterParams({ minter: m2, authorized: true });
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](2);
+        minters[0] = p1;
+        minters[1] = p2;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        assertEq(token.minter(address(auction)), true);
+        assertTrue(token.minter(minters[0].minter));
+        assertTrue(token.minter(minters[1].minter));
+
+        vm.prank(minters[0].minter);
+        uint256 tokenId = token.mint();
+        assertEq(token.ownerOf(tokenId), minters[0].minter);
+
+        vm.prank(minters[1].minter);
+        tokenId = token.mint();
+        assertEq(token.ownerOf(tokenId), minters[1].minter);
+    }
+
+    function test_UpdateMintersOwnerCanRemoveMinters(address m1, address m2) public {
+        vm.assume(m1 != founder && m1 != address(0) && m1 != address(auction));
+        vm.assume(m2 != founder && m2 != address(0) && m2 != address(auction));
+
+        deployMock();
+
+        // authorize two minters
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: m1, authorized: true });
+        TokenTypesV2.MinterParams memory p2 = TokenTypesV2.MinterParams({ minter: m2, authorized: true });
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](2);
+        minters[0] = p1;
+        minters[1] = p2;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        assertTrue(token.minter(address(auction)));
+        assertTrue(token.minter(minters[0].minter));
+        assertTrue(token.minter(minters[1].minter));
+
+        vm.prank(minters[0].minter);
+        uint256 tokenId = token.mint();
+        assertEq(token.ownerOf(tokenId), minters[0].minter);
+
+        vm.prank(minters[1].minter);
+        tokenId = token.mint();
+        assertEq(token.ownerOf(tokenId), minters[1].minter);
+
+        // remove authorization from one minter
+        minters[1].authorized = false;
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        assertTrue(token.minter(address(auction)));
+        assertTrue(token.minter(minters[0].minter));
+        assertTrue(!token.minter(minters[1].minter));
+
+        vm.prank(minters[1].minter);
+        vm.expectRevert(abi.encodeWithSignature("ONLY_MINTER()"));
+        token.mint();
+    }
+
+    function testRevert_OnlyOwnerUpdateMinters() public {
+        deployMock();
+
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: address(0x1), authorized: true });
+        TokenTypesV2.MinterParams memory p2 = TokenTypesV2.MinterParams({ minter: address(0x2), authorized: true });
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](2);
+        minters[0] = p1;
+        minters[1] = p2;
+
+        vm.expectRevert(abi.encodeWithSignature("ONLY_OWNER()"));
+        token.updateMinters(minters);
+    }
+
+    function test_MinterCanBurnTheirOwnToken(address newMinter) public {
+        vm.assume(newMinter != founder && newMinter != address(0) && newMinter != address(auction));
+
+        deployMock();
+
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: newMinter, authorized: true });
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        minters[0] = p1;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        vm.prank(minters[0].minter);
+        uint256 tokenId = token.mint();
+        assertEq(token.ownerOf(tokenId), minters[0].minter);
+
+        vm.prank(minters[0].minter);
+        token.burn(tokenId);
+        vm.expectRevert(abi.encodeWithSignature("INVALID_OWNER()"));
+        token.ownerOf(tokenId);
     }
 }

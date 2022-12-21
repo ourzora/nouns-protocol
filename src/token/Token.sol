@@ -8,6 +8,7 @@ import { ERC721 } from "../lib/token/ERC721.sol";
 import { Ownable } from "../lib/utils/Ownable.sol";
 
 import { TokenStorageV1 } from "./storage/TokenStorageV1.sol";
+import { TokenStorageV2 } from "./storage/TokenStorageV2.sol";
 import { IBaseMetadata } from "./metadata/interfaces/IBaseMetadata.sol";
 import { IManager } from "../manager/IManager.sol";
 import { IAuction } from "../auction/IAuction.sol";
@@ -16,13 +17,37 @@ import { IToken } from "./IToken.sol";
 /// @title Token
 /// @author Rohan Kulkarni
 /// @notice A DAO's ERC-721 governance token
-contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
+contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1, TokenStorageV2 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
 
     /// @notice The contract upgrade manager
     IManager private immutable manager;
+
+    ///                                                          ///
+    ///                          MODIFIERS                       ///
+    ///                                                          ///
+
+    /// @notice Reverts if caller is not an authorized minter
+    modifier onlyMinter() {
+        if (!minter[msg.sender]) {
+            revert ONLY_MINTER();
+        }
+
+        _;
+    }
+
+    modifier onlyMinterWithToken(uint256 tokenId) {
+        if (!minter[msg.sender]) {
+            revert ONLY_MINTER();
+        }
+        if (ownerOf(tokenId) != msg.sender) {
+            revert ONLY_TOKEN_OWNER();
+        }
+
+        _;
+    }
 
     ///                                                          ///
     ///                         CONSTRUCTOR                      ///
@@ -73,6 +98,9 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
         // Store the metadata renderer and auction house
         settings.metadataRenderer = IBaseMetadata(_metadataRenderer);
         settings.auction = _auction;
+
+        // Set the auction contract as the first authorized minter
+        minter[_auction] = true;
     }
 
     /// @notice Called by the auction upon the first unpause / token mint to transfer ownership from founder to treasury
@@ -171,15 +199,7 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
     ///                                                          ///
 
     /// @notice Mints tokens to the auction house for bidding and handles founder vesting
-    function mint() external nonReentrant returns (uint256 tokenId) {
-        // Cache the auction address
-        address minter = settings.auction;
-
-        // Ensure the caller is the auction
-        if (msg.sender != minter) {
-            revert ONLY_AUCTION();
-        }
-
+    function mint() external nonReentrant onlyMinter returns (uint256 tokenId) {
         // Cannot realistically overflow
         unchecked {
             do {
@@ -191,7 +211,7 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
         }
 
         // Mint the next available token to the auction house for bidding
-        _mint(minter, tokenId);
+        _mint(msg.sender, tokenId);
     }
 
     /// @dev Overrides _mint to include attribute generation
@@ -242,12 +262,7 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
 
     /// @notice Burns a token that did not see any bids
     /// @param _tokenId The ERC-721 token id
-    function burn(uint256 _tokenId) external {
-        // Ensure the caller is the auction house
-        if (msg.sender != settings.auction) {
-            revert ONLY_AUCTION();
-        }
-
+    function burn(uint256 _tokenId) external onlyMinterWithToken(_tokenId) {
         // Burn the token
         _burn(_tokenId);
     }
@@ -401,6 +416,21 @@ contract Token is IToken, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStor
 
     function owner() public view override(IToken, Ownable) returns (address) {
         return super.owner();
+    }
+
+    /// @notice Update minters
+    /// @param _minters Array of structs containing address status as a minter
+    function updateMinters(MinterParams[] calldata _minters) external onlyOwner {
+        // Update each minter
+        for (uint256 i; i < _minters.length; ++i) {
+            // Skip if the minter is already set to the correct value
+            if (minter[_minters[i].minter] == _minters[i].authorized) continue;
+
+            // Update the minter
+            minter[_minters[i].minter] = _minters[i].authorized;
+        }
+
+        emit MintersUpdated(_minters);
     }
 
     ///                                                          ///

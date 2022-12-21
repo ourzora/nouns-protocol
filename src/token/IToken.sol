@@ -5,11 +5,12 @@ import { IUUPS } from "../lib/interfaces/IUUPS.sol";
 import { IERC721Votes } from "../lib/interfaces/IERC721Votes.sol";
 import { IManager } from "../manager/IManager.sol";
 import { TokenTypesV1 } from "./types/TokenTypesV1.sol";
+import { TokenTypesV2 } from "./types/TokenTypesV2.sol";
 
 /// @title IToken
 /// @author Rohan Kulkarni
 /// @notice The external Token events, errors and functions
-interface IToken is IUUPS, IERC721Votes, TokenTypesV1 {
+interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///
@@ -30,6 +31,10 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1 {
     /// @param newFounders the list of founders
     event FounderAllocationsCleared(IManager.FounderParams[] newFounders);
 
+    /// @notice Emitted when minters are updated
+    /// @param minters List of minters and their authorization status
+    event MintersUpdated(MinterParams[] minters);
+
     ///                                                          ///
     ///                            ERRORS                        ///
     ///                                                          ///
@@ -40,11 +45,23 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1 {
     /// @dev Reverts if the caller was not the auction contract
     error ONLY_AUCTION();
 
+    /// @dev Reverts if the caller was not a minter
+    error ONLY_MINTER();
+
+    /// @dev Reverts if the caller was not the token owner
+    error ONLY_TOKEN_OWNER();
+
     /// @dev Reverts if no metadata was generated upon mint
     error NO_METADATA_GENERATED();
 
     /// @dev Reverts if the caller was not the contract manager
     error ONLY_MANAGER();
+
+    /// @dev Reverts if minters and isMinter arrays are not the same length
+    error INVALID_MINTER_ARRAY_LENGTH();
+
+    /// @dev Reverts if burners and isBurner arrays are not the same length
+    error INVALID_BURNER_ARRAY_LENGTH();
 
     ///                                                          ///
     ///                           FUNCTIONS                      ///
@@ -92,8 +109,7 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1 {
 
     /// @notice Update the list of allocation owners
     /// @param newFounders the full list of FounderParam structs
-    function updateFounders(IManager.FounderParams[] calldata newFounders) external;                                                         
-       
+    function updateFounders(IManager.FounderParams[] calldata newFounders) external;
 
     /// @notice The founder scheduled to receive the given token id
     /// NOTE: If a founder is returned, there's no guarantee they'll receive the token as vesting expiration is not considered
@@ -111,6 +127,10 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1 {
 
     /// @notice The owner of the token and metadata renderer
     function owner() external view returns (address);
+
+    /// @notice Update minters
+    /// @param _minters Array of structs containing address status as a minter
+    function updateMinters(MinterParams[] calldata _minters) external;
 
     /// @notice Callback called by auction on first auction started to transfer ownership to treasury from founder
     function onFirstAuctionStarted() external;
