@@ -17,11 +17,20 @@ import { MetadataRendererStorageV2 } from "./storage/MetadataRendererStorageV2.s
 import { IToken } from "../../token/IToken.sol";
 import { IPropertyIPFSMetadataRenderer } from "./interfaces/IPropertyIPFSMetadataRenderer.sol";
 import { IManager } from "../../manager/IManager.sol";
+import { VersionedContract } from "../../VersionedContract.sol";
 
 /// @title Metadata Renderer
 /// @author Iain Nash & Rohan Kulkarni
 /// @notice A DAO's artwork generator and renderer
-contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS, MetadataRendererStorageV1, MetadataRendererStorageV2 {
+/// @custom:repo github.com/ourzora/nouns-protocol 
+contract MetadataRenderer is
+    IPropertyIPFSMetadataRenderer,
+    VersionedContract,
+    Initializable,
+    UUPS,
+    MetadataRendererStorageV1,
+    MetadataRendererStorageV2
+{
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -84,14 +93,22 @@ contract MetadataRenderer is IPropertyIPFSMetadataRenderer, Initializable, UUPS,
     ///                                                          ///
 
     /// @notice The number of properties
+    /// @return properties array length
     function propertiesCount() external view returns (uint256) {
         return properties.length;
     }
 
     /// @notice The number of items in a property
     /// @param _propertyId The property id
+    /// @return items array length
     function itemsCount(uint256 _propertyId) external view returns (uint256) {
         return properties[_propertyId].items.length;
+    }
+
+    /// @notice The number of items in the IPFS data store
+    /// @return ipfs data array size
+    function ipfsDataCount() external view returns (uint256) {
+        return ipfsData.length;
     }
 
     /// @notice Updates the additional token properties associated with the metadata.

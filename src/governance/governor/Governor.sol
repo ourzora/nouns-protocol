@@ -12,14 +12,16 @@ import { Treasury } from "../treasury/Treasury.sol";
 import { IManager } from "../../manager/IManager.sol";
 import { IGovernor } from "./IGovernor.sol";
 import { ProposalHasher } from "./ProposalHasher.sol";
+import { VersionedContract } from "../../VersionedContract.sol";
 
 /// @title Governor
 /// @author Rohan Kulkarni
 /// @notice A DAO's proposal manager and transaction scheduler
+/// @custom:repo github.com/ourzora/nouns-protocol 
 /// Modified from:
 /// - OpenZeppelin Contracts v4.7.3 (governance/extensions/GovernorTimelockControl.sol)
 /// - NounsDAOLogicV1.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
-contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorStorageV1 {
+contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, ProposalHasher, GovernorStorageV1 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
@@ -141,7 +143,9 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
         // Cannot realistically underflow and `getVotes` would revert
         unchecked {
             // Ensure the caller's voting weight is greater than or equal to the threshold
-            if (getVotes(msg.sender, block.timestamp - 1) < proposalThreshold()) revert BELOW_PROPOSAL_THRESHOLD();
+            if (getVotes(msg.sender, block.timestamp - 1) <= proposalThreshold()) {
+                revert BELOW_PROPOSAL_THRESHOLD();
+            }
         }
 
         // Cache the number of targets
@@ -635,7 +639,6 @@ contract Governor is IGovernor, UUPS, Ownable, EIP712, ProposalHasher, GovernorS
         settings.vetoer = _newVetoer;
     }
 
-   
     /// @notice Burns the vetoer
     function burnVetoer() external onlyOwner {
         emit VetoerUpdated(settings.vetoer, address(0));

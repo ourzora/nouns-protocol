@@ -13,13 +13,16 @@ import { IManager } from "../manager/IManager.sol";
 import { IAuction } from "./IAuction.sol";
 import { IWETH } from "../lib/interfaces/IWETH.sol";
 
+import { VersionedContract } from "../VersionedContract.sol";
+
 /// @title Auction
 /// @author Rohan Kulkarni
 /// @notice A DAO's auction house
+/// @custom:repo github.com/ourzora/nouns-protocol 
 /// Modified from:
 /// - NounsAuctionHouse.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
 /// - Zora V3 ReserveAuctionCoreEth module commit 795aeca - licensed under the GPL-3.0 license.
-contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionStorageV1 {
+contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -95,10 +98,14 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
     /// @param _tokenId The ERC-721 token id
     function createBid(uint256 _tokenId) external payable nonReentrant {
         // Ensure the bid is for the current token
-        if (auction.tokenId != _tokenId) revert INVALID_TOKEN_ID();
+        if (auction.tokenId != _tokenId) {
+            revert INVALID_TOKEN_ID();
+        }
 
         // Ensure the auction is still active
-        if (block.timestamp >= auction.endTime) revert AUCTION_OVER();
+        if (block.timestamp >= auction.endTime) {
+            revert AUCTION_OVER();
+        }
 
         // Cache the amount of ETH attached
         uint256 msgValue = msg.value;
@@ -133,7 +140,9 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
         // If this is the first bid:
         if (lastHighestBidder == address(0)) {
             // Ensure the bid meets the reserve price
-            if (msgValue < settings.reservePrice) revert RESERVE_PRICE_NOT_MET();
+            if (msgValue < settings.reservePrice) {
+                revert RESERVE_PRICE_NOT_MET();
+            }
 
             // Else this is a subsequent bid:
         } else {
@@ -147,7 +156,13 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
             }
 
             // Ensure the incoming bid meets the minimum
-            if (msgValue < minBid || minBid == lastHighestBid) revert MINIMUM_BID_NOT_MET();
+            if (msgValue < minBid) {
+                revert MINIMUM_BID_NOT_MET();
+            }
+            // Ensure that the second bid is not also zero
+            if (minBid == 0 && msgValue == 0 && lastHighestBidder != address(0)) {
+                revert MINIMUM_BID_NOT_MET();
+            }
 
             // Refund the previous bidder
             _handleOutgoingTransfer(lastHighestBidder, lastHighestBid);
@@ -342,6 +357,10 @@ contract Auction is IAuction, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionS
     /// @notice Updates the minimum bid increment of each subsequent bid
     /// @param _percentage The new percentage
     function setMinimumBidIncrement(uint256 _percentage) external onlyOwner whenPaused {
+        if (_percentage == 0) {
+            revert MIN_BID_INCREMENT_1_PERCENT();
+        }
+
         settings.minBidIncrement = SafeCast.toUint8(_percentage);
 
         emit MinBidIncrementPercentageUpdated(_percentage);

@@ -74,6 +74,9 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @dev Reverts if a bid does not meet the minimum bid
     error MINIMUM_BID_NOT_MET();
 
+    /// @dev Error for when the bid increment is set to 0.
+    error MIN_BID_INCREMENT_1_PERCENT();
+
     /// @dev Reverts if the contract does not have enough ETH
     error INSOLVENT();
 

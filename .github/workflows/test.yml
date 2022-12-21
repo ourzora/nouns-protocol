@@ -4,6 +4,7 @@ jobs:
   build:
     name: Test
     runs-on: ubuntu-latest
+    environment: Test
     steps:
       - uses: actions/checkout@v2
         with:
@@ -15,4 +16,4 @@ jobs:
       - uses: onbjerg/foundry-toolchain@v1
         with:
           version: nightly
-      - run: npm run test
+      - run: ETH_RPC_MAINNET=${{secrets.ETH_RPC_MAINNET}} npm run test
