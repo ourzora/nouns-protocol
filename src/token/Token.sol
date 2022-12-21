@@ -18,7 +18,6 @@ import { VersionedContract } from "../VersionedContract.sol";
 /// @author Rohan Kulkarni
 /// @custom:repo github.com/ourzora/nouns-protocol 
 /// @notice A DAO's ERC-721 governance token
-
 contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1, TokenStorageV2 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
