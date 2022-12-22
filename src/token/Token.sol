@@ -16,7 +16,7 @@ import { VersionedContract } from "../VersionedContract.sol";
 
 /// @title Token
 /// @author Rohan Kulkarni
-/// @custom:repo github.com/ourzora/nouns-protocol 
+/// @custom:repo github.com/ourzora/nouns-protocol
 /// @notice A DAO's ERC-721 governance token
 contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1, TokenStorageV2 {
     ///                                                          ///
@@ -430,13 +430,13 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         // Update each minter
         for (uint256 i; i < _minters.length; ++i) {
             // Skip if the minter is already set to the correct value
-            if (minter[_minters[i].minter] == _minters[i].authorized) continue;
+            if (minter[_minters[i].minter] == _minters[i].allowed) continue;
+
+            emit MinterUpdated(_minters[i].minter, _minters[i].allowed);
 
             // Update the minter
-            minter[_minters[i].minter] = _minters[i].authorized;
+            minter[_minters[i].minter] = _minters[i].allowed;
         }
-
-        emit MintersUpdated(_minters);
     }
 
     ///                                                          ///

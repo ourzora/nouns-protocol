@@ -7,6 +7,6 @@ pragma solidity 0.8.16;
 interface TokenTypesV2 {
     struct MinterParams {
         address minter;
-        bool authorized;
+        bool allowed;
     }
 }

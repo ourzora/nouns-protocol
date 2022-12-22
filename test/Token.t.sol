@@ -383,7 +383,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         vm.assume(newMinter != founder && newMinter != address(0) && newMinter != address(auction));
         deployMock();
 
-        TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: newMinter, authorized: true });
+        TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
         minters[0] = params;
         vm.prank(address(founder));
@@ -607,8 +607,8 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
 
         deployMock();
 
-        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: m1, authorized: true });
-        TokenTypesV2.MinterParams memory p2 = TokenTypesV2.MinterParams({ minter: m2, authorized: true });
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: m1, allowed: true });
+        TokenTypesV2.MinterParams memory p2 = TokenTypesV2.MinterParams({ minter: m2, allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](2);
         minters[0] = p1;
         minters[1] = p2;
@@ -636,8 +636,8 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         deployMock();
 
         // authorize two minters
-        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: m1, authorized: true });
-        TokenTypesV2.MinterParams memory p2 = TokenTypesV2.MinterParams({ minter: m2, authorized: true });
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: m1, allowed: true });
+        TokenTypesV2.MinterParams memory p2 = TokenTypesV2.MinterParams({ minter: m2, allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](2);
         minters[0] = p1;
         minters[1] = p2;
@@ -658,7 +658,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.ownerOf(tokenId), minters[1].minter);
 
         // remove authorization from one minter
-        minters[1].authorized = false;
+        minters[1].allowed = false;
         vm.prank(address(founder));
         token.updateMinters(minters);
 
@@ -674,8 +674,8 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     function testRevert_OnlyOwnerUpdateMinters() public {
         deployMock();
 
-        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: address(0x1), authorized: true });
-        TokenTypesV2.MinterParams memory p2 = TokenTypesV2.MinterParams({ minter: address(0x2), authorized: true });
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: address(0x1), allowed: true });
+        TokenTypesV2.MinterParams memory p2 = TokenTypesV2.MinterParams({ minter: address(0x2), allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](2);
         minters[0] = p1;
         minters[1] = p2;
@@ -689,7 +689,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
 
         deployMock();
 
-        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: newMinter, authorized: true });
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
         minters[0] = p1;
 

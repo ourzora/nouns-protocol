@@ -32,8 +32,9 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
     event FounderAllocationsCleared(IManager.FounderParams[] newFounders);
 
     /// @notice Emitted when minters are updated
-    /// @param minters List of minters and their authorization status
-    event MintersUpdated(MinterParams[] minters);
+    /// @param minter Address of added or removed minter
+    /// @param allowed Whether address is allowed to mint
+    event MinterUpdated(address minter, bool allowed);
 
     ///                                                          ///
     ///                            ERRORS                        ///
@@ -56,12 +57,6 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
 
     /// @dev Reverts if the caller was not the contract manager
     error ONLY_MANAGER();
-
-    /// @dev Reverts if minters and isMinter arrays are not the same length
-    error INVALID_MINTER_ARRAY_LENGTH();
-
-    /// @dev Reverts if burners and isBurner arrays are not the same length
-    error INVALID_BURNER_ARRAY_LENGTH();
 
     ///                                                          ///
     ///                           FUNCTIONS                      ///
