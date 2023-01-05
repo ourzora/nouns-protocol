@@ -1,0 +1,6 @@
+Auction Upgrade implementation: 0x2661fe1a882abfd28ae0c2769a90f327850397c6
+Governor Upgrade implementation: 0x9eefef0891b1895af967fe48c5d7d96e984b96a3
+Treasury Upgrade implementation: 0x0b6d2473f54de3f1d80b27c92b22d13050da289a
+Token Upgrade implementation: 0xe6322201ced0a4d6595968411285a39ccf9d5989
+Metadata Upgrade implementation: 0x26f494af990123154e7cc067da7a311b07d54ae1
+Manager implementation: 0xee5a9dfede69d9c3814531ed0cad5f951cc10742

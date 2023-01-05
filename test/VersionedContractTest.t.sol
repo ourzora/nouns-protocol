@@ -7,7 +7,7 @@ import { VersionedContract } from "../src/VersionedContract.sol";
 contract MockVersionedContract is VersionedContract {}
 
 contract VersionedContractTest is NounsBuilderTest {
-    string expectedVersion = "1.0.1";
+    string expectedVersion = "1.1.1";
 
     function test_Version() public {
         MockVersionedContract mockContract = new MockVersionedContract();
