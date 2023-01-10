@@ -396,6 +396,23 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.ownerOf(tokenId), newMinter);
     }
 
+    function testRevert_OnlyMinterCanMintToRecipient(address newMinter, address recipient) public {
+        vm.assume(newMinter != founder && newMinter != address(0) && newMinter != address(auction) && recipient != address(0));
+        deployMock();
+
+        TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        minters[0] = params;
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        vm.expectRevert(abi.encodeWithSignature("ONLY_MINTER()"));
+        token.mint(recipient);
+        vm.prank(newMinter);
+        uint256 tokenId = token.mint(recipient);
+        assertEq(token.ownerOf(tokenId), recipient);
+    }
+
     function testRevert_OnlyDAOCanUpgrade() public {
         deployMock();
 

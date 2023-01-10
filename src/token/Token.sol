@@ -198,8 +198,17 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     ///                             MINT                         ///
     ///                                                          ///
 
-    /// @notice Mints tokens to the auction house for bidding and handles founder vesting
+    /// @notice Mints tokens to the caller and handles founder vesting
     function mint() external nonReentrant onlyMinter returns (uint256 tokenId) {
+        return _mintWithVesting(msg.sender);
+    }
+
+    /// @notice Mints tokens to the recipient and handles founder vesting
+    function mint(address recipient) external nonReentrant onlyMinter returns (uint256 tokenId) {
+        return _mintWithVesting(recipient);
+    }
+
+    function _mintWithVesting(address recipient) internal returns (uint256 tokenId) {
         // Cannot realistically overflow
         unchecked {
             do {
@@ -211,7 +220,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         }
 
         // Mint the next available token to the auction house for bidding
-        _mint(msg.sender, tokenId);
+        _mint(recipient, tokenId);
     }
 
     /// @dev Overrides _mint to include attribute generation
