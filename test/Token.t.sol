@@ -619,8 +619,9 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function test_UpdateMintersOwnerCanAddMinters(address m1, address m2) public {
-        vm.assume(m1 != founder && m1 != address(0) && m1 != address(auction));
-        vm.assume(m2 != founder && m2 != address(0) && m2 != address(auction));
+        vm.assume(
+            m1 != founder && m1 != address(0) && m1 != address(auction) && m2 != founder && m2 != address(0) && m2 != address(auction) && m1 != m2
+        );
 
         deployMock();
 
@@ -647,8 +648,9 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function test_UpdateMintersOwnerCanRemoveMinters(address m1, address m2) public {
-        vm.assume(m1 != founder && m1 != address(0) && m1 != address(auction));
-        vm.assume(m2 != founder && m2 != address(0) && m2 != address(auction));
+        vm.assume(
+            m1 != founder && m1 != address(0) && m1 != address(auction) && m2 != founder && m2 != address(0) && m2 != address(auction) && m1 != m2
+        );
 
         deployMock();
 
