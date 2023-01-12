@@ -371,7 +371,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         vm.prank(founder);
         auction.unpause();
 
-        vm.expectRevert(abi.encodeWithSignature("ONLY_MINTER()"));
+        vm.expectRevert(abi.encodeWithSignature("ONLY_AUCTION_OR_MINTER()"));
         token.mint();
 
         vm.prank(address(auction));
@@ -389,7 +389,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         vm.prank(address(founder));
         token.updateMinters(minters);
 
-        vm.expectRevert(abi.encodeWithSignature("ONLY_MINTER()"));
+        vm.expectRevert(abi.encodeWithSignature("ONLY_AUCTION_OR_MINTER()"));
         token.mint();
         vm.prank(newMinter);
         uint256 tokenId = token.mint();
@@ -406,7 +406,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         vm.prank(address(founder));
         token.updateMinters(minters);
 
-        vm.expectRevert(abi.encodeWithSignature("ONLY_MINTER()"));
+        vm.expectRevert(abi.encodeWithSignature("ONLY_AUCTION_OR_MINTER()"));
         token.mint(recipient);
         vm.prank(newMinter);
         uint256 tokenId = token.mint(recipient);
@@ -634,7 +634,6 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         vm.prank(address(founder));
         token.updateMinters(minters);
 
-        assertEq(token.minter(address(auction)), true);
         assertTrue(token.minter(minters[0].minter));
         assertTrue(token.minter(minters[1].minter));
 
@@ -664,7 +663,6 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         vm.prank(address(founder));
         token.updateMinters(minters);
 
-        assertTrue(token.minter(address(auction)));
         assertTrue(token.minter(minters[0].minter));
         assertTrue(token.minter(minters[1].minter));
 
@@ -681,12 +679,11 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         vm.prank(address(founder));
         token.updateMinters(minters);
 
-        assertTrue(token.minter(address(auction)));
         assertTrue(token.minter(minters[0].minter));
         assertTrue(!token.minter(minters[1].minter));
 
         vm.prank(minters[1].minter);
-        vm.expectRevert(abi.encodeWithSignature("ONLY_MINTER()"));
+        vm.expectRevert(abi.encodeWithSignature("ONLY_AUCTION_OR_MINTER()"));
         token.mint();
     }
 

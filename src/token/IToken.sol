@@ -47,7 +47,7 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
     error ONLY_AUCTION();
 
     /// @dev Reverts if the caller was not a minter
-    error ONLY_MINTER();
+    error ONLY_AUCTION_OR_MINTER();
 
     /// @dev Reverts if the caller was not the token owner
     error ONLY_TOKEN_OWNER();

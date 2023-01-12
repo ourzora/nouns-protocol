@@ -31,17 +31,17 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     ///                                                          ///
 
     /// @notice Reverts if caller is not an authorized minter
-    modifier onlyMinter() {
-        if (!minter[msg.sender]) {
-            revert ONLY_MINTER();
+    modifier onlyAuctionOrMinter() {
+        if (msg.sender != settings.auction && !minter[msg.sender]) {
+            revert ONLY_AUCTION_OR_MINTER();
         }
 
         _;
     }
 
-    modifier onlyMinterWithToken(uint256 tokenId) {
-        if (!minter[msg.sender]) {
-            revert ONLY_MINTER();
+    modifier onlyAuctionOrMinterWithToken(uint256 tokenId) {
+        if (msg.sender != settings.auction && !minter[msg.sender]) {
+            revert ONLY_AUCTION_OR_MINTER();
         }
         if (ownerOf(tokenId) != msg.sender) {
             revert ONLY_TOKEN_OWNER();
@@ -99,9 +99,6 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         // Store the metadata renderer and auction house
         settings.metadataRenderer = IBaseMetadata(_metadataRenderer);
         settings.auction = _auction;
-
-        // Set the auction contract as the first authorized minter
-        minter[_auction] = true;
     }
 
     /// @notice Called by the auction upon the first unpause / token mint to transfer ownership from founder to treasury
@@ -199,12 +196,12 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     ///                                                          ///
 
     /// @notice Mints tokens to the caller and handles founder vesting
-    function mint() external nonReentrant onlyMinter returns (uint256 tokenId) {
+    function mint() external nonReentrant onlyAuctionOrMinter returns (uint256 tokenId) {
         return _mintWithVesting(msg.sender);
     }
 
     /// @notice Mints tokens to the recipient and handles founder vesting
-    function mint(address recipient) external nonReentrant onlyMinter returns (uint256 tokenId) {
+    function mint(address recipient) external nonReentrant onlyAuctionOrMinter returns (uint256 tokenId) {
         return _mintWithVesting(recipient);
     }
 
@@ -271,7 +268,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
 
     /// @notice Burns a token that did not see any bids
     /// @param _tokenId The ERC-721 token id
-    function burn(uint256 _tokenId) external onlyMinterWithToken(_tokenId) {
+    function burn(uint256 _tokenId) external onlyAuctionOrMinterWithToken(_tokenId) {
         // Burn the token
         _burn(_tokenId);
     }
