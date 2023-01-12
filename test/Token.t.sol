@@ -379,8 +379,8 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.ownerOf(tokenId), address(auction));
     }
 
-    function testRevert_OnlyMinterCanMint(address newMinter) public {
-        vm.assume(newMinter != founder && newMinter != address(0) && newMinter != address(auction));
+    function testRevert_OnlyMinterCanMint(address newMinter, address nonMinter) public {
+        vm.assume(newMinter != nonMinter && newMinter != founder && newMinter != address(0) && newMinter != address(auction));
         deployMock();
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });
@@ -390,14 +390,21 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         token.updateMinters(minters);
 
         vm.expectRevert(abi.encodeWithSignature("ONLY_AUCTION_OR_MINTER()"));
+        vm.prank(nonMinter);
         token.mint();
         vm.prank(newMinter);
         uint256 tokenId = token.mint();
         assertEq(token.ownerOf(tokenId), newMinter);
     }
 
-    function testRevert_OnlyMinterCanMintToRecipient(address newMinter, address recipient) public {
-        vm.assume(newMinter != founder && newMinter != address(0) && newMinter != address(auction) && recipient != address(0));
+    function testRevert_OnlyMinterCanMintToRecipient(
+        address newMinter,
+        address nonMinter,
+        address recipient
+    ) public {
+        vm.assume(
+            newMinter != nonMinter && newMinter != founder && newMinter != address(0) && newMinter != address(auction) && recipient != address(0)
+        );
         deployMock();
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });
@@ -407,6 +414,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         token.updateMinters(minters);
 
         vm.expectRevert(abi.encodeWithSignature("ONLY_AUCTION_OR_MINTER()"));
+        vm.prank(nonMinter);
         token.mint(recipient);
         vm.prank(newMinter);
         uint256 tokenId = token.mint(recipient);
