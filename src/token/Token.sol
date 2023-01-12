@@ -39,17 +39,6 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         _;
     }
 
-    modifier onlyAuctionOrMinterWithToken(uint256 tokenId) {
-        if (msg.sender != settings.auction && !minter[msg.sender]) {
-            revert ONLY_AUCTION_OR_MINTER();
-        }
-        if (ownerOf(tokenId) != msg.sender) {
-            revert ONLY_TOKEN_OWNER();
-        }
-
-        _;
-    }
-
     ///                                                          ///
     ///                         CONSTRUCTOR                      ///
     ///                                                          ///
@@ -268,8 +257,11 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
 
     /// @notice Burns a token that did not see any bids
     /// @param _tokenId The ERC-721 token id
-    function burn(uint256 _tokenId) external onlyAuctionOrMinterWithToken(_tokenId) {
-        // Burn the token
+    function burn(uint256 _tokenId) external onlyAuctionOrMinter {
+        if (ownerOf(_tokenId) != msg.sender) {
+            revert ONLY_TOKEN_OWNER();
+        }
+
         _burn(_tokenId);
     }
 
