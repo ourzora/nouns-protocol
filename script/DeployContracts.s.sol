@@ -17,12 +17,6 @@ import { ERC1967Proxy } from "../src/lib/proxy/ERC1967Proxy.sol";
 contract DeployContracts is Script {
     using Strings for uint256;
 
-    // address constant TOKEN_120_GOERLI = 0xbD6F4BA8af93A1fBD0fd4993aD336dD9aB66F822;
-    // address constant TOKEN_120_MAINNET = 0xBE9Bd1e89E61C8Aae7d8bc24DD445ba120720D2d;
-
-    address constant MANAGER_MAINNET = 0xd310A3041dFcF14Def5ccBc508668974b5da7174;
-    address constant MANAGER_GOERLI = 0x0E9F3382Cf2508E3bc83248B5b4707FbA86D7Ee0;
-
     function run() public {
         uint256 chainID = vm.envUint("CHAIN_ID");
         uint256 key = vm.envUint("PRIVATE_KEY");
@@ -44,14 +38,9 @@ contract DeployContracts is Script {
         vm.startBroadcast(deployerAddress);
 
         // Deploy root manager implementation + proxy
-        // address managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0)));
+        address managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0)));
 
-        // Manager manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", owner))));
-        address managerAddr = MANAGER_GOERLI;
-        if (chainID == 1) {
-            managerAddr = MANAGER_MAINNET;
-        }
-        Manager manager = Manager(managerAddr);
+        Manager manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", owner))));
 
         // Deploy token implementation
         address tokenImpl = address(new Token(address(manager)));
@@ -86,10 +75,10 @@ contract DeployContracts is Script {
         vm.writeLine(filePath, string(abi.encodePacked("Governor implementation: ", addressToString(governorImpl))));
         vm.writeLine(filePath, string(abi.encodePacked("Manager implementation: ", addressToString(managerImpl))));
 
-        // console2.log("~~~~~~~~~~ MANAGER IMPL 0 ~~~~~~~~~~~");
-        // console2.logAddress(managerImpl0);
+        console2.log("~~~~~~~~~~ MANAGER IMPL 0 ~~~~~~~~~~~");
+        console2.logAddress(managerImpl0);
 
-        console2.log("~~~~~~~~~~ MANAGER IMPL ~~~~~~~~~~~");
+        console2.log("~~~~~~~~~~ MANAGER IMPL 1 ~~~~~~~~~~~");
         console2.logAddress(managerImpl);
 
         console2.log("~~~~~~~~~~ MANAGER PROXY ~~~~~~~~~~~");
