@@ -205,7 +205,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
             } while (_isForFounder(tokenId));
         }
 
-        // Mint the next available token to the auction house for bidding
+        // Mint the next available token to the recipient for bidding
         _mint(recipient, tokenId);
     }
 
