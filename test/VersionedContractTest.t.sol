@@ -4,8 +4,6 @@ pragma solidity 0.8.16;
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 import { VersionedContract } from "../src/VersionedContract.sol";
 
-import "forge-std/console2.sol";
-
 contract MockVersionedContract is VersionedContract {}
 
 contract VersionedContractTest is NounsBuilderTest {
