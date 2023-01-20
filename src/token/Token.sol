@@ -7,6 +7,7 @@ import { ERC721Votes } from "../lib/token/ERC721Votes.sol";
 import { ERC721 } from "../lib/token/ERC721.sol";
 import { Ownable } from "../lib/utils/Ownable.sol";
 import { TokenStorageV1 } from "./storage/TokenStorageV1.sol";
+import { TokenStorageV2 } from "./storage/TokenStorageV2.sol";
 import { IBaseMetadata } from "./metadata/interfaces/IBaseMetadata.sol";
 import { IManager } from "../manager/IManager.sol";
 import { IAuction } from "../auction/IAuction.sol";
@@ -15,15 +16,28 @@ import { VersionedContract } from "../VersionedContract.sol";
 
 /// @title Token
 /// @author Rohan Kulkarni
-/// @custom:repo github.com/ourzora/nouns-protocol 
+/// @custom:repo github.com/ourzora/nouns-protocol
 /// @notice A DAO's ERC-721 governance token
-contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1 {
+contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1, TokenStorageV2 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
 
     /// @notice The contract upgrade manager
     IManager private immutable manager;
+
+    ///                                                          ///
+    ///                          MODIFIERS                       ///
+    ///                                                          ///
+
+    /// @notice Reverts if caller is not an authorized minter
+    modifier onlyAuctionOrMinter() {
+        if (msg.sender != settings.auction && !minter[msg.sender]) {
+            revert ONLY_AUCTION_OR_MINTER();
+        }
+
+        _;
+    }
 
     ///                                                          ///
     ///                         CONSTRUCTOR                      ///
@@ -170,16 +184,17 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     ///                             MINT                         ///
     ///                                                          ///
 
-    /// @notice Mints tokens to the auction house for bidding and handles founder vesting
-    function mint() external nonReentrant returns (uint256 tokenId) {
-        // Cache the auction address
-        address minter = settings.auction;
+    /// @notice Mints tokens to the caller and handles founder vesting
+    function mint() external nonReentrant onlyAuctionOrMinter returns (uint256 tokenId) {
+        return _mintWithVesting(msg.sender);
+    }
 
-        // Ensure the caller is the auction
-        if (msg.sender != minter) {
-            revert ONLY_AUCTION();
-        }
+    /// @notice Mints tokens to the recipient and handles founder vesting
+    function mint(address recipient) external nonReentrant onlyAuctionOrMinter returns (uint256 tokenId) {
+        return _mintWithVesting(recipient);
+    }
 
+    function _mintWithVesting(address recipient) internal returns (uint256 tokenId) {
         // Cannot realistically overflow
         unchecked {
             do {
@@ -190,8 +205,8 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
             } while (_isForFounder(tokenId));
         }
 
-        // Mint the next available token to the auction house for bidding
-        _mint(minter, tokenId);
+        // Mint the next available token to the recipient for bidding
+        _mint(recipient, tokenId);
     }
 
     /// @dev Overrides _mint to include attribute generation
@@ -242,13 +257,11 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
 
     /// @notice Burns a token that did not see any bids
     /// @param _tokenId The ERC-721 token id
-    function burn(uint256 _tokenId) external {
-        // Ensure the caller is the auction house
-        if (msg.sender != settings.auction) {
-            revert ONLY_AUCTION();
+    function burn(uint256 _tokenId) external onlyAuctionOrMinter {
+        if (ownerOf(_tokenId) != msg.sender) {
+            revert ONLY_TOKEN_OWNER();
         }
 
-        // Burn the token
         _burn(_tokenId);
     }
 
@@ -407,6 +420,21 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
 
     function owner() public view override(IToken, Ownable) returns (address) {
         return super.owner();
+    }
+
+    /// @notice Update minters
+    /// @param _minters Array of structs containing address status as a minter
+    function updateMinters(MinterParams[] calldata _minters) external onlyOwner {
+        // Update each minter
+        for (uint256 i; i < _minters.length; ++i) {
+            // Skip if the minter is already set to the correct value
+            if (minter[_minters[i].minter] == _minters[i].allowed) continue;
+
+            emit MinterUpdated(_minters[i].minter, _minters[i].allowed);
+
+            // Update the minter
+            minter[_minters[i].minter] = _minters[i].allowed;
+        }
     }
 
     ///                                                          ///
