@@ -186,12 +186,20 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
 
     /// @notice Mints tokens to the caller and handles founder vesting
     function mint() external nonReentrant onlyAuctionOrMinter returns (uint256 tokenId) {
-        return _mintWithVesting(msg.sender);
+        tokenId = _mintWithVesting(msg.sender);
     }
 
     /// @notice Mints tokens to the recipient and handles founder vesting
     function mint(address recipient) external nonReentrant onlyAuctionOrMinter returns (uint256 tokenId) {
-        return _mintWithVesting(recipient);
+        tokenId = _mintWithVesting(recipient);
+    }
+
+    /// @notice Mints the specified amount of tokens to the recipient and handles founder vesting
+    function mint(uint16 amount, address recipient) external nonReentrant onlyAuctionOrMinter returns (uint256[] memory tokenIds) {
+        tokenIds = new uint256[](amount);
+        for (uint16 i = 0; i < amount; ++i) {
+            tokenIds[i] = _mintWithVesting(recipient);
+        }
     }
 
     function _mintWithVesting(address recipient) internal returns (uint256 tokenId) {
@@ -255,7 +263,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     ///                             BURN                         ///
     ///                                                          ///
 
-    /// @notice Burns a token that did not see any bids
+    /// @notice Burns a token owned by the caller
     /// @param _tokenId The ERC-721 token id
     function burn(uint256 _tokenId) external onlyAuctionOrMinter {
         if (ownerOf(_tokenId) != msg.sender) {

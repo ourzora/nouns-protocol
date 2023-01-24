@@ -75,10 +75,16 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
         address initialOwner
     ) external;
 
-    /// @notice Mints tokens to the auction house for bidding and handles founder vesting
+    /// @notice Mints tokens to the caller and handles founder vesting
     function mint() external returns (uint256 tokenId);
 
-    /// @notice Burns a token that did not see any bids
+    /// @notice Mints tokens to the recipient and handles founder vesting
+    function mint(address recipient) external returns (uint256 tokenId);
+
+    /// @notice Mints the specified amount of tokens to the recipient and handles founder vesting
+    function mint(uint16 amount, address recipient) external returns (uint256[] memory tokenIds);
+
+    /// @notice Burns a token owned by the caller
     /// @param tokenId The ERC-721 token id
     function burn(uint256 tokenId) external;
 

@@ -379,6 +379,20 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.ownerOf(tokenId), address(auction));
     }
 
+    function test_MinterCanMintBatch() public {
+        deployMock();
+
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(address(auction));
+        uint256[] memory tokenIds = token.mint(uint16(10), address(0x1));
+        assertEq(tokenIds.length, 10);
+        for (uint256 i = 0; i < 10; i++) {
+            assertEq(token.ownerOf(tokenIds[i]), address(0x1));
+        }
+    }
+
     function testRevert_OnlyMinterCanMint(address newMinter, address nonMinter) public {
         vm.assume(newMinter != nonMinter && newMinter != founder && newMinter != address(0) && newMinter != address(auction));
         deployMock();
