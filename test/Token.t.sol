@@ -386,7 +386,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         auction.unpause();
 
         vm.prank(address(auction));
-        uint256[] memory tokenIds = token.mint(uint16(10), address(0x1));
+        uint256[] memory tokenIds = token.mint(uint256(10), address(0x1));
         assertEq(tokenIds.length, 10);
         for (uint256 i = 0; i < 10; i++) {
             assertEq(token.ownerOf(tokenIds[i]), address(0x1));

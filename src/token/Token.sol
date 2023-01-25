@@ -195,10 +195,13 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     }
 
     /// @notice Mints the specified amount of tokens to the recipient and handles founder vesting
-    function mint(uint16 amount, address recipient) external nonReentrant onlyAuctionOrMinter returns (uint256[] memory tokenIds) {
+    function mint(uint256 amount, address recipient) external nonReentrant onlyAuctionOrMinter returns (uint256[] memory tokenIds) {
         tokenIds = new uint256[](amount);
-        for (uint16 i = 0; i < amount; ++i) {
+        for (uint256 i = 0; i < amount; ) {
             tokenIds[i] = _mintWithVesting(recipient);
+            unchecked {
+                ++i;
+            }
         }
     }
 
