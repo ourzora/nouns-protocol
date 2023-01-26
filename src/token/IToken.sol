@@ -133,6 +133,10 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
     /// @param _minters Array of structs containing address status as a minter
     function updateMinters(MinterParams[] calldata _minters) external;
 
+    /// @notice Check if an address is a minter
+    /// @param _minter Address to check
+    function isMinter(address _minter) external view returns (bool);
+
     /// @notice Callback called by auction on first auction started to transfer ownership to treasury from founder
     function onFirstAuctionStarted() external;
 }

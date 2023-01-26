@@ -698,6 +698,25 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.ownerOf(tokenId), minters[1].minter);
     }
 
+    function test_isMinterReturnsMinterStatus(address _minter) public {
+        vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
+
+        deployMock();
+
+        TokenTypesV2.MinterParams memory p = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        minters[0] = p;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+        assertTrue(token.isMinter(_minter));
+
+        p.allowed = false;
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+        assertFalse(token.isMinter(_minter));
+    }
+
     function test_UpdateMintersOwnerCanRemoveMinters(address m1, address m2) public {
         vm.assume(
             m1 != founder && m1 != address(0) && m1 != address(auction) && m2 != founder && m2 != address(0) && m2 != address(auction) && m1 != m2

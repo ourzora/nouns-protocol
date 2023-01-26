@@ -448,6 +448,12 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         }
     }
 
+    /// @notice Check if an address is a minter
+    /// @param _minter Address to check
+    function isMinter(address _minter) external view returns (bool) {
+        return minter[_minter];
+    }
+
     ///                                                          ///
     ///                         TOKEN UPGRADE                    ///
     ///                                                          ///
