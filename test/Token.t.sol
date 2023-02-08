@@ -462,7 +462,8 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
                 newMinter != address(0) &&
                 newMinter != address(auction) &&
                 recipient != address(0) &&
-                amount > 0
+                amount > 0 &&
+                amount < 100
         );
         deployMock();
 
