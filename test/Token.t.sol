@@ -379,6 +379,35 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.ownerOf(tokenId), address(auction));
     }
 
+    function test_MinterCanMintBatch() public {
+        deployMock();
+
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(address(auction));
+        uint256[] memory tokenIds = token.mintBatchTo(uint256(10), address(0x1));
+        assertEq(tokenIds.length, 10);
+        for (uint256 i = 0; i < 10; i++) {
+            assertEq(token.ownerOf(tokenIds[i]), address(0x1));
+        }
+    }
+
+    function test_MintBatch(uint8 amount, address recipient) public {
+        deployMock();
+
+        vm.assume(amount > 0 && amount < 100 && recipient != address(0) && recipient != address(auction));
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(address(auction));
+        uint256[] memory tokenIds = token.mintBatchTo(amount, recipient);
+        assertEq(tokenIds.length, amount);
+        for (uint256 i = 0; i < amount; i++) {
+            assertEq(token.ownerOf(tokenIds[i]), address(recipient));
+        }
+    }
+
     function testRevert_OnlyMinterCanMint(address newMinter, address nonMinter) public {
         vm.assume(newMinter != nonMinter && newMinter != founder && newMinter != address(0) && newMinter != address(auction));
         deployMock();
@@ -415,9 +444,40 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
 
         vm.expectRevert(abi.encodeWithSignature("ONLY_AUCTION_OR_MINTER()"));
         vm.prank(nonMinter);
-        token.mint(recipient);
+        token.mintTo(recipient);
         vm.prank(newMinter);
-        uint256 tokenId = token.mint(recipient);
+        uint256 tokenId = token.mintTo(recipient);
+        assertEq(token.ownerOf(tokenId), recipient);
+    }
+
+    function testRevert_OnlyMinterCanMintBatch(
+        address newMinter,
+        address nonMinter,
+        address recipient,
+        uint256 amount
+    ) public {
+        vm.assume(
+            newMinter != nonMinter &&
+                newMinter != founder &&
+                newMinter != address(0) &&
+                newMinter != address(auction) &&
+                recipient != address(0) &&
+                amount > 0 &&
+                amount < 100
+        );
+        deployMock();
+
+        TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        minters[0] = params;
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        vm.expectRevert(abi.encodeWithSignature("ONLY_AUCTION_OR_MINTER()"));
+        vm.prank(nonMinter);
+        token.mintTo(recipient);
+        vm.prank(newMinter);
+        uint256 tokenId = token.mintTo(recipient);
         assertEq(token.ownerOf(tokenId), recipient);
     }
 
@@ -652,6 +712,25 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         vm.prank(minters[1].minter);
         tokenId = token.mint();
         assertEq(token.ownerOf(tokenId), minters[1].minter);
+    }
+
+    function test_isMinterReturnsMinterStatus(address _minter) public {
+        vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
+
+        deployMock();
+
+        TokenTypesV2.MinterParams memory p = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        minters[0] = p;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+        assertTrue(token.isMinter(_minter));
+
+        p.allowed = false;
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+        assertFalse(token.isMinter(_minter));
     }
 
     function test_UpdateMintersOwnerCanRemoveMinters(address m1, address m2) public {
