@@ -1,10 +1,10 @@
 {
   "Manager": "0xd310a3041dfcf14def5ccbc508668974b5da7174",
-  "ManagerImpl": "0x944f69f0bb504db4bb8dcf2b8e639f0e04392fa4",
+  "ManagerImpl": "0x138D8Aef5Cbbbb9Ea8da98CC0847FE0F3b573b40",
   "WETH": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
-  "Auction": "0x3df093145dec8145278cc26537b9bdff8a931e07",
-  "Token": "0xe7d923dc402c7a370f8c142aa3dc1aaf2ec3c23e",
-  "MetadataRenderer": "0xbd6f4ba8af93a1fbd0fd4993ad336dd9ab66f822",
-  "Treasury": "0xc5071ddb24ada38fe28bd43e10cc806f5d8d4a22",
-  "Governor": "0xc88e4829024a7be3dc077c50b3abfcbdba76124c"
+  "Auction": "0x785708d09b89C470aD7B5b3f8ac804cE72B6b282",
+  "Token": "0xAeD75D1e5c1821E2EC29D5d24b794b13C34c5d63",
+  "MetadataRenderer": "0x5a28EEF0eD8cCe44CDa9d7097ecCE041bb51B9D4",
+  "Treasury": "0x3bdAFE0D299168F6ebB6e1B4E1e9702A30F6364D",
+  "Governor": "0x46eA3fd17DEb7B291AeA60E67E5cB3a104FEa11D"
 }
