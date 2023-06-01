@@ -29,7 +29,7 @@
     "*.sol": "solhint"
   },
   "scripts": {
-    "build": "forge build && rm -rf ./dist/artifacts/*/*.metadata.json && npm run typechain",
+    "build": "forge build && rm -rf ./dist/artifacts/*/*.metadata.json",
     "clean": "forge clean && rm -rf ./dist",
     "prepublishOnly": "rm -rf ./dist && forge clean && mkdir -p ./dist/artifacts && yarn build && cp -R src dist && cp -R addresses dist",
     "test": "echo 'temporarily skipping metadata tests, remove this when fixed' && forge test --no-match-test 'WithAddress' -vvv",
