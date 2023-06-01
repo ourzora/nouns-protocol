@@ -30,5 +30,4 @@ jobs:
     - uses: onbjerg/foundry-toolchain@v1
       with:
           version: nightly
-    - run: npm run build --if-present
-    - run: npm run typechain
+    - run: npm run build
