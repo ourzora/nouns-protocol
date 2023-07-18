@@ -21,6 +21,8 @@ contract TestBidError is Test {
         vm.rollFork(16200201);
     }
 
+    /*
+
     function testBidIssue() public {
         (address metadata, address auction, address treasury, address governor) = manager.getAddresses(address(token));
         address bidder1 = address(0xb1dd331);
@@ -44,4 +46,5 @@ contract TestBidError is Test {
         vm.prank(bidder1);
         Auction(auction).createBid{ value: 0.30 ether }(2);
     }
+    */
 }

@@ -114,26 +114,32 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
     error ONLY_MANAGER();
 
     ///                                                          ///
+    ///                          STRUCTS                         ///
+    ///                                                          ///
+
+    /// @notice The governance parameters
+    /// @param votingDelay The time delay to vote on a created proposal
+    /// @param votingPeriod The time period to vote on a proposal
+    /// @param proposalThresholdBps The basis points of the token supply required to create a proposal
+    /// @param quorumThresholdBps The basis points of the token supply required to reach quorum
+    /// @param vetoer The address authorized to veto proposals (address(0) if none desired)
+    struct GovParams {
+        uint256 votingDelay;
+        uint256 votingPeriod;
+        uint256 proposalThresholdBps;
+        uint256 quorumThresholdBps;
+        address vetoer;
+    }
+
+    ///                                                          ///
     ///                          FUNCTIONS                       ///
     ///                                                          ///
 
     /// @notice Initializes a DAO's governor
     /// @param treasury The DAO's treasury address
     /// @param token The DAO's governance token address
-    /// @param vetoer The address eligible to veto proposals
-    /// @param votingDelay The voting delay
-    /// @param votingPeriod The voting period
-    /// @param proposalThresholdBps The proposal threshold basis points
-    /// @param quorumThresholdBps The quorum threshold basis points
-    function initialize(
-        address treasury,
-        address token,
-        address vetoer,
-        uint256 votingDelay,
-        uint256 votingPeriod,
-        uint256 proposalThresholdBps,
-        uint256 quorumThresholdBps
-    ) external;
+    /// @param data The encoded governance parameters
+    function initialize(address treasury, address token, bytes calldata data) external;
 
     /// @notice Creates a proposal
     /// @param targets The target addresses to call
@@ -156,11 +162,7 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
     /// @param proposalId The proposal id
     /// @param support The support value (0 = Against, 1 = For, 2 = Abstain)
     /// @param reason The vote reason
-    function castVoteWithReason(
-        bytes32 proposalId,
-        uint256 support,
-        string memory reason
-    ) external returns (uint256);
+    function castVoteWithReason(bytes32 proposalId, uint256 support, string memory reason) external returns (uint256);
 
     /// @notice Casts a signed vote
     /// @param voter The voter address
@@ -235,14 +237,7 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
 
     /// @notice The vote counts for a proposal
     /// @param proposalId The proposal id
-    function proposalVotes(bytes32 proposalId)
-        external
-        view
-        returns (
-            uint256 againstVotes,
-            uint256 forVotes,
-            uint256 abstainVotes
-        );
+    function proposalVotes(bytes32 proposalId) external view returns (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes);
 
     /// @notice The timestamp valid to execute a proposal
     /// @param proposalId The proposal id

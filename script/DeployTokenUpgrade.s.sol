@@ -65,7 +65,7 @@ contract DeployTokenUpgrade is Script {
         // Deploy token upgrade implementation
         address tokenUpgradeImpl = address(new Token(managerProxy));
 
-        address managerImpl = address(new Manager(tokenUpgradeImpl, metadataImpl, auctionImpl, treasuryImpl, governorImpl));
+        address managerImpl = address(new Manager());
 
         console2.log("TU");
         console2.log(tokenUpgradeImpl);
@@ -88,7 +88,7 @@ contract DeployTokenUpgrade is Script {
     function addressToString(address _addr) private pure returns (string memory) {
         bytes memory s = new bytes(40);
         for (uint256 i = 0; i < 20; i++) {
-            bytes1 b = bytes1(uint8(uint256(uint160(_addr)) / (2**(8 * (19 - i)))));
+            bytes1 b = bytes1(uint8(uint256(uint160(_addr)) / (2 ** (8 * (19 - i)))));
             bytes1 hi = bytes1(uint8(b) / 16);
             bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
             s[2 * i] = char(hi);

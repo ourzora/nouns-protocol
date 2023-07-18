@@ -59,17 +59,26 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
     error ONLY_MANAGER();
 
     ///                                                          ///
+    ///                           STRUCTS                        ///
+    ///                                                          ///
+
+    struct TokenParams {
+        string name;
+        string symbol;
+    }
+
+    ///                                                          ///
     ///                           FUNCTIONS                      ///
     ///                                                          ///
 
     /// @notice Initializes a DAO's ERC-721 token
     /// @param founders The founding members to receive vesting allocations
-    /// @param initStrings The encoded token and metadata initialization strings
+    /// @param data The encoded token and metadata initialization strings
     /// @param metadataRenderer The token's metadata renderer
     /// @param auction The token's auction house
     function initialize(
         IManager.FounderParams[] calldata founders,
-        bytes calldata initStrings,
+        bytes calldata data,
         address metadataRenderer,
         address auction,
         address initialOwner

@@ -47,18 +47,6 @@ contract ManagerTest is NounsBuilderTest {
         assertEq(metadataRenderer.owner(), address(founder));
     }
 
-    function test_GetLatestVersions() public {
-        deployMock();
-
-        string memory version = manager.contractVersion();
-        IManager.DAOVersionInfo memory versionInfo = manager.getLatestVersions();
-        assertEq(versionInfo.token, version);
-        assertEq(versionInfo.metadata, version);
-        assertEq(versionInfo.governor, version);
-        assertEq(versionInfo.auction, version);
-        assertEq(versionInfo.treasury, version);
-    }
-
     function test_GetDAOVersions() public {
         deployMock();
 
@@ -84,13 +72,11 @@ contract ManagerTest is NounsBuilderTest {
         assertEq(auction.minBidIncrement(), 10);
     }
 
-
-
     function test_TreasuryInitialized() public {
         deployMock();
 
         assertEq(treasury.owner(), address(governor));
-        assertEq(treasury.delay(), govParams.timelockDelay);
+        assertEq(treasury.delay(), treasuryParams.timelockDelay);
     }
 
     function test_GovernorInitialized() public {
@@ -111,7 +97,7 @@ contract ManagerTest is NounsBuilderTest {
         foundersArr.push();
 
         vm.expectRevert(abi.encodeWithSignature("FOUNDER_REQUIRED()"));
-        deploy(foundersArr, tokenParams, auctionParams, govParams);
+        deploy(foundersArr, implAddresses, implData);
     }
 
     function test_RegisterUpgrade() public {

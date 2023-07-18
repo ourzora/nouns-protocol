@@ -17,7 +17,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     address internal voter2;
     uint256 internal voter2PK;
 
-    IManager.GovParams internal altGovParams;
+    IGovernor.GovParams internal altGovParams;
 
     function setUp() public virtual override {
         super.setUp();
@@ -48,7 +48,9 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         setGovParams(2 days, 1 days, 1 weeks, 25, 1000, founder);
 
-        deploy(foundersArr, tokenParams, auctionParams, govParams);
+        setImplementationAddresses();
+
+        deploy(foundersArr, implAddresses, implData);
 
         setMockMetadata();
     }
@@ -75,7 +77,9 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         setGovParams(2 days, 1 days, 1 weeks, 100, 1000, founder);
 
-        deploy(foundersArr, tokenParams, auctionParams, govParams);
+        setImplementationAddresses();
+
+        deploy(foundersArr, implAddresses, implData);
 
         setMockMetadata();
     }
@@ -115,12 +119,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         vm.warp(block.timestamp + 20);
     }
 
-    function castVotes(
-        bytes32 _proposalId,
-        uint256 _numAgainst,
-        uint256 _numFor,
-        uint256 _numAbstain
-    ) internal {
+    function castVotes(bytes32 _proposalId, uint256 _numAgainst, uint256 _numFor, uint256 _numAbstain) internal {
         uint256 currentVoterIndex;
 
         for (uint256 i = 0; i < _numAgainst; ++i) {
@@ -145,15 +144,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         }
     }
 
-    function mockProposal()
-        internal
-        view
-        returns (
-            address[] memory targets,
-            uint256[] memory values,
-            bytes[] memory calldatas
-        )
-    {
+    function mockProposal() internal view returns (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) {
         targets = new address[](1);
         values = new uint256[](1);
         calldatas = new bytes[](1);
@@ -179,12 +170,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         proposalId = governor.propose(targets, values, calldatas, "");
     }
 
-    function createProposal(
-        address _proposer,
-        address _target,
-        uint256 _value,
-        bytes memory _calldata
-    ) internal returns (bytes32 proposalId) {
+    function createProposal(address _proposer, address _target, uint256 _value, bytes memory _calldata) internal returns (bytes32 proposalId) {
         deployMock();
 
         address[] memory targets = new address[](1);
@@ -217,21 +203,21 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         deployMock();
 
         assertEq(treasury.owner(), address(governor));
-        assertEq(treasury.delay(), govParams.timelockDelay);
+        assertEq(treasury.delay(), treasuryParams.timelockDelay);
     }
 
     function testRevert_CannotReinitializeGovernor() public {
         deployMock();
 
         vm.expectRevert(abi.encodeWithSignature("ALREADY_INITIALIZED()"));
-        governor.initialize(address(this), address(this), address(this), 0, 0, 0, 0);
+        governor.initialize(address(this), address(this), new bytes(0));
     }
 
     function testRevert_CannotReinitializeTreasury() public {
         deployMock();
 
         vm.expectRevert(abi.encodeWithSignature("ALREADY_INITIALIZED()"));
-        treasury.initialize(address(this), 0);
+        treasury.initialize(address(this), new bytes(0));
     }
 
     function test_CreateProposal() public {
@@ -286,7 +272,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     function test_VerifySubmittedProposalHash() public {
         deployMock();
 
-        // Mint a token to voter 1 to have quorum       
+        // Mint a token to voter 1 to have quorum
         mintVoter1();
 
         (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
@@ -416,7 +402,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     function test_CastVote() public {
         deployMock();
 
-        // This mints a token to voter1           
+        // This mints a token to voter1
         bytes32 proposalId = createProposal();
 
         uint256 votingDelay = governor.votingDelay();
@@ -455,7 +441,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     function test_CastVoteWithSig() public {
         deployMock();
 
-        // This mints a token to voter1           
+        // This mints a token to voter1
         bytes32 proposalId = createProposal();
 
         uint256 votingDelay = governor.votingDelay();

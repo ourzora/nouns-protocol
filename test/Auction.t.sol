@@ -41,7 +41,7 @@ contract AuctionTest is NounsBuilderTest {
         deployMock();
 
         vm.expectRevert(abi.encodeWithSignature("ALREADY_INITIALIZED()"));
-        auction.initialize(address(token), address(this), address(treasury), 1 minutes, 0 ether);
+        auction.initialize(address(token), address(this), address(treasury), implData[2]);
     }
 
     function test_Unpause() public {
@@ -96,7 +96,7 @@ contract AuctionTest is NounsBuilderTest {
         vm.prank(bidder1);
 
         // 0 value bid placed
-        auction.createBid{value: 0}(2);
+        auction.createBid{ value: 0 }(2);
 
         (, uint256 highestBidOriginal, address highestBidderOriginal, , , ) = auction.auction();
         assertEq(highestBidOriginal, 0);
@@ -127,12 +127,12 @@ contract AuctionTest is NounsBuilderTest {
 
         // 0 value bid placed
         vm.prank(bidder1);
-        auction.createBid{value: 0}(2);
+        auction.createBid{ value: 0 }(2);
 
         // another 0 value bid should not be able to be
         vm.prank(bidder2);
         vm.expectRevert(IAuction.MINIMUM_BID_NOT_MET.selector);
-        auction.createBid{value: 0}(2);
+        auction.createBid{ value: 0 }(2);
     }
 
     function test_CreateBid(uint256 _amount) public {

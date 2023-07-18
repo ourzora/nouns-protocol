@@ -54,7 +54,7 @@ contract DeployMetadataUpgrade is Script {
         // Deploy metadata renderer implementation
         address metadataRendererImpl = address(new MetadataRenderer(managerProxy));
 
-        address managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
+        address managerImpl = address(new Manager());
 
         console2.log("MR");
         console2.log(metadataRendererImpl);
@@ -77,7 +77,7 @@ contract DeployMetadataUpgrade is Script {
     function addressToString(address _addr) private pure returns (string memory) {
         bytes memory s = new bytes(40);
         for (uint256 i = 0; i < 20; i++) {
-            bytes1 b = bytes1(uint8(uint256(uint160(_addr)) / (2**(8 * (19 - i)))));
+            bytes1 b = bytes1(uint8(uint256(uint160(_addr)) / (2 ** (8 * (19 - i)))));
             bytes1 hi = bytes1(uint8(b) / 16);
             bytes1 lo = bytes1(uint8(b) - 16 * uint8(hi));
             s[2 * i] = char(hi);

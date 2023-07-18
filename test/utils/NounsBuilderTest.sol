@@ -5,11 +5,10 @@ import { Test } from "forge-std/Test.sol";
 
 import { IManager, Manager } from "../../src/manager/Manager.sol";
 import { IToken, Token } from "../../src/token/Token.sol";
-import { MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol";
+import { IBaseMetadata, MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol";
 import { IAuction, Auction } from "../../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../../src/governance/governor/Governor.sol";
 import { ITreasury, Treasury } from "../../src/governance/treasury/Treasury.sol";
-import { MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol";
 import { MetadataRendererTypesV1 } from "../../src/token/metadata/types/MetadataRendererTypesV1.sol";
 
 import { ERC1967Proxy } from "../../src/lib/proxy/ERC1967Proxy.sol";
@@ -59,7 +58,7 @@ contract NounsBuilderTest is Test {
         vm.label(founder, "FOUNDER");
         vm.label(founder2, "FOUNDER_2");
 
-        managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0)));
+        managerImpl0 = address(new Manager());
         manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", zoraDAO))));
 
         tokenImpl = address(new Token(address(manager)));
@@ -68,10 +67,16 @@ contract NounsBuilderTest is Test {
         treasuryImpl = address(new Treasury(address(manager)));
         governorImpl = address(new Governor(address(manager)));
 
-        managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
+        managerImpl = address(new Manager());
 
-        vm.prank(zoraDAO);
+        vm.startPrank(zoraDAO);
         manager.upgradeTo(managerImpl);
+        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TOKEN(), tokenImpl);
+        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_METADATA(), metadataRendererImpl);
+        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_AUCTION(), auctionImpl);
+        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TREASURY(), treasuryImpl);
+        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_GOVERNOR(), governorImpl);
+        vm.stopPrank();
     }
 
     ///                                                          ///
@@ -79,9 +84,14 @@ contract NounsBuilderTest is Test {
     ///                                                          ///
 
     IManager.FounderParams[] internal foundersArr;
-    IManager.TokenParams internal tokenParams;
-    IManager.AuctionParams internal auctionParams;
-    IManager.GovParams internal govParams;
+    IToken.TokenParams internal tokenParams;
+    IBaseMetadata.MetadataParams internal metadataParams;
+    IAuction.AuctionParams internal auctionParams;
+    IGovernor.GovParams internal govParams;
+    ITreasury.TreasuryParams internal treasuryParams;
+
+    address[] internal implAddresses;
+    bytes[] internal implData;
 
     function setMockFounderParams() internal virtual {
         address[] memory wallets = new address[](2);
@@ -100,11 +110,7 @@ contract NounsBuilderTest is Test {
         setFounderParams(wallets, percents, vestingEnds);
     }
 
-    function setFounderParams(
-        address[] memory _wallets,
-        uint256[] memory _percents,
-        uint256[] memory _vestingEnds
-    ) internal virtual {
+    function setFounderParams(address[] memory _wallets, uint256[] memory _percents, uint256[] memory _vestingEnds) internal virtual {
         uint256 numFounders = _wallets.length;
 
         require(numFounders == _percents.length && numFounders == _vestingEnds.length);
@@ -137,9 +143,19 @@ contract NounsBuilderTest is Test {
         string memory _contractURI,
         string memory _rendererBase
     ) internal virtual {
-        bytes memory initStrings = abi.encode(_name, _symbol, _description, _contractImage, _contractURI, _rendererBase);
+        tokenParams = IToken.TokenParams({ name: _name, symbol: _symbol });
+        metadataParams = IBaseMetadata.MetadataParams({
+            description: _description,
+            contractImage: _contractImage,
+            projectURI: _contractURI,
+            rendererBase: _rendererBase
+        });
 
-        tokenParams = IManager.TokenParams({ initStrings: initStrings });
+        implData.push();
+        implData[manager.IMPLEMENTATION_TYPE_TOKEN()] = abi.encode(tokenParams);
+
+        implData.push();
+        implData[manager.IMPLEMENTATION_TYPE_METADATA()] = abi.encode(metadataParams);
     }
 
     function setMockAuctionParams() internal virtual {
@@ -147,7 +163,9 @@ contract NounsBuilderTest is Test {
     }
 
     function setAuctionParams(uint256 _reservePrice, uint256 _duration) internal virtual {
-        auctionParams = IManager.AuctionParams({ reservePrice: _reservePrice, duration: _duration });
+        implData.push();
+        auctionParams = IAuction.AuctionParams({ reservePrice: _reservePrice, duration: _duration });
+        implData[manager.IMPLEMENTATION_TYPE_AUCTION()] = abi.encode(auctionParams);
     }
 
     function setMockGovParams() internal virtual {
@@ -162,14 +180,19 @@ contract NounsBuilderTest is Test {
         uint256 _quorumThresholdBps,
         address _vetoer
     ) internal virtual {
-        govParams = IManager.GovParams({
-            timelockDelay: _timelockDelay,
+        implData.push();
+        treasuryParams = ITreasury.TreasuryParams({ timelockDelay: _timelockDelay });
+        implData[manager.IMPLEMENTATION_TYPE_TREASURY()] = abi.encode(treasuryParams);
+
+        implData.push();
+        govParams = IGovernor.GovParams({
             votingDelay: _votingDelay,
             votingPeriod: _votingPeriod,
             proposalThresholdBps: _proposalThresholdBps,
             quorumThresholdBps: _quorumThresholdBps,
             vetoer: _vetoer
         });
+        implData[manager.IMPLEMENTATION_TYPE_GOVERNOR()] = abi.encode(govParams);
     }
 
     function setMockMetadata() internal {
@@ -184,6 +207,23 @@ contract NounsBuilderTest is Test {
 
         vm.prank(metadataRenderer.owner());
         metadataRenderer.addProperties(names, items, ipfsGroup);
+    }
+
+    function setImplementationAddresses() internal {
+        implAddresses.push();
+        implAddresses[manager.IMPLEMENTATION_TYPE_TOKEN()] = tokenImpl;
+
+        implAddresses.push();
+        implAddresses[manager.IMPLEMENTATION_TYPE_METADATA()] = metadataRendererImpl;
+
+        implAddresses.push();
+        implAddresses[manager.IMPLEMENTATION_TYPE_AUCTION()] = auctionImpl;
+
+        implAddresses.push();
+        implAddresses[manager.IMPLEMENTATION_TYPE_TREASURY()] = treasuryImpl;
+
+        implAddresses.push();
+        implAddresses[manager.IMPLEMENTATION_TYPE_GOVERNOR()] = governorImpl;
     }
 
     ///                                                          ///
@@ -205,16 +245,14 @@ contract NounsBuilderTest is Test {
 
         setMockGovParams();
 
-        deploy(foundersArr, tokenParams, auctionParams, govParams);
+        setImplementationAddresses();
+
+        deploy(foundersArr, implAddresses, implData);
 
         setMockMetadata();
     }
 
-    function deployWithCustomFounders(
-        address[] memory _wallets,
-        uint256[] memory _percents,
-        uint256[] memory _vestExpirys
-    ) internal virtual {
+    function deployWithCustomFounders(address[] memory _wallets, uint256[] memory _percents, uint256[] memory _vestExpirys) internal virtual {
         setFounderParams(_wallets, _percents, _vestExpirys);
 
         setMockTokenParams();
@@ -223,7 +261,9 @@ contract NounsBuilderTest is Test {
 
         setMockGovParams();
 
-        deploy(foundersArr, tokenParams, auctionParams, govParams);
+        setImplementationAddresses();
+
+        deploy(foundersArr, implAddresses, implData);
 
         setMockMetadata();
     }
@@ -244,7 +284,9 @@ contract NounsBuilderTest is Test {
 
         setMockGovParams();
 
-        deploy(foundersArr, tokenParams, auctionParams, govParams);
+        setImplementationAddresses();
+
+        deploy(foundersArr, implAddresses, implData);
 
         setMockMetadata();
     }
@@ -258,20 +300,16 @@ contract NounsBuilderTest is Test {
 
         setMockGovParams();
 
-        deploy(foundersArr, tokenParams, auctionParams, govParams);
+        setImplementationAddresses();
+
+        deploy(foundersArr, implAddresses, implData);
     }
 
-    function deploy(
-        IManager.FounderParams[] memory _founderParams,
-        IManager.TokenParams memory _tokenParams,
-        IManager.AuctionParams memory _auctionParams,
-        IManager.GovParams memory _govParams
-    ) internal virtual {
+    function deploy(IManager.FounderParams[] memory _founderParams, address[] memory _implAddresses, bytes[] memory _implData) internal virtual {
         (address _token, address _metadata, address _auction, address _treasury, address _governor) = manager.deploy(
             _founderParams,
-            _tokenParams,
-            _auctionParams,
-            _govParams
+            _implAddresses,
+            _implData
         );
 
         token = Token(_token);
