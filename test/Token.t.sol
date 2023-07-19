@@ -15,6 +15,22 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         super.setUp();
     }
 
+    function deployAltMock(uint256 _reservedUntilTokenId) internal virtual {
+        setMockFounderParams();
+
+        setMockTokenParamsWithReserve(_reservedUntilTokenId);
+
+        setMockAuctionParams();
+
+        setMockGovParams();
+
+        setImplementationAddresses();
+
+        deploy(foundersArr, implAddresses, implData);
+
+        setMockMetadata();
+    }
+
     function test_MockTokenInit() public {
         deployMock();
 
@@ -28,11 +44,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     /// Test that the percentages for founders all ends up as expected
-    function test_FounderShareAllocationFuzz(
-        uint256 f1Percentage,
-        uint256 f2Percentage,
-        uint256 f3Percentage
-    ) public {
+    function test_FounderShareAllocationFuzz(uint256 f1Percentage, uint256 f2Percentage, uint256 f3Percentage) public {
         address f1Wallet = address(0x1);
         address f2Wallet = address(0x2);
         address f3Wallet = address(0x3);
@@ -426,11 +438,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.ownerOf(tokenId), newMinter);
     }
 
-    function testRevert_OnlyMinterCanMintToRecipient(
-        address newMinter,
-        address nonMinter,
-        address recipient
-    ) public {
+    function testRevert_OnlyMinterCanMintToRecipient(address newMinter, address nonMinter, address recipient) public {
         vm.assume(
             newMinter != nonMinter && newMinter != founder && newMinter != address(0) && newMinter != address(auction) && recipient != address(0)
         );
@@ -450,12 +458,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.ownerOf(tokenId), recipient);
     }
 
-    function testRevert_OnlyMinterCanMintBatch(
-        address newMinter,
-        address nonMinter,
-        address recipient,
-        uint256 amount
-    ) public {
+    function testRevert_OnlyMinterCanMintBatch(address newMinter, address nonMinter, address recipient, uint256 amount) public {
         vm.assume(
             newMinter != nonMinter &&
                 newMinter != founder &&
@@ -624,11 +627,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.getFounders().length, 1);
     }
 
-    function test_UpdateFounderShareAllocationFuzz(
-        uint256 f1Percentage,
-        uint256 f2Percentage,
-        uint256 f3Percentage
-    ) public {
+    function test_UpdateFounderShareAllocationFuzz(uint256 f1Percentage, uint256 f2Percentage, uint256 f3Percentage) public {
         deployMock();
 
         address f1Wallet = address(0x1);
@@ -807,5 +806,88 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         token.burn(tokenId);
         vm.expectRevert(abi.encodeWithSignature("INVALID_OWNER()"));
         token.ownerOf(tokenId);
+    }
+
+    function test_MinterCanMintFromReserve(address _minter, uint256 _reservedUntilTokenId, uint256 _tokenId) public {
+        vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
+        vm.assume(_tokenId < _reservedUntilTokenId);
+        deployAltMock(_reservedUntilTokenId);
+
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
+        minters[0] = p1;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        vm.prank(minters[0].minter);
+        token.mintFromReserveTo(minters[0].minter, _tokenId);
+        assertEq(token.ownerOf(_tokenId), minters[0].minter);
+    }
+
+    function testRevert_MinterCannotMintPastReserve(address _minter, uint256 _reservedUntilTokenId, uint256 _tokenId) public {
+        vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
+        vm.assume(_tokenId > _reservedUntilTokenId);
+        deployAltMock(_reservedUntilTokenId);
+
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
+        minters[0] = p1;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        vm.prank(minters[0].minter);
+        vm.expectRevert(abi.encodeWithSignature("TOKEN_NOT_RESERVED()"));
+        token.mintFromReserveTo(minters[0].minter, _tokenId);
+    }
+
+    function test_SingleMintCannotMintReserves(address _minter, uint256 _reservedUntilTokenId) public {
+        vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
+        vm.assume(_reservedUntilTokenId > 0 && _reservedUntilTokenId < 100000);
+        deployAltMock(_reservedUntilTokenId);
+
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
+        minters[0] = p1;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        vm.prank(minters[0].minter);
+        uint256 tokenId = token.mint();
+        assertEq(token.ownerOf(tokenId), minters[0].minter);
+        assertGe(tokenId, _reservedUntilTokenId);
+
+        for (uint i; i < _reservedUntilTokenId; ++i) {
+            vm.expectRevert();
+            token.ownerOf(i);
+        }
+    }
+
+    function test_BatchMintCannotMintReserves(address _minter, uint256 _reservedUntilTokenId, uint256 _amount) public {
+        vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
+        vm.assume(_reservedUntilTokenId > 0 && _reservedUntilTokenId < 100000 && _amount > 0 && _amount < 20);
+        deployAltMock(_reservedUntilTokenId);
+
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
+        minters[0] = p1;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        vm.prank(minters[0].minter);
+        uint256[] memory tokenIds = token.mintBatchTo(_amount, _minter);
+        for (uint i; i < tokenIds.length; ++i) {
+            uint256 tokenId = tokenIds[i];
+            assertEq(token.ownerOf(tokenId), minters[0].minter);
+            assertGe(tokenId, _reservedUntilTokenId);
+        }
+
+        for (uint i; i < _reservedUntilTokenId; ++i) {
+            vm.expectRevert();
+            token.ownerOf(i);
+        }
     }
 }

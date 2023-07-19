@@ -131,7 +131,20 @@ contract NounsBuilderTest is Test {
             "This is a mock token",
             "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
             "https://nouns.build",
-            "http://localhost:5000/render"
+            "http://localhost:5000/render",
+            0
+        );
+    }
+
+    function setMockTokenParamsWithReserve(uint256 _reservedUntilTokenId) internal virtual {
+        setTokenParams(
+            "Mock Token",
+            "MOCK",
+            "This is a mock token",
+            "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
+            "https://nouns.build",
+            "http://localhost:5000/render",
+            _reservedUntilTokenId
         );
     }
 
@@ -141,9 +154,10 @@ contract NounsBuilderTest is Test {
         string memory _description,
         string memory _contractImage,
         string memory _contractURI,
-        string memory _rendererBase
+        string memory _rendererBase,
+        uint _reservedUntilTokenId
     ) internal virtual {
-        tokenParams = IToken.TokenParams({ name: _name, symbol: _symbol });
+        tokenParams = IToken.TokenParams({ name: _name, symbol: _symbol, reservedUntilTokenId: _reservedUntilTokenId });
         metadataParams = IBaseMetadata.MetadataParams({
             description: _description,
             contractImage: _contractImage,
@@ -278,7 +292,7 @@ contract NounsBuilderTest is Test {
     ) internal {
         setMockFounderParams();
 
-        setTokenParams(_name, _symbol, _description, _contractImage, _projectURI, _rendererBase);
+        setTokenParams(_name, _symbol, _description, _contractImage, _projectURI, _rendererBase, 0);
 
         setMockAuctionParams();
 
