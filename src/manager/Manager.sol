@@ -74,12 +74,12 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         uint256 implAddressesLength = _implAddresses.length;
 
         // Ensure implementation parameters are correct length
-        if (implAddressesLength != IMPLEMENTATION_TYPE_COUNT || implAddressesLength != IMPLEMENTATION_TYPE_COUNT)
-            revert INVALID_IMPLEMENTATION_PARAMS();
+        if (implAddressesLength != IMPLEMENTATION_TYPE_COUNT || _implData.length != IMPLEMENTATION_TYPE_COUNT) revert INVALID_IMPLEMENTATION_PARAMS();
 
+        // Ensure all implementations are registered
         unchecked {
             for (uint256 i; i < implAddressesLength; ++i) {
-                if (!isImplementation[uint8(i)][_implAddresses[i]]) revert INVALID_IMPLEMENTATION_PARAMS();
+                if (!isImplementation[uint8(i)][_implAddresses[i]]) revert IMPLEMENTATION_NOT_REGISTERED();
             }
         }
 
