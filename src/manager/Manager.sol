@@ -71,9 +71,17 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         // Ensure at least one founder is provided
         if ((founder = _founderParams[0].wallet) == address(0)) revert FOUNDER_REQUIRED();
 
+        uint256 implAddressesLength = _implAddresses.length;
+
         // Ensure implementation parameters are correct length
-        if (_implAddresses.length != IMPLEMENTATION_TYPE_COUNT || _implData.length != IMPLEMENTATION_TYPE_COUNT)
+        if (implAddressesLength != IMPLEMENTATION_TYPE_COUNT || implAddressesLength != IMPLEMENTATION_TYPE_COUNT)
             revert INVALID_IMPLEMENTATION_PARAMS();
+
+        unchecked {
+            for (uint256 i; i < implAddressesLength; ++i) {
+                if (!isImplementation[uint8(i)][_implAddresses[i]]) revert INVALID_IMPLEMENTATION_PARAMS();
+            }
+        }
 
         // Deploy the DAO's ERC-721 governance token
         token = address(new ERC1967Proxy(_implAddresses[IMPLEMENTATION_TYPE_TOKEN], ""));

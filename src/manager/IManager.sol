@@ -47,10 +47,10 @@ interface IManager is IUUPS, IOwnable {
     /// @dev Reverts if at least one founder is not provided upon deploy
     error FOUNDER_REQUIRED();
 
-    /// @dev Reverts if implementation parameters are incorrect length
+    /// @dev Reverts if implementation parameters are incorrect length or not registered
     error INVALID_IMPLEMENTATION_PARAMS();
 
-    /// @dev Reverts if an implementation type is not valid
+    /// @dev Reverts if an implementation type is not valid on registration
     error INVALID_IMPLEMENTATION_TYPE();
 
     ///                                                          ///
