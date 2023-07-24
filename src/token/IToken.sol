@@ -4,6 +4,7 @@ pragma solidity 0.8.16;
 import { IUUPS } from "../lib/interfaces/IUUPS.sol";
 import { IERC721Votes } from "../lib/interfaces/IERC721Votes.sol";
 import { IManager } from "../manager/IManager.sol";
+import { IBaseMetadata } from "../metadata/interfaces/IBaseMetadata.sol";
 import { TokenTypesV1 } from "./types/TokenTypesV1.sol";
 import { TokenTypesV2 } from "./types/TokenTypesV2.sol";
 
@@ -35,6 +36,10 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
     /// @param minter Address of added or removed minter
     /// @param allowed Whether address is allowed to mint
     event MinterUpdated(address minter, bool allowed);
+
+    /// @notice Event emitted when metadata renderer is updated.
+    /// @param renderer new metadata renderer address
+    event MetadataRendererUpdated(address renderer);
 
     ///                                                          ///
     ///                            ERRORS                        ///
@@ -145,6 +150,10 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
     /// @notice Check if an address is a minter
     /// @param _minter Address to check
     function isMinter(address _minter) external view returns (bool);
+
+    /// @notice Set a new metadata renderer
+    /// @param newRenderer new renderer address to use
+    function setMetadataRenderer(IBaseMetadata newRenderer) external;
 
     /// @notice Callback called by auction on first auction started to transfer ownership to treasury from founder
     function onFirstAuctionStarted() external;

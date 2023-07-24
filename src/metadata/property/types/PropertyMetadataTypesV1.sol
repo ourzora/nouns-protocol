@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-/// @title MetadataRendererTypesV1
+/// @title PropertyMetadataTypesV1
 /// @author Iain Nash & Rohan Kulkarni
 /// @notice The Metadata Renderer custom data types
-interface MetadataRendererTypesV1 {
+interface PropertyMetadataTypesV1 {
     struct ItemParam {
         uint256 propertyId;
         string name;

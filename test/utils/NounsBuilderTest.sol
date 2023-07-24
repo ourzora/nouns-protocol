@@ -5,11 +5,11 @@ import { Test } from "forge-std/Test.sol";
 
 import { IManager, Manager } from "../../src/manager/Manager.sol";
 import { IToken, Token } from "../../src/token/Token.sol";
-import { IBaseMetadata, MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol";
+import { IBaseMetadata, PropertyMetadata } from "../../src/metadata/property/PropertyMetadata.sol";
 import { IAuction, Auction } from "../../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../../src/governance/governor/Governor.sol";
 import { ITreasury, Treasury } from "../../src/governance/treasury/Treasury.sol";
-import { MetadataRendererTypesV1 } from "../../src/token/metadata/types/MetadataRendererTypesV1.sol";
+import { PropertyMetadataTypesV1 } from "../../src/metadata/property/types/PropertyMetadataTypesV1.sol";
 
 import { ERC1967Proxy } from "../../src/lib/proxy/ERC1967Proxy.sol";
 import { MockERC721 } from "../utils/mocks/MockERC721.sol";
@@ -62,7 +62,7 @@ contract NounsBuilderTest is Test {
         manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", zoraDAO))));
 
         tokenImpl = address(new Token(address(manager)));
-        metadataRendererImpl = address(new MetadataRenderer(address(manager)));
+        metadataRendererImpl = address(new PropertyMetadata(address(manager)));
         auctionImpl = address(new Auction(address(manager), weth));
         treasuryImpl = address(new Treasury(address(manager)));
         governorImpl = address(new Governor(address(manager)));
@@ -199,11 +199,11 @@ contract NounsBuilderTest is Test {
         string[] memory names = new string[](1);
         names[0] = "testing";
 
-        MetadataRendererTypesV1.ItemParam[] memory items = new MetadataRendererTypesV1.ItemParam[](2);
-        items[0] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure1", isNewProperty: true });
-        items[1] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure2", isNewProperty: true });
+        PropertyMetadataTypesV1.ItemParam[] memory items = new PropertyMetadataTypesV1.ItemParam[](2);
+        items[0] = PropertyMetadataTypesV1.ItemParam({ propertyId: 0, name: "failure1", isNewProperty: true });
+        items[1] = PropertyMetadataTypesV1.ItemParam({ propertyId: 0, name: "failure2", isNewProperty: true });
 
-        MetadataRendererTypesV1.IPFSGroup memory ipfsGroup = MetadataRendererTypesV1.IPFSGroup({ baseUri: "BASE_URI", extension: "EXTENSION" });
+        PropertyMetadataTypesV1.IPFSGroup memory ipfsGroup = PropertyMetadataTypesV1.IPFSGroup({ baseUri: "BASE_URI", extension: "EXTENSION" });
 
         vm.prank(metadataRenderer.owner());
         metadataRenderer.addProperties(names, items, ipfsGroup);
@@ -231,7 +231,7 @@ contract NounsBuilderTest is Test {
     ///                                                          ///
 
     Token internal token;
-    MetadataRenderer internal metadataRenderer;
+    PropertyMetadata internal metadataRenderer;
     Auction internal auction;
     Treasury internal treasury;
     Governor internal governor;
@@ -313,7 +313,7 @@ contract NounsBuilderTest is Test {
         );
 
         token = Token(_token);
-        metadataRenderer = MetadataRenderer(_metadata);
+        metadataRenderer = PropertyMetadata(_metadata);
         auction = Auction(_auction);
         treasury = Treasury(payable(_treasury));
         governor = Governor(_governor);

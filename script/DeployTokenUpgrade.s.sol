@@ -7,12 +7,11 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
 import { IToken, Token } from "../src/token/Token.sol";
-import { MetadataRenderer } from "../src/token/metadata/MetadataRenderer.sol";
 import { IAuction, Auction } from "../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../src/governance/governor/Governor.sol";
 import { ITreasury, Treasury } from "../src/governance/treasury/Treasury.sol";
-import { MetadataRenderer } from "../src/token/metadata/MetadataRenderer.sol";
-import { MetadataRendererTypesV1 } from "../src/token/metadata/types/MetadataRendererTypesV1.sol";
+import { PropertyMetadata } from "../src/metadata/property/PropertyMetadata.sol";
+import { PropertyMetadataTypesV1 } from "../src/metadata/property/types/PropertyMetadataTypesV1.sol";
 import { ERC1967Proxy } from "../src/lib/proxy/ERC1967Proxy.sol";
 
 contract DeployTokenUpgrade is Script {

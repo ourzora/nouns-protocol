@@ -9,10 +9,11 @@ import { ManagerStorageV1 } from "./storage/ManagerStorageV1.sol";
 import { ManagerStorageV2 } from "./storage/ManagerStorageV2.sol";
 import { IManager } from "./IManager.sol";
 import { IToken } from "../token/IToken.sol";
-import { IBaseMetadata } from "../token/metadata/interfaces/IBaseMetadata.sol";
+import { IBaseMetadata } from "../metadata/interfaces/IBaseMetadata.sol";
 import { IAuction } from "../auction/IAuction.sol";
 import { ITreasury } from "../governance/treasury/ITreasury.sol";
 import { IGovernor } from "../governance/governor/IGovernor.sol";
+import { IOwnable } from "../lib/interfaces/IOwnable.sol";
 
 import { VersionedContract } from "../VersionedContract.sol";
 import { IVersionedContract } from "../lib/interfaces/IVersionedContract.sol";
@@ -79,6 +80,7 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         // Ensure all implementations are registered
         unchecked {
             for (uint256 i; i < implAddressesLength; ++i) {
+                if (i == IMPLEMENTATION_TYPE_METADATA) continue; // metadata registration is optional
                 if (!isImplementation[uint8(i)][_implAddresses[i]]) revert IMPLEMENTATION_NOT_REGISTERED();
             }
         }
@@ -111,6 +113,24 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         IGovernor(governor).initialize({ treasury: treasury, token: token, data: _implData[IMPLEMENTATION_TYPE_GOVERNOR] });
 
         emit DAODeployed({ token: token, metadata: metadata, auction: auction, treasury: treasury, governor: governor });
+    }
+
+    /// @notice Set a new metadata renderer
+    /// @param _newRendererImpl new renderer address to use
+    /// @param _setupRenderer data to setup new renderer with
+    function setMetadataRenderer(address _token, address _newRendererImpl, bytes memory _setupRenderer) external {
+        if (msg.sender != IOwnable(_token).owner()) revert ONLY_TOKEN_OWNER();
+
+        address metadata = address(new ERC1967Proxy(_newRendererImpl, ""));
+        daoAddressesByToken[_token].metadata = metadata;
+
+        if (_setupRenderer.length > 0) {
+            IBaseMetadata(metadata).initialize(_setupRenderer, _token);
+        }
+
+        IToken(_token).setMetadataRenderer(IBaseMetadata(metadata));
+
+        emit MetadataRendererUpdated({ sender: msg.sender, renderer: metadata });
     }
 
     ///                                                          ///

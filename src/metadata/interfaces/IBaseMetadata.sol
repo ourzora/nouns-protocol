@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import { IUUPS } from "../../../lib/interfaces/IUUPS.sol";
+import { IUUPS } from "../../lib/interfaces/IUUPS.sol";
 
 /// @title IBaseMetadata
 /// @author Rohan Kulkarni

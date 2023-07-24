@@ -40,6 +40,11 @@ interface IManager is IUUPS, IOwnable {
     /// @param upgradeImpl The upgrade implementation address
     event UpgradeRemoved(address baseImpl, address upgradeImpl);
 
+    /// @notice Event emitted when metadata renderer is updated.
+    /// @param sender address of the updater
+    /// @param renderer new metadata renderer address
+    event MetadataRendererUpdated(address sender, address renderer);
+
     ///                                                          ///
     ///                            ERRORS                        ///
     ///                                                          ///
@@ -55,6 +60,8 @@ interface IManager is IUUPS, IOwnable {
 
     /// @dev Reverts if an implementation type is not valid on registration
     error INVALID_IMPLEMENTATION_TYPE();
+
+    error ONLY_TOKEN_OWNER();
 
     ///                                                          ///
     ///                            STRUCTS                       ///

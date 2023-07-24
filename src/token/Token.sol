@@ -8,7 +8,7 @@ import { ERC721 } from "../lib/token/ERC721.sol";
 import { Ownable } from "../lib/utils/Ownable.sol";
 import { TokenStorageV1 } from "./storage/TokenStorageV1.sol";
 import { TokenStorageV2 } from "./storage/TokenStorageV2.sol";
-import { IBaseMetadata } from "./metadata/interfaces/IBaseMetadata.sol";
+import { IBaseMetadata } from "../metadata/interfaces/IBaseMetadata.sol";
 import { IManager } from "../manager/IManager.sol";
 import { IAuction } from "../auction/IAuction.sol";
 import { IToken } from "./IToken.sol";
@@ -452,6 +452,17 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     /// @param _minter Address to check
     function isMinter(address _minter) external view returns (bool) {
         return minter[_minter];
+    }
+
+    /// @notice Set a new metadata renderer
+    /// @param newRenderer new renderer address to use
+    function setMetadataRenderer(IBaseMetadata newRenderer) external {
+        // Ensure the caller is the contract manager
+        if (msg.sender != address(manager)) {
+            revert ONLY_MANAGER();
+        }
+
+        settings.metadataRenderer = newRenderer;
     }
 
     ///                                                          ///

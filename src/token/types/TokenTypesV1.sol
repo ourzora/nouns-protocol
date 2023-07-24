@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import { IBaseMetadata } from "../metadata/interfaces/IBaseMetadata.sol";
+import { IBaseMetadata } from "../../metadata/interfaces/IBaseMetadata.sol";
 
 /// @title TokenTypesV1
 /// @author Rohan Kulkarni
