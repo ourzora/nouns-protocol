@@ -10,6 +10,7 @@ import { SafeCast } from "../lib/utils/SafeCast.sol";
 import { AuctionStorageV1 } from "./storage/AuctionStorageV1.sol";
 import { Token } from "../token/Token.sol";
 import { IManager } from "../manager/IManager.sol";
+import { IBuilderFeeManager } from "../fees/interfaces/IBuilderFeeManager.sol";
 import { IAuction } from "./IAuction.sol";
 import { IWETH } from "../lib/interfaces/IWETH.sol";
 
@@ -36,6 +37,9 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @notice The address of WETH
     address private immutable WETH;
 
+    /// @notice The builder fee manager
+    address private immutable builderFeeManager;
+
     /// @notice The contract upgrade manager
     IManager private immutable manager;
 
@@ -43,10 +47,12 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
+    /// @param _builderFeeManager The builder fee manager address
     /// @param _manager The contract upgrade manager address
     /// @param _weth The address of WETH
-    constructor(address _manager, address _weth) payable initializer {
+    constructor(address _manager, address _builderFeeManager, address _weth) payable initializer {
         manager = IManager(_manager);
+        builderFeeManager = _builderFeeManager;
         WETH = _weth;
     }
 
@@ -196,10 +202,24 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         // If a bid was placed:
         if (_auction.highestBidder != address(0)) {
             // Cache the amount of the highest bid
-            uint256 highestBid = _auction.highestBid;
+            uint256 funds = _auction.highestBid;
 
-            // If the highest bid included ETH: Transfer it to the DAO treasury
-            if (highestBid != 0) _handleOutgoingTransfer(settings.treasury, highestBid);
+            // Check if fee manager is set
+            if (builderFeeManager != address(0)) {
+                // Get the fee amount from the fee manager
+                (address recipent, uint256 fee) = _builderFeeForAmount(funds);
+
+                // If there is a fee to be payed
+                if (fee != 0) {
+                    _handleOutgoingTransfer(recipent, fee);
+                    funds -= fee;
+                }
+            }
+
+            // If the highest bid included ETH: Transfer remaining funds to the DAO treasury
+            if (funds != 0) {
+                _handleOutgoingTransfer(settings.treasury, funds);
+            }
 
             // Transfer the token to the highest bidder
             token.transferFrom(address(this), _auction.highestBidder, _auction.tokenId);
@@ -359,6 +379,13 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         settings.minBidIncrement = SafeCast.toUint8(_percentage);
 
         emit MinBidIncrementPercentageUpdated(_percentage);
+    }
+
+    /// @dev Gets the builder fee for amount of withdraw
+    /// @param amount amount of funds to get fee for
+    function _builderFeeForAmount(uint256 amount) private returns (address payable, uint256) {
+        (address payable recipient, uint256 bps) = IBuilderFeeManager(builderFeeManager).getBuilderFeesBPS(address(this));
+        return (recipient, (amount * bps) / 10_000);
     }
 
     ///                                                          ///

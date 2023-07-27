@@ -5,6 +5,7 @@ import "forge-std/Script.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
+import { BuilderFeeManager } from "../src/fees/BuilderFeeManager.sol";
 import { IToken, Token } from "../src/token/Token.sol";
 import { MetadataRenderer } from "../src/token/metadata/MetadataRenderer.sol";
 import { IAuction, Auction } from "../src/auction/Auction.sol";
@@ -48,8 +49,10 @@ contract DeployContracts is Script {
         // Deploy metadata renderer implementation
         address metadataRendererImpl = address(new MetadataRenderer(address(manager)));
 
+        address feeManager = address(new BuilderFeeManager(0, address(0)));
+
         // Deploy auction house implementation
-        address auctionImpl = address(new Auction(address(manager), weth));
+        address auctionImpl = address(new Auction(address(manager), feeManager, weth));
 
         // Deploy treasury implementation
         address treasuryImpl = address(new Treasury(address(manager)));

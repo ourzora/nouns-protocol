@@ -6,6 +6,7 @@ import "forge-std/console2.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
+import { BuilderFeeManager } from "../src/fees/BuilderFeeManager.sol";
 import { IToken, Token } from "../src/token/Token.sol";
 import { MetadataRenderer } from "../src/token/metadata/MetadataRenderer.sol";
 import { IAuction, Auction } from "../src/auction/Auction.sol";
@@ -49,8 +50,10 @@ contract DeployVersion1_1 is Script {
         // Get root manager implementation + proxy
         Manager manager = Manager(managerProxy);
 
+        address feeManager = address(new BuilderFeeManager(0, address(0)));
+
         // Deploy auction upgrade implementation
-        address auctionUpgradeImpl = address(new Auction(managerProxy, weth));
+        address auctionUpgradeImpl = address(new Auction(managerProxy, feeManager, weth));
         // Deploy governor upgrade implementation
         address governorUpgradeImpl = address(new Governor(managerProxy));
         // Deploy treasury upgrade implementation

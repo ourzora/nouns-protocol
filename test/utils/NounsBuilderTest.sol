@@ -4,6 +4,7 @@ pragma solidity 0.8.16;
 import { Test } from "forge-std/Test.sol";
 
 import { IManager, Manager } from "../../src/manager/Manager.sol";
+import { BuilderFeeManager } from "../../src/fees/BuilderFeeManager.sol";
 import { IToken, Token } from "../../src/token/Token.sol";
 import { IBaseMetadata, MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol";
 import { IAuction, Auction } from "../../src/auction/Auction.sol";
@@ -25,6 +26,7 @@ contract NounsBuilderTest is Test {
 
     address internal managerImpl0;
     address internal managerImpl;
+    address internal feeManager;
     address internal tokenImpl;
     address internal metadataRendererImpl;
     address internal auctionImpl;
@@ -60,10 +62,11 @@ contract NounsBuilderTest is Test {
 
         managerImpl0 = address(new Manager());
         manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", zoraDAO))));
+        feeManager = address(new BuilderFeeManager(0, address(0)));
 
         tokenImpl = address(new Token(address(manager)));
         metadataRendererImpl = address(new MetadataRenderer(address(manager)));
-        auctionImpl = address(new Auction(address(manager), weth));
+        auctionImpl = address(new Auction(address(manager), feeManager, weth));
         treasuryImpl = address(new Treasury(address(manager)));
         governorImpl = address(new Governor(address(manager)));
 
