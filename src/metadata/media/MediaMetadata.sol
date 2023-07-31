@@ -100,9 +100,15 @@ contract MediaMetadata is IMediaMetadata, VersionedContract, Initializable, UUPS
         emit AdditionalTokenPropertiesSet(_additionalTokenProperties);
     }
 
-    /// @notice Deletes existing properties and/or items to be pseudo-randomly chosen from during token minting, replacing them with provided properties. WARNING: This function can alter or break existing token metadata if the number of properties for this renderer change before/after the upsert. If the properties selected in any tokens do not exist in the new version those token will not render
+    /// @notice Adds media items to be sequentially chosen from during token minting
+    /// @param _items The items to add
+    function addMediaItems(MediaItem[] calldata _items) external onlyOwner {
+        _addMediaItems(_items);
+    }
+
+    /// @notice Deletes existing media items to be sequentially chosen from during token minting, replacing them with provided items. WARNING: This function can alter or break existing token metadata if the number of properties for this renderer change before/after the upsert. If the properties selected in any tokens do not exist in the new version those token will not render
     /// @dev We do not require the number of properties for an reset to match the existing property length, to allow multi-stage property additions (for e.g. when there are more properties than can fit in a single transaction)
-    /// @param _items The items to add to each property
+    /// @param _items The items to add
     function deleteAndRecreateMediaItems(MediaItem[] calldata _items) external onlyOwner {
         delete mediaItems;
         _addMediaItems(_items);
