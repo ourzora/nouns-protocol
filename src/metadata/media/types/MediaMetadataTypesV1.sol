@@ -16,7 +16,6 @@ interface MediaMetadataTypesV1 {
         string description;
         string contractImage;
         string rendererBase;
-        uint8 selectionType;
     }
 
     struct AdditionalTokenProperty {

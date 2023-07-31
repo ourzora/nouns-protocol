@@ -25,15 +25,6 @@ import { VersionedContract } from "../../VersionedContract.sol";
 /// @custom:repo github.com/ourzora/nouns-protocol
 contract MediaMetadata is IMediaMetadata, VersionedContract, Initializable, UUPS, MediaMetadataStorageV1 {
     ///                                                          ///
-    ///                          CONSTANTS                       ///
-    ///                                                          ///
-    uint8 public constant SELECTION_TYPE_SEQUENTIAL = 0;
-
-    uint8 public constant SELECTION_TYPE_RANDOM = 1;
-
-    uint8 public constant SELECTION_TYPE_LOOP = 2;
-
-    ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
@@ -153,7 +144,7 @@ contract MediaMetadata is IMediaMetadata, VersionedContract, Initializable, UUPS
         // Ensure the caller is the token contract
         if (msg.sender != settings.token) revert ONLY_TOKEN();
 
-        _generateMetadata(_tokenId);
+        return _generateMetadata(_tokenId);
     }
 
     /// @notice Generates attributes for a requested set of tokens
@@ -169,21 +160,14 @@ contract MediaMetadata is IMediaMetadata, VersionedContract, Initializable, UUPS
     }
 
     function _generateMetadata(uint256 _tokenId) internal returns (bool) {
-        // Compute some randomness for the token id
-        uint256 seed = _generateSeed(_tokenId);
-
         // Cache the total number of properties available
         uint256 numMediaItems = mediaItems.length;
-        uint8 selectionType = settings.selectionType;
 
-        if (numMediaItems == 0 || selectionType > 2 || (selectionType == SELECTION_TYPE_SEQUENTIAL && numMediaItems - 1 < _tokenId)) {
+        if (numMediaItems == 0 || numMediaItems - 1 < _tokenId) {
             return false;
         }
 
-        if (selectionType == SELECTION_TYPE_SEQUENTIAL) tokenIdToSelectedMediaItem[_tokenId] = _tokenId;
-        if (selectionType == SELECTION_TYPE_RANDOM) tokenIdToSelectedMediaItem[_tokenId] = seed % numMediaItems;
-        if (selectionType == SELECTION_TYPE_LOOP) tokenIdToSelectedMediaItem[_tokenId] = _tokenId % numMediaItems;
-
+        tokenIdToSelectedMediaItem[_tokenId] = _tokenId;
         return true;
     }
 

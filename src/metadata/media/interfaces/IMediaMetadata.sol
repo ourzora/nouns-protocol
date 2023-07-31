@@ -34,9 +34,6 @@ interface IMediaMetadata is IBaseMetadata, MediaMetadataTypesV1 {
     /// @dev Reverts if the caller does not include a media item during an artwork upload
     error ONE_MEDIA_ITEM_REQUIRED();
 
-    /// @dev Reverts if the selection type is invalid
-    error INVALID_SELECTION_TYPE();
-
     ///                                                          ///
     ///                           FUNCTIONS                      ///
     ///                                                          ///
