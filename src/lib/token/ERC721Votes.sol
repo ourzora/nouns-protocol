@@ -2,6 +2,7 @@
 pragma solidity 0.8.16;
 
 import { IERC721Votes } from "../interfaces/IERC721Votes.sol";
+import { IERC1271 } from "../interfaces/IERC1271.sol";
 import { ERC721 } from "../token/ERC721.sol";
 import { EIP712 } from "../utils/EIP712.sol";
 
@@ -19,6 +20,9 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
 
     /// @dev The EIP-712 typehash to delegate with a signature
     bytes32 internal constant DELEGATION_TYPEHASH = keccak256("Delegation(address from,address to,uint256 nonce,uint256 deadline)");
+
+    /// @dev The EIP-712 typehash to batch delegate with a signature
+    bytes32 internal constant BATCH_DELEGATION_TYPEHASH = keccak256("Delegation(address[] from,address[] to,uint256[] nonce,uint256[] deadline)");
 
     ///                                                          ///
     ///                           STORAGE                        ///
@@ -141,14 +145,7 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
     /// @param _v The 129th byte and chain id of the signature
     /// @param _r The first 64 bytes of the signature
     /// @param _s Bytes 64-128 of the signature
-    function delegateBySig(
-        address _from,
-        address _to,
-        uint256 _deadline,
-        uint8 _v,
-        bytes32 _r,
-        bytes32 _s
-    ) external {
+    function delegateBySig(address _from, address _to, uint256 _deadline, uint8 _v, bytes32 _r, bytes32 _s) external {
         // Ensure the signature has not expired
         if (block.timestamp > _deadline) revert EXPIRED_SIGNATURE();
 
@@ -171,6 +168,65 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
 
         // Update the delegate
         _delegate(_from, _to);
+    }
+
+    function batchDelegateBySigERC1271(
+        address[] calldata _fromAddresses,
+        address[] calldata _toAddresses,
+        uint256[] calldata _deadlines,
+        bytes memory _signature
+    ) internal {
+        uint256 length = _fromAddresses.length;
+
+        // Used to store the digest
+        bytes32 digest;
+
+        // Cannot realistically overflow
+        unchecked {
+            // Store nonces for each from address
+            uint256[] memory currentNonces = new uint256[](length);
+
+            for (uint256 i = 0; i < length; ++i) {
+                // Ensure the signature has not expired
+                if (block.timestamp > _deadlines[i]) revert EXPIRED_SIGNATURE();
+
+                // Add the addresses current nonce to the list of nonces
+                currentNonces[i] = nonces[_fromAddresses[i]]++;
+            }
+
+            // Compute the hash of the domain seperator with the typed delegation data
+            digest = keccak256(
+                abi.encodePacked(
+                    "\x19\x01",
+                    DOMAIN_SEPARATOR(),
+                    keccak256(
+                        abi.encode(
+                            BATCH_DELEGATION_TYPEHASH,
+                            keccak256(abi.encodePacked(_fromAddresses)),
+                            keccak256(abi.encodePacked(_toAddresses)),
+                            keccak256(abi.encodePacked(currentNonces)),
+                            keccak256(abi.encodePacked(_deadlines))
+                        )
+                    )
+                )
+            );
+
+            for (uint256 i = 0; i < length; ++i) {
+                address cachedFromAddress = _fromAddresses[i];
+
+                // Call the ERC1271 isValidSignature function
+                (bool success, bytes memory result) = cachedFromAddress.staticcall(
+                    abi.encodeWithSelector(IERC1271.isValidSignature.selector, digest, _signature)
+                );
+
+                // Ensure the signature is valid
+                if (success && result.length >= 32 && abi.decode(result, (bytes32)) == bytes32(IERC1271.isValidSignature.selector))
+                    revert INVALID_SIGNATURE();
+
+                // Update the delegate
+                _delegate(cachedFromAddress, _toAddresses[i]);
+            }
+        }
     }
 
     /// @dev Updates delegate addresses
@@ -196,11 +252,7 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
     /// @param _from The address delegating votes from
     /// @param _to The address delegating votes to
     /// @param _amount The number of votes delegating
-    function _moveDelegateVotes(
-        address _from,
-        address _to,
-        uint256 _amount
-    ) internal {
+    function _moveDelegateVotes(address _from, address _to, uint256 _amount) internal {
         unchecked {
             // If voting weight is being transferred:
             if (_from != _to && _amount > 0) {
@@ -309,11 +361,7 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
     /// @param _from The token sender
     /// @param _to The token recipient
     /// @param _tokenId The ERC-721 token id
-    function _afterTokenTransfer(
-        address _from,
-        address _to,
-        uint256 _tokenId
-    ) internal override {
+    function _afterTokenTransfer(address _from, address _to, uint256 _tokenId) internal override {
         // Transfer 1 vote from the sender to the recipient
         _moveDelegateVotes(delegates(_from), delegates(_to), 1);
 
