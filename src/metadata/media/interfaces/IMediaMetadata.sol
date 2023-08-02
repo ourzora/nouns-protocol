@@ -35,6 +35,16 @@ interface IMediaMetadata is IBaseMetadata, MediaMetadataTypesV1 {
     error ONE_MEDIA_ITEM_REQUIRED();
 
     ///                                                          ///
+    ///                           STRUCTS                        ///
+    ///                                                          ///
+
+    struct MediaMetadataParams {
+        string description;
+        string contractImage;
+        string projectURI;
+    }
+
+    ///                                                          ///
     ///                           FUNCTIONS                      ///
     ///                                                          ///
 

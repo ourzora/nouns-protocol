@@ -53,6 +53,17 @@ interface IPropertyMetadata is IBaseMetadata, PropertyMetadataTypesV1, PropertyM
     error TOKEN_ALREADY_GENERATED(uint256 tokenId);
 
     ///                                                          ///
+    ///                           STRUCTS                        ///
+    ///                                                          ///
+
+    struct PropertyMetadataParams {
+        string description;
+        string contractImage;
+        string projectURI;
+        string rendererBase;
+    }
+
+    ///                                                          ///
     ///                           FUNCTIONS                      ///
     ///                                                          ///
 

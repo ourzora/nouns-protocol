@@ -68,7 +68,7 @@ contract PropertyMetadata is IPropertyMetadata, VersionedContract, Initializable
         }
 
         // Decode the token initialization strings
-        IBaseMetadata.MetadataParams memory params = abi.decode(_data, (IBaseMetadata.MetadataParams));
+        PropertyMetadataParams memory params = abi.decode(_data, (PropertyMetadataParams));
 
         // Store the renderer settings
         settings.projectURI = params.projectURI;

@@ -67,13 +67,12 @@ contract MediaMetadata is IMediaMetadata, VersionedContract, Initializable, UUPS
         }
 
         // Decode the token initialization strings
-        IBaseMetadata.MetadataParams memory params = abi.decode(_data, (IBaseMetadata.MetadataParams));
+        MediaMetadataParams memory params = abi.decode(_data, (MediaMetadataParams));
 
         // Store the renderer settings
         settings.projectURI = params.projectURI;
         settings.description = params.description;
         settings.contractImage = params.contractImage;
-        settings.rendererBase = params.rendererBase;
         settings.projectURI = params.projectURI;
         settings.token = _token;
     }
@@ -83,9 +82,8 @@ contract MediaMetadata is IMediaMetadata, VersionedContract, Initializable, UUPS
     ///                                                          ///
 
     /// @notice The number of items in a property
-    /// @param _propertyId The property id
     /// @return items array length
-    function mediaItemsCount(uint256 _propertyId) external view returns (uint256) {
+    function mediaItemsCount() external view returns (uint256) {
         return mediaItems.length;
     }
 
@@ -146,40 +144,11 @@ contract MediaMetadata is IMediaMetadata, VersionedContract, Initializable, UUPS
 
     /// @notice Generates attributes for a token upon mint
     /// @param _tokenId The ERC-721 token id
-    function onMinted(uint256 _tokenId) external override returns (bool) {
+    function onMinted(uint256 _tokenId) external view override returns (bool) {
         // Ensure the caller is the token contract
         if (msg.sender != settings.token) revert ONLY_TOKEN();
 
-        return _generateMetadata(_tokenId);
-    }
-
-    /// @notice Generates attributes for a requested set of tokens
-    /// @param startId The ERC-721 token id
-    /// @param endId The ERC-721 token id
-    function generateMetadataForTokenIds(uint256 startId, uint256 endId) external onlyOwner returns (bool[] memory results) {
-        uint256 tokensLen = endId + 1 - startId;
-        unchecked {
-            for (uint256 i = startId; i < tokensLen; ++i) {
-                results[i] = _generateMetadata(i);
-            }
-        }
-    }
-
-    function _generateMetadata(uint256 _tokenId) internal returns (bool) {
-        // Cache the total number of properties available
-        uint256 numMediaItems = mediaItems.length;
-
-        if (numMediaItems == 0 || numMediaItems - 1 < _tokenId) {
-            return false;
-        }
-
-        tokenIdToSelectedMediaItem[_tokenId] = _tokenId;
-        return true;
-    }
-
-    /// @dev Generates a psuedo-random seed for a token id
-    function _generateSeed(uint256 _tokenId) private view returns (uint256) {
-        return uint256(keccak256(abi.encode(_tokenId, blockhash(block.number), block.coinbase, block.timestamp)));
+        return _tokenId < mediaItems.length;
     }
 
     ///                                                          ///
@@ -206,7 +175,7 @@ contract MediaMetadata is IMediaMetadata, VersionedContract, Initializable, UUPS
     /// @notice The token URI
     /// @param _tokenId The ERC-721 token id
     function tokenURI(uint256 _tokenId) external view returns (string memory) {
-        MediaItem storage mediaItem = mediaItems[tokenIdToSelectedMediaItem[_tokenId]];
+        MediaItem storage mediaItem = mediaItems[_tokenId];
 
         MetadataBuilder.JSONItem[] memory items = new MetadataBuilder.JSONItem[](4);
 
@@ -216,16 +185,8 @@ contract MediaMetadata is IMediaMetadata, VersionedContract, Initializable, UUPS
             quote: true
         });
         items[1] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyDescription, value: settings.description, quote: true });
-        items[2] = MetadataBuilder.JSONItem({
-            key: MetadataJSONKeys.keyImage,
-            value: string.concat(settings.rendererBase, mediaItem.imageURI),
-            quote: true
-        });
-        items[3] = MetadataBuilder.JSONItem({
-            key: MetadataJSONKeys.keyAnimationURL,
-            value: string.concat(settings.rendererBase, mediaItem.animationURI),
-            quote: true
-        });
+        items[2] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyImage, value: mediaItem.imageURI, quote: true });
+        items[3] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyAnimationURL, value: mediaItem.animationURI, quote: true });
 
         return MetadataBuilder.generateEncodedJSON(items);
     }
@@ -242,11 +203,6 @@ contract MediaMetadata is IMediaMetadata, VersionedContract, Initializable, UUPS
     /// @notice The contract image
     function contractImage() external view returns (string memory) {
         return settings.contractImage;
-    }
-
-    /// @notice The renderer base
-    function rendererBase() external view returns (string memory) {
-        return settings.rendererBase;
     }
 
     /// @notice The collection description

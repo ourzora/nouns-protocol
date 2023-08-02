@@ -5,7 +5,7 @@ import { Test } from "forge-std/Test.sol";
 
 import { IManager, Manager } from "../../src/manager/Manager.sol";
 import { IToken, Token } from "../../src/token/Token.sol";
-import { IBaseMetadata, PropertyMetadata } from "../../src/metadata/property/PropertyMetadata.sol";
+import { IBaseMetadata, IPropertyMetadata, PropertyMetadata } from "../../src/metadata/property/PropertyMetadata.sol";
 import { IAuction, Auction } from "../../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../../src/governance/governor/Governor.sol";
 import { ITreasury, Treasury } from "../../src/governance/treasury/Treasury.sol";
@@ -85,7 +85,7 @@ contract NounsBuilderTest is Test {
 
     IManager.FounderParams[] internal foundersArr;
     IToken.TokenParams internal tokenParams;
-    IBaseMetadata.MetadataParams internal metadataParams;
+    IPropertyMetadata.PropertyMetadataParams internal metadataParams;
     IAuction.AuctionParams internal auctionParams;
     IGovernor.GovParams internal govParams;
     ITreasury.TreasuryParams internal treasuryParams;
@@ -144,7 +144,7 @@ contract NounsBuilderTest is Test {
         string memory _rendererBase
     ) internal virtual {
         tokenParams = IToken.TokenParams({ name: _name, symbol: _symbol });
-        metadataParams = IBaseMetadata.MetadataParams({
+        metadataParams = IPropertyMetadata.PropertyMetadataParams({
             description: _description,
             contractImage: _contractImage,
             projectURI: _contractURI,

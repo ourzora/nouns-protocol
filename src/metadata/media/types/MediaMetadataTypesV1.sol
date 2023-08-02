@@ -15,7 +15,6 @@ interface MediaMetadataTypesV1 {
         string projectURI;
         string description;
         string contractImage;
-        string rendererBase;
     }
 
     struct AdditionalTokenProperty {

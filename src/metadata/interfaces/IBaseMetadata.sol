@@ -15,17 +15,6 @@ interface IBaseMetadata is IUUPS {
     error ONLY_MANAGER();
 
     ///                                                          ///
-    ///                           STRUCTS                        ///
-    ///                                                          ///
-
-    struct MetadataParams {
-        string description;
-        string contractImage;
-        string projectURI;
-        string rendererBase;
-    }
-
-    ///                                                          ///
     ///                           FUNCTIONS                      ///
     ///                                                          ///
 
