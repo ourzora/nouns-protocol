@@ -57,6 +57,46 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
         }
     }
 
+    function getBatchDelegateBySigTypedDataHash(
+        address[] calldata _fromAddresses,
+        address[] calldata _toAddresses,
+        uint256[] calldata _deadlines
+    ) public view returns (bytes32) {
+        uint256 length = _fromAddresses.length;
+
+        // Cannot realistically overflow
+        unchecked {
+            // Store nonces for each from address
+            uint256[] memory currentNonces = new uint256[](length);
+
+            for (uint256 i = 0; i < length; ++i) {
+                // Ensure the signature has not expired
+                if (block.timestamp > _deadlines[i]) revert EXPIRED_SIGNATURE();
+
+                // Add the addresses current nonce to the list of nonces
+                currentNonces[i] = nonces[_fromAddresses[i]];
+            }
+
+            // Compute the hash of the domain seperator with the typed delegation data
+            return
+                keccak256(
+                    abi.encodePacked(
+                        "\x19\x01",
+                        DOMAIN_SEPARATOR(),
+                        keccak256(
+                            abi.encode(
+                                BATCH_DELEGATION_TYPEHASH,
+                                keccak256(abi.encodePacked(_fromAddresses)),
+                                keccak256(abi.encodePacked(_toAddresses)),
+                                keccak256(abi.encodePacked(currentNonces)),
+                                keccak256(abi.encodePacked(_deadlines))
+                            )
+                        )
+                    )
+                );
+        }
+    }
+
     /// @notice The number of votes for an account at a past timestamp
     /// @param _account The account address
     /// @param _timestamp The past timestamp
@@ -175,7 +215,7 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
         address[] calldata _toAddresses,
         uint256[] calldata _deadlines,
         bytes memory _signature
-    ) internal {
+    ) external {
         uint256 length = _fromAddresses.length;
 
         // Used to store the digest
@@ -220,11 +260,12 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
                 );
 
                 // Ensure the signature is valid
-                if (success && result.length >= 32 && abi.decode(result, (bytes32)) == bytes32(IERC1271.isValidSignature.selector))
+                if (success && result.length >= 32 && abi.decode(result, (bytes32)) == bytes32(IERC1271.isValidSignature.selector)) {
+                    // Update the delegate
+                    _delegate(cachedFromAddress, _toAddresses[i]);
+                } else {
                     revert INVALID_SIGNATURE();
-
-                // Update the delegate
-                _delegate(cachedFromAddress, _toAddresses[i]);
+                }
             }
         }
     }
