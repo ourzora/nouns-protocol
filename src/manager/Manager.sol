@@ -30,7 +30,7 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
     uint8 public constant IMPLEMENTATION_TYPE_COUNT = 5;
 
     // Public constants for implementation types.
-    // Allows for adding new types later easily compared to a enum.
+    // Allows for more clarity when adding new types compared to a enum.
     uint8 public constant IMPLEMENTATION_TYPE_TOKEN = 0;
     uint8 public constant IMPLEMENTATION_TYPE_METADATA = 1;
     uint8 public constant IMPLEMENTATION_TYPE_AUCTION = 2;

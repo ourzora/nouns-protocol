@@ -90,13 +90,21 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
         if (params.vetoer != address(0)) settings.vetoer = params.vetoer;
 
         // Ensure the specified governance settings are valid
-        if (params.proposalThresholdBps < MIN_PROPOSAL_THRESHOLD_BPS || params.proposalThresholdBps > MAX_PROPOSAL_THRESHOLD_BPS)
+        if (params.proposalThresholdBps < MIN_PROPOSAL_THRESHOLD_BPS || params.proposalThresholdBps > MAX_PROPOSAL_THRESHOLD_BPS) {
             revert INVALID_PROPOSAL_THRESHOLD_BPS();
-        if (params.quorumThresholdBps < MIN_QUORUM_THRESHOLD_BPS || params.quorumThresholdBps > MAX_QUORUM_THRESHOLD_BPS)
+        }
+        if (params.quorumThresholdBps < MIN_QUORUM_THRESHOLD_BPS || params.quorumThresholdBps > MAX_QUORUM_THRESHOLD_BPS) {
             revert INVALID_QUORUM_THRESHOLD_BPS();
-        if (params.proposalThresholdBps >= params.quorumThresholdBps) revert INVALID_PROPOSAL_THRESHOLD_BPS();
-        if (params.votingDelay < MIN_VOTING_DELAY || params.votingDelay > MAX_VOTING_DELAY) revert INVALID_VOTING_DELAY();
-        if (params.votingPeriod < MIN_VOTING_PERIOD || params.votingPeriod > MAX_VOTING_PERIOD) revert INVALID_VOTING_PERIOD();
+        }
+        if (params.proposalThresholdBps >= params.quorumThresholdBps) {
+            revert INVALID_PROPOSAL_THRESHOLD_BPS();
+        }
+        if (params.votingDelay < MIN_VOTING_DELAY || params.votingDelay > MAX_VOTING_DELAY) {
+            revert INVALID_VOTING_DELAY();
+        }
+        if (params.votingPeriod < MIN_VOTING_PERIOD || params.votingPeriod > MAX_VOTING_PERIOD) {
+            revert INVALID_VOTING_PERIOD();
+        }
 
         // Store the governor settings
         settings.treasury = Treasury(payable(_treasury));
