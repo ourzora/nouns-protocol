@@ -76,7 +76,11 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
     /// @param _treasury The DAO's treasury address
     /// @param _token The DAO's governance token address
     /// @param _data The encoded governor parameters
-    function initialize(address _treasury, address _token, bytes calldata _data) external initializer {
+    function initialize(
+        address _treasury,
+        address _token,
+        bytes calldata _data
+    ) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) revert ONLY_MANAGER();
 
@@ -90,13 +94,21 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
         if (params.vetoer != address(0)) settings.vetoer = params.vetoer;
 
         // Ensure the specified governance settings are valid
-        if (params.proposalThresholdBps < MIN_PROPOSAL_THRESHOLD_BPS || params.proposalThresholdBps > MAX_PROPOSAL_THRESHOLD_BPS)
+        if (params.proposalThresholdBps < MIN_PROPOSAL_THRESHOLD_BPS || params.proposalThresholdBps > MAX_PROPOSAL_THRESHOLD_BPS) {
             revert INVALID_PROPOSAL_THRESHOLD_BPS();
-        if (params.quorumThresholdBps < MIN_QUORUM_THRESHOLD_BPS || params.quorumThresholdBps > MAX_QUORUM_THRESHOLD_BPS)
+        }
+        if (params.quorumThresholdBps < MIN_QUORUM_THRESHOLD_BPS || params.quorumThresholdBps > MAX_QUORUM_THRESHOLD_BPS) {
             revert INVALID_QUORUM_THRESHOLD_BPS();
-        if (params.proposalThresholdBps >= params.quorumThresholdBps) revert INVALID_PROPOSAL_THRESHOLD_BPS();
-        if (params.votingDelay < MIN_VOTING_DELAY || params.votingDelay > MAX_VOTING_DELAY) revert INVALID_VOTING_DELAY();
-        if (params.votingPeriod < MIN_VOTING_PERIOD || params.votingPeriod > MAX_VOTING_PERIOD) revert INVALID_VOTING_PERIOD();
+        }
+        if (params.proposalThresholdBps >= params.quorumThresholdBps) {
+            revert INVALID_PROPOSAL_THRESHOLD_BPS();
+        }
+        if (params.votingDelay < MIN_VOTING_DELAY || params.votingDelay > MAX_VOTING_DELAY) {
+            revert INVALID_VOTING_DELAY();
+        }
+        if (params.votingPeriod < MIN_VOTING_PERIOD || params.votingPeriod > MAX_VOTING_PERIOD) {
+            revert INVALID_VOTING_PERIOD();
+        }
 
         // Store the governor settings
         settings.treasury = Treasury(payable(_treasury));
@@ -200,7 +212,11 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
     /// @param _proposalId The proposal id
     /// @param _support The support value (0 = Against, 1 = For, 2 = Abstain)
     /// @param _reason The vote reason
-    function castVoteWithReason(bytes32 _proposalId, uint256 _support, string memory _reason) external returns (uint256) {
+    function castVoteWithReason(
+        bytes32 _proposalId,
+        uint256 _support,
+        string memory _reason
+    ) external returns (uint256) {
         return _castVote(_proposalId, msg.sender, _support, _reason);
     }
 
@@ -252,7 +268,12 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
     /// @param _proposalId The proposal id
     /// @param _voter The voter address
     /// @param _support The vote choice
-    function _castVote(bytes32 _proposalId, address _voter, uint256 _support, string memory _reason) internal returns (uint256) {
+    function _castVote(
+        bytes32 _proposalId,
+        address _voter,
+        uint256 _support,
+        string memory _reason
+    ) internal returns (uint256) {
         // Ensure voting is active
         if (state(_proposalId) != ProposalState.Active) revert VOTING_NOT_STARTED();
 
@@ -500,7 +521,15 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
 
     /// @notice The vote counts for a proposal
     /// @param _proposalId The proposal id
-    function proposalVotes(bytes32 _proposalId) external view returns (uint256, uint256, uint256) {
+    function proposalVotes(bytes32 _proposalId)
+        external
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
+    {
         Proposal memory proposal = proposals[_proposalId];
 
         return (proposal.againstVotes, proposal.forVotes, proposal.abstainVotes);

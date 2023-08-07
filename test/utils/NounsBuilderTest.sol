@@ -110,7 +110,11 @@ contract NounsBuilderTest is Test {
         setFounderParams(wallets, percents, vestingEnds);
     }
 
-    function setFounderParams(address[] memory _wallets, uint256[] memory _percents, uint256[] memory _vestingEnds) internal virtual {
+    function setFounderParams(
+        address[] memory _wallets,
+        uint256[] memory _percents,
+        uint256[] memory _vestingEnds
+    ) internal virtual {
         uint256 numFounders = _wallets.length;
 
         require(numFounders == _percents.length && numFounders == _vestingEnds.length);
@@ -266,7 +270,11 @@ contract NounsBuilderTest is Test {
         setMockMetadata();
     }
 
-    function deployWithCustomFounders(address[] memory _wallets, uint256[] memory _percents, uint256[] memory _vestExpirys) internal virtual {
+    function deployWithCustomFounders(
+        address[] memory _wallets,
+        uint256[] memory _percents,
+        uint256[] memory _vestExpirys
+    ) internal virtual {
         setFounderParams(_wallets, _percents, _vestExpirys);
 
         setMockTokenParams();
@@ -319,7 +327,11 @@ contract NounsBuilderTest is Test {
         deploy(foundersArr, implAddresses, implData);
     }
 
-    function deploy(IManager.FounderParams[] memory _founderParams, address[] memory _implAddresses, bytes[] memory _implData) internal virtual {
+    function deploy(
+        IManager.FounderParams[] memory _founderParams,
+        address[] memory _implAddresses,
+        bytes[] memory _implData
+    ) internal virtual {
         (address _token, address _metadata, address _auction, address _treasury, address _governor) = manager.deploy(
             _founderParams,
             _implAddresses,

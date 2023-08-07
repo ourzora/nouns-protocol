@@ -28,7 +28,7 @@ interface IManager is IUUPS, IOwnable {
     /// @notice Emitted when an implementation is unregistered by the Builder DAO
     /// @param implType The type of implementation
     /// @param implAddress The implementation address
-    event ImplemenetationRemoved(uint8 implType, address implAddress);
+    event ImplementationRemoved(uint8 implType, address implAddress);
 
     /// @notice Emitted when an upgrade is registered by the Builder DAO
     /// @param baseImpl The base implementation address
@@ -99,11 +99,26 @@ interface IManager is IUUPS, IOwnable {
         FounderParams[] calldata founderParams,
         address[] calldata implAddresses,
         bytes[] calldata implData
-    ) external returns (address token, address metadataRenderer, address auction, address treasury, address governor);
+    )
+        external
+        returns (
+            address token,
+            address metadataRenderer,
+            address auction,
+            address treasury,
+            address governor
+        );
 
     /// @notice A DAO's remaining contract addresses from its token address
     /// @param token The ERC-721 token address
-    function getAddresses(address token) external returns (address metadataRenderer, address auction, address treasury, address governor);
+    function getAddresses(address token)
+        external
+        returns (
+            address metadataRenderer,
+            address auction,
+            address treasury,
+            address governor
+        );
 
     /// @notice If an implementation is registered by the Builder DAO as an optional upgrade
     /// @param baseImpl The base implementation address
