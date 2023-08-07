@@ -159,7 +159,7 @@ contract NounsBuilderTest is Test {
         string memory _contractImage,
         string memory _contractURI,
         string memory _rendererBase,
-        uint _reservedUntilTokenId
+        uint256 _reservedUntilTokenId
     ) internal virtual {
         tokenParams = IToken.TokenParams({ name: _name, symbol: _symbol, reservedUntilTokenId: _reservedUntilTokenId });
         metadataParams = IBaseMetadata.MetadataParams({

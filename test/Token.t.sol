@@ -44,7 +44,11 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     /// Test that the percentages for founders all ends up as expected
-    function test_FounderShareAllocationFuzz(uint256 f1Percentage, uint256 f2Percentage, uint256 f3Percentage) public {
+    function test_FounderShareAllocationFuzz(
+        uint256 f1Percentage,
+        uint256 f2Percentage,
+        uint256 f3Percentage
+    ) public {
         address f1Wallet = address(0x1);
         address f2Wallet = address(0x2);
         address f3Wallet = address(0x3);
@@ -438,7 +442,11 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.ownerOf(tokenId), newMinter);
     }
 
-    function testRevert_OnlyMinterCanMintToRecipient(address newMinter, address nonMinter, address recipient) public {
+    function testRevert_OnlyMinterCanMintToRecipient(
+        address newMinter,
+        address nonMinter,
+        address recipient
+    ) public {
         vm.assume(
             newMinter != nonMinter && newMinter != founder && newMinter != address(0) && newMinter != address(auction) && recipient != address(0)
         );
@@ -458,7 +466,12 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.ownerOf(tokenId), recipient);
     }
 
-    function testRevert_OnlyMinterCanMintBatch(address newMinter, address nonMinter, address recipient, uint256 amount) public {
+    function testRevert_OnlyMinterCanMintBatch(
+        address newMinter,
+        address nonMinter,
+        address recipient,
+        uint256 amount
+    ) public {
         vm.assume(
             newMinter != nonMinter &&
                 newMinter != founder &&
@@ -627,7 +640,11 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.getFounders().length, 1);
     }
 
-    function test_UpdateFounderShareAllocationFuzz(uint256 f1Percentage, uint256 f2Percentage, uint256 f3Percentage) public {
+    function test_UpdateFounderShareAllocationFuzz(
+        uint256 f1Percentage,
+        uint256 f2Percentage,
+        uint256 f3Percentage
+    ) public {
         deployMock();
 
         address f1Wallet = address(0x1);
@@ -808,7 +825,11 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         token.ownerOf(tokenId);
     }
 
-    function test_MinterCanMintFromReserve(address _minter, uint256 _reservedUntilTokenId, uint256 _tokenId) public {
+    function test_MinterCanMintFromReserve(
+        address _minter,
+        uint256 _reservedUntilTokenId,
+        uint256 _tokenId
+    ) public {
         vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
         vm.assume(_tokenId < _reservedUntilTokenId);
         deployAltMock(_reservedUntilTokenId);
@@ -825,7 +846,11 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.ownerOf(_tokenId), minters[0].minter);
     }
 
-    function testRevert_MinterCannotMintPastReserve(address _minter, uint256 _reservedUntilTokenId, uint256 _tokenId) public {
+    function testRevert_MinterCannotMintPastReserve(
+        address _minter,
+        uint256 _reservedUntilTokenId,
+        uint256 _tokenId
+    ) public {
         vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
         vm.assume(_tokenId > _reservedUntilTokenId);
         deployAltMock(_reservedUntilTokenId);
@@ -859,13 +884,17 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.ownerOf(tokenId), minters[0].minter);
         assertGe(tokenId, _reservedUntilTokenId);
 
-        for (uint i; i < _reservedUntilTokenId; ++i) {
+        for (uint256 i; i < _reservedUntilTokenId; ++i) {
             vm.expectRevert();
             token.ownerOf(i);
         }
     }
 
-    function test_BatchMintCannotMintReserves(address _minter, uint256 _reservedUntilTokenId, uint256 _amount) public {
+    function test_BatchMintCannotMintReserves(
+        address _minter,
+        uint256 _reservedUntilTokenId,
+        uint256 _amount
+    ) public {
         vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
         vm.assume(_reservedUntilTokenId > 0 && _reservedUntilTokenId < 100000 && _amount > 0 && _amount < 20);
         deployAltMock(_reservedUntilTokenId);
@@ -879,13 +908,13 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
 
         vm.prank(minters[0].minter);
         uint256[] memory tokenIds = token.mintBatchTo(_amount, _minter);
-        for (uint i; i < tokenIds.length; ++i) {
+        for (uint256 i; i < tokenIds.length; ++i) {
             uint256 tokenId = tokenIds[i];
             assertEq(token.ownerOf(tokenId), minters[0].minter);
             assertGe(tokenId, _reservedUntilTokenId);
         }
 
-        for (uint i; i < _reservedUntilTokenId; ++i) {
+        for (uint256 i; i < _reservedUntilTokenId; ++i) {
             vm.expectRevert();
             token.ownerOf(i);
         }
