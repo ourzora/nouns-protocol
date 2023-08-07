@@ -50,7 +50,11 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @param _builderFeeManager The builder fee manager address
     /// @param _manager The contract upgrade manager address
     /// @param _weth The address of WETH
-    constructor(address _manager, address _builderFeeManager, address _weth) payable initializer {
+    constructor(
+        address _manager,
+        address _builderFeeManager,
+        address _weth
+    ) payable initializer {
         manager = IManager(_manager);
         builderFeeManager = _builderFeeManager;
         WETH = _weth;
@@ -389,7 +393,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @dev Gets the builder fee for amount of withdraw
     /// @param amount amount of funds to get fee for
     function _builderFeeForAmount(uint256 amount) private returns (address payable, uint256) {
-        (address payable recipient, uint256 bps) = IBuilderFeeManager(builderFeeManager).getBuilderFeesBPS(address(this));
+        (address payable recipient, uint256 bps) = IBuilderFeeManager(builderFeeManager).getBuilderFeesBPS();
         return (recipient, (amount * bps) / 10_000);
     }
 
