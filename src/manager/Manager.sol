@@ -63,7 +63,16 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         FounderParams[] calldata _founderParams,
         address[] calldata _implAddresses,
         bytes[] calldata _implData
-    ) external returns (address token, address metadata, address auction, address treasury, address governor) {
+    )
+        external
+        returns (
+            address token,
+            address metadata,
+            address auction,
+            address treasury,
+            address governor
+        )
+    {
         // Used to store the address of the first (or only) founder
         // This founder is responsible for adding token artwork and launching the first auction -- they're also free to transfer this responsiblity
         address founder;
@@ -123,7 +132,16 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
     /// @return auction Auction deployed address
     /// @return treasury Treasury deployed address
     /// @return governor Governor deployed address
-    function getAddresses(address _token) public view returns (address metadata, address auction, address treasury, address governor) {
+    function getAddresses(address _token)
+        public
+        view
+        returns (
+            address metadata,
+            address auction,
+            address treasury,
+            address governor
+        )
+    {
         DAOAddresses storage addresses = daoAddressesByToken[_token];
 
         metadata = addresses.metadata;

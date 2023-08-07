@@ -99,11 +99,26 @@ interface IManager is IUUPS, IOwnable {
         FounderParams[] calldata founderParams,
         address[] calldata implAddresses,
         bytes[] calldata implData
-    ) external returns (address token, address metadataRenderer, address auction, address treasury, address governor);
+    )
+        external
+        returns (
+            address token,
+            address metadataRenderer,
+            address auction,
+            address treasury,
+            address governor
+        );
 
     /// @notice A DAO's remaining contract addresses from its token address
     /// @param token The ERC-721 token address
-    function getAddresses(address token) external returns (address metadataRenderer, address auction, address treasury, address governor);
+    function getAddresses(address token)
+        external
+        returns (
+            address metadataRenderer,
+            address auction,
+            address treasury,
+            address governor
+        );
 
     /// @notice If an implementation is registered by the Builder DAO as an optional upgrade
     /// @param baseImpl The base implementation address
