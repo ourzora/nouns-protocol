@@ -65,7 +65,12 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @param _founder The founder responsible for starting the first auction
     /// @param _treasury The treasury address where ETH will be sent
     /// @param _data The encoded auction settings
-    function initialize(address _token, address _founder, address _treasury, bytes calldata _data) external initializer {
+    function initialize(
+        address _token,
+        address _founder,
+        address _treasury,
+        bytes calldata _data
+    ) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) revert ONLY_MANAGER();
 

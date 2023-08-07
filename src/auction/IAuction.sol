@@ -107,7 +107,12 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @param founder The founder responsible for starting the first auction
     /// @param treasury The treasury address where ETH will be sent
     /// @param data The encoded auction initialization data
-    function initialize(address token, address founder, address treasury, bytes calldata data) external;
+    function initialize(
+        address token,
+        address founder,
+        address treasury,
+        bytes calldata data
+    ) external;
 
     /// @notice Creates a bid for the current token
     /// @param tokenId The ERC-721 token id
