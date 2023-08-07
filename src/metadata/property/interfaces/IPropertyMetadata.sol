@@ -71,7 +71,11 @@ interface IPropertyMetadata is IBaseMetadata, PropertyMetadataTypesV1, PropertyM
     /// @param names The names of the properties to add
     /// @param items The items to add to each property
     /// @param ipfsGroup The IPFS base URI and extension
-    function addProperties(string[] calldata names, ItemParam[] calldata items, IPFSGroup calldata ipfsGroup) external;
+    function addProperties(
+        string[] calldata names,
+        ItemParam[] calldata items,
+        IPFSGroup calldata ipfsGroup
+    ) external;
 
     /// @notice The number of properties
     function propertiesCount() external view returns (uint256);

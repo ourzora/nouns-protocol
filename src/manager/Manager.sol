@@ -127,7 +127,11 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
     /// @notice Set a new metadata renderer
     /// @param _newRendererImpl new renderer address to use
     /// @param _setupRenderer data to setup new renderer with
-    function setMetadataRenderer(address _token, address _newRendererImpl, bytes memory _setupRenderer) external returns (address metadata) {
+    function setMetadataRenderer(
+        address _token,
+        address _newRendererImpl,
+        bytes memory _setupRenderer
+    ) external returns (address metadata) {
         if (msg.sender != IOwnable(_token).owner()) revert ONLY_TOKEN_OWNER();
 
         metadata = address(new ERC1967Proxy(_newRendererImpl, ""));
