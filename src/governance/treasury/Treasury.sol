@@ -230,17 +230,34 @@ contract Treasury is ITreasury, VersionedContract, UUPS, Ownable, ProposalHasher
     ///                                                          ///
 
     /// @dev Accepts all ERC-721 transfers
-    function onERC721Received(address, address, uint256, bytes memory) public pure returns (bytes4) {
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes memory
+    ) public pure returns (bytes4) {
         return ERC721TokenReceiver.onERC721Received.selector;
     }
 
     /// @dev Accepts all ERC-1155 single id transfers
-    function onERC1155Received(address, address, uint256, uint256, bytes memory) public pure returns (bytes4) {
+    function onERC1155Received(
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes memory
+    ) public pure returns (bytes4) {
         return ERC1155TokenReceiver.onERC1155Received.selector;
     }
 
     /// @dev Accept all ERC-1155 batch id transfers
-    function onERC1155BatchReceived(address, address, uint256[] memory, uint256[] memory, bytes memory) public pure returns (bytes4) {
+    function onERC1155BatchReceived(
+        address,
+        address,
+        uint256[] memory,
+        uint256[] memory,
+        bytes memory
+    ) public pure returns (bytes4) {
         return ERC1155TokenReceiver.onERC1155BatchReceived.selector;
     }
 

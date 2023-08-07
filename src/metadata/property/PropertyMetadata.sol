@@ -117,7 +117,11 @@ contract PropertyMetadata is IPropertyMetadata, VersionedContract, Initializable
     /// @param _names The names of the properties to add
     /// @param _items The items to add to each property
     /// @param _ipfsGroup The IPFS base URI and extension
-    function addProperties(string[] calldata _names, ItemParam[] calldata _items, IPFSGroup calldata _ipfsGroup) external onlyOwner {
+    function addProperties(
+        string[] calldata _names,
+        ItemParam[] calldata _items,
+        IPFSGroup calldata _ipfsGroup
+    ) external onlyOwner {
         _addProperties(_names, _items, _ipfsGroup);
     }
 
@@ -126,13 +130,21 @@ contract PropertyMetadata is IPropertyMetadata, VersionedContract, Initializable
     /// @param _names The names of the properties to add
     /// @param _items The items to add to each property
     /// @param _ipfsGroup The IPFS base URI and extension
-    function deleteAndRecreateProperties(string[] calldata _names, ItemParam[] calldata _items, IPFSGroup calldata _ipfsGroup) external onlyOwner {
+    function deleteAndRecreateProperties(
+        string[] calldata _names,
+        ItemParam[] calldata _items,
+        IPFSGroup calldata _ipfsGroup
+    ) external onlyOwner {
         delete ipfsData;
         delete properties;
         _addProperties(_names, _items, _ipfsGroup);
     }
 
-    function _addProperties(string[] calldata _names, ItemParam[] calldata _items, IPFSGroup calldata _ipfsGroup) internal {
+    function _addProperties(
+        string[] calldata _names,
+        ItemParam[] calldata _items,
+        IPFSGroup calldata _ipfsGroup
+    ) internal {
         // Cache the existing amount of IPFS data stored
         uint256 dataLength = ipfsData.length;
 

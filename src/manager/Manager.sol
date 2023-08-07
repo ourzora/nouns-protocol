@@ -31,7 +31,7 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
     uint8 public constant IMPLEMENTATION_TYPE_COUNT = 5;
 
     // Public constants for implementation types.
-    // Allows for adding new types later easily compared to a enum.
+    // Allows for more clarity when adding new types compared to a enum.
     uint8 public constant IMPLEMENTATION_TYPE_TOKEN = 0;
     uint8 public constant IMPLEMENTATION_TYPE_METADATA = 1;
     uint8 public constant IMPLEMENTATION_TYPE_AUCTION = 2;
@@ -64,7 +64,16 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         FounderParams[] calldata _founderParams,
         address[] calldata _implAddresses,
         bytes[] calldata _implData
-    ) external returns (address token, address metadata, address auction, address treasury, address governor) {
+    )
+        external
+        returns (
+            address token,
+            address metadata,
+            address auction,
+            address treasury,
+            address governor
+        )
+    {
         // Used to store the address of the first (or only) founder
         // This founder is responsible for adding token artwork and launching the first auction -- they're also free to transfer this responsiblity
         address founder;
@@ -143,7 +152,16 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
     /// @return auction Auction deployed address
     /// @return treasury Treasury deployed address
     /// @return governor Governor deployed address
-    function getAddresses(address _token) public view returns (address metadata, address auction, address treasury, address governor) {
+    function getAddresses(address _token)
+        public
+        view
+        returns (
+            address metadata,
+            address auction,
+            address treasury,
+            address governor
+        )
+    {
         DAOAddresses storage addresses = daoAddressesByToken[_token];
 
         metadata = addresses.metadata;
@@ -180,7 +198,7 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         if (_isInvalidImplementationType(_implType)) revert INVALID_IMPLEMENTATION_TYPE();
         delete isImplementation[_implType][_implAddress];
 
-        emit ImplemenetationRemoved(_implType, _implAddress);
+        emit ImplementationRemoved(_implType, _implAddress);
     }
 
     ///                                                          ///
