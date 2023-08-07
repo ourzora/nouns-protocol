@@ -28,7 +28,7 @@ interface IManager is IUUPS, IOwnable {
     /// @notice Emitted when an implementation is unregistered by the Builder DAO
     /// @param implType The type of implementation
     /// @param implAddress The implementation address
-    event ImplemenetationRemoved(uint8 implType, address implAddress);
+    event ImplementationRemoved(uint8 implType, address implAddress);
 
     /// @notice Emitted when an upgrade is registered by the Builder DAO
     /// @param baseImpl The base implementation address

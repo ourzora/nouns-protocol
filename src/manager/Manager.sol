@@ -160,7 +160,7 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         if (_isInvalidImplementationType(_implType)) revert INVALID_IMPLEMENTATION_TYPE();
         delete isImplementation[_implType][_implAddress];
 
-        emit ImplemenetationRemoved(_implType, _implAddress);
+        emit ImplementationRemoved(_implType, _implAddress);
     }
 
     ///                                                          ///
