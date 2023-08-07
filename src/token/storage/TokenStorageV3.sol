@@ -6,5 +6,5 @@ pragma solidity 0.8.16;
 /// @notice The Token storage contract
 contract TokenStorageV3 {
     /// @notice Marks the first n tokens as reserved
-    uint256 reservedUntilTokenId;
+    uint256 public reservedUntilTokenId;
 }
