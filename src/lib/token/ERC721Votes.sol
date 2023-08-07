@@ -185,7 +185,14 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
     /// @param _v The 129th byte and chain id of the signature
     /// @param _r The first 64 bytes of the signature
     /// @param _s Bytes 64-128 of the signature
-    function delegateBySig(address _from, address _to, uint256 _deadline, uint8 _v, bytes32 _r, bytes32 _s) external {
+    function delegateBySig(
+        address _from,
+        address _to,
+        uint256 _deadline,
+        uint8 _v,
+        bytes32 _r,
+        bytes32 _s
+    ) external {
         // Ensure the signature has not expired
         if (block.timestamp > _deadline) revert EXPIRED_SIGNATURE();
 
@@ -293,7 +300,11 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
     /// @param _from The address delegating votes from
     /// @param _to The address delegating votes to
     /// @param _amount The number of votes delegating
-    function _moveDelegateVotes(address _from, address _to, uint256 _amount) internal {
+    function _moveDelegateVotes(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) internal {
         unchecked {
             // If voting weight is being transferred:
             if (_from != _to && _amount > 0) {
@@ -402,7 +413,11 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
     /// @param _from The token sender
     /// @param _to The token recipient
     /// @param _tokenId The ERC-721 token id
-    function _afterTokenTransfer(address _from, address _to, uint256 _tokenId) internal override {
+    function _afterTokenTransfer(
+        address _from,
+        address _to,
+        uint256 _tokenId
+    ) internal override {
         // Transfer 1 vote from the sender to the recipient
         _moveDelegateVotes(delegates(_from), delegates(_to), 1);
 
