@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import { Token } from "../../../token/Token.sol";
+import { IBaseToken } from "../../../token/interfaces/IBaseToken.sol";
 import { Treasury } from "../../treasury/Treasury.sol";
 
 /// @title GovernorTypesV1
@@ -17,7 +17,7 @@ interface GovernorTypesV1 {
     /// @param votingPeriod The time period to vote on a proposal
     /// @param vetoer The address with the ability to veto proposals
     struct Settings {
-        Token token;
+        IBaseToken token;
         uint16 proposalThresholdBps;
         uint16 quorumThresholdBps;
         Treasury treasury;

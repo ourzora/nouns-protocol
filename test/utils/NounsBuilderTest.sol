@@ -4,7 +4,7 @@ pragma solidity 0.8.16;
 import { Test } from "forge-std/Test.sol";
 
 import { IManager, Manager } from "../../src/manager/Manager.sol";
-import { IToken, Token } from "../../src/token/Token.sol";
+import { IToken, Token } from "../../src/token/default/Token.sol";
 import { IBaseMetadata, MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol";
 import { IAuction, Auction } from "../../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../../src/governance/governor/Governor.sol";

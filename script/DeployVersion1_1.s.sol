@@ -6,7 +6,7 @@ import "forge-std/console2.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
-import { IToken, Token } from "../src/token/Token.sol";
+import { IToken, Token } from "../src/token/default/Token.sol";
 import { MetadataRenderer } from "../src/token/metadata/MetadataRenderer.sol";
 import { IAuction, Auction } from "../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../src/governance/governor/Governor.sol";

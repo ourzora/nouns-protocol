@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import { IBaseMetadata } from "../metadata/interfaces/IBaseMetadata.sol";
+import { IBaseMetadata } from "../../metadata/interfaces/IBaseMetadata.sol";
 
-/// @title TokenTypesV1
-/// @author Rohan Kulkarni
+/// @title PartialSoulboundTokenTypesV1
+/// @author Neokry
 /// @notice The Token custom data types
-interface TokenTypesV1 {
+interface PartialSoulboundTokenTypesV1 {
     /// @notice The settings type
     /// @param auction The DAO auction house
     /// @param totalSupply The number of active tokens
@@ -31,5 +31,10 @@ interface TokenTypesV1 {
         address wallet;
         uint8 ownershipPct;
         uint32 vestExpiry;
+    }
+
+    struct MinterParams {
+        address minter;
+        bool allowed;
     }
 }

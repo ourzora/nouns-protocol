@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import { Token } from "../../token/Token.sol";
+import { IBaseToken } from "../../token/interfaces/IBaseToken.sol";
 import { AuctionTypesV1 } from "../types/AuctionTypesV1.sol";
 
 /// @title AuctionStorageV1
@@ -12,7 +12,7 @@ contract AuctionStorageV1 is AuctionTypesV1 {
     Settings internal settings;
 
     /// @notice The ERC-721 token
-    Token public token;
+    IBaseToken public token;
 
     /// @notice The state of the current auction
     Auction public auction;

@@ -5,9 +5,10 @@ import { UUPS } from "../../lib/proxy/UUPS.sol";
 import { Ownable } from "../../lib/utils/Ownable.sol";
 import { EIP712 } from "../../lib/utils/EIP712.sol";
 import { SafeCast } from "../../lib/utils/SafeCast.sol";
+import { ERC721 } from "../../lib/token/ERC721.sol";
 
 import { GovernorStorageV1 } from "./storage/GovernorStorageV1.sol";
-import { Token } from "../../token/Token.sol";
+import { IBaseToken } from "../../token/interfaces/IBaseToken.sol";
 import { Treasury } from "../treasury/Treasury.sol";
 import { IManager } from "../../manager/IManager.sol";
 import { IGovernor } from "./IGovernor.sol";
@@ -112,14 +113,14 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
 
         // Store the governor settings
         settings.treasury = Treasury(payable(_treasury));
-        settings.token = Token(_token);
+        settings.token = IBaseToken(_token);
         settings.votingDelay = SafeCast.toUint48(params.votingDelay);
         settings.votingPeriod = SafeCast.toUint48(params.votingPeriod);
         settings.proposalThresholdBps = SafeCast.toUint16(params.proposalThresholdBps);
         settings.quorumThresholdBps = SafeCast.toUint16(params.quorumThresholdBps);
 
         // Initialize EIP-712 support
-        __EIP712_init(string.concat(settings.token.symbol(), " GOV"), "1");
+        __EIP712_init(string.concat(ERC721(_token).symbol(), " GOV"), "1");
 
         // Grant ownership to the treasury
         __Ownable_init(_treasury);
