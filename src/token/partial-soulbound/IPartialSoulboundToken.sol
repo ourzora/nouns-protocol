@@ -3,6 +3,7 @@ pragma solidity 0.8.16;
 
 import { IUUPS } from "../../lib/interfaces/IUUPS.sol";
 import { IERC721Votes } from "../../lib/interfaces/IERC721Votes.sol";
+import { IERC5192 } from "../../lib/interfaces/IERC5192.sol";
 import { IManager } from "../../manager/IManager.sol";
 import { IBaseToken } from "../interfaces/IBaseToken.sol";
 import { PartialSoulboundTokenTypesV1 } from "./types/PartialSoulboundTokenTypesV1.sol";
@@ -10,7 +11,7 @@ import { PartialSoulboundTokenTypesV1 } from "./types/PartialSoulboundTokenTypes
 /// @title IToken
 /// @author Neokry
 /// @notice The external Token events, errors and functions
-interface IPartialSoulboundToken is IUUPS, IERC721Votes, IBaseToken, PartialSoulboundTokenTypesV1 {
+interface IPartialSoulboundToken is IUUPS, IERC721Votes, IBaseToken, IERC5192, PartialSoulboundTokenTypesV1 {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///
@@ -58,6 +59,15 @@ interface IPartialSoulboundToken is IUUPS, IERC721Votes, IBaseToken, PartialSoul
     /// @dev Reverts if the caller was not the contract manager
     error ONLY_MANAGER();
 
+    /// @dev Reverts if the token is not reserved
+    error TOKEN_NOT_RESERVED();
+
+    /// @dev Reverts if the token is locked
+    error TOKEN_LOCKED();
+
+    /// @dev Reverts if the token is lockable
+    error TOKEN_NOT_LOCKABLE();
+
     ///                                                          ///
     ///                           STRUCTS                        ///
     ///                                                          ///
@@ -65,6 +75,7 @@ interface IPartialSoulboundToken is IUUPS, IERC721Votes, IBaseToken, PartialSoul
     struct TokenParams {
         string name;
         string symbol;
+        uint256 reservedUntilTokenId;
     }
 
     ///                                                          ///

@@ -14,6 +14,8 @@ import { IPartialSoulboundToken } from "./IPartialSoulboundToken.sol";
 import { IBaseToken } from "../interfaces/IBaseToken.sol";
 import { VersionedContract } from "../../VersionedContract.sol";
 
+import { BitMaps } from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
+
 /// @title Token
 /// @author Neokry
 /// @custom:repo github.com/ourzora/nouns-protocol
@@ -27,6 +29,8 @@ contract PartialSoulboundToken is
     ERC721Votes,
     PartialSoulboundTokenStorageV1
 {
+    using BitMaps for BitMaps.BitMap;
+
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
@@ -37,6 +41,15 @@ contract PartialSoulboundToken is
     ///                                                          ///
     ///                          MODIFIERS                       ///
     ///                                                          ///
+
+    /// @notice Reverts if caller is not an authorized minter
+    modifier onlyMinter() {
+        if (!minter[msg.sender]) {
+            revert ONLY_AUCTION_OR_MINTER();
+        }
+
+        _;
+    }
 
     /// @notice Reverts if caller is not an authorized minter
     modifier onlyAuctionOrMinter() {
@@ -84,11 +97,11 @@ contract PartialSoulboundToken is
         // Setup ownable
         __Ownable_init(_initialOwner);
 
-        // Store the founders and compute their allocations
-        _addFounders(_founders);
-
         // Decode the token name and symbol
         IPartialSoulboundToken.TokenParams memory params = abi.decode(_data, (IPartialSoulboundToken.TokenParams));
+
+        // Store the founders and compute their allocations
+        _addFounders(_founders, params.reservedUntilTokenId);
 
         // Initialize the ERC-721 token
         __ERC721_init(params.name, params.symbol);
@@ -96,6 +109,7 @@ contract PartialSoulboundToken is
         // Store the metadata renderer and auction house
         settings.metadataRenderer = IBaseMetadata(_metadataRenderer);
         settings.auction = _auction;
+        reservedUntilTokenId = params.reservedUntilTokenId;
     }
 
     /// @notice Called by the auction upon the first unpause / token mint to transfer ownership from founder to treasury
@@ -112,7 +126,7 @@ contract PartialSoulboundToken is
     /// @notice Called upon initialization to add founders and compute their vesting allocations
     /// @dev We do this by reserving an mapping of [0-100] token indices, such that if a new token mint ID % 100 is reserved, it's sent to the appropriate founder.
     /// @param _founders The list of DAO founders
-    function _addFounders(IManager.FounderParams[] calldata _founders) internal {
+    function _addFounders(IManager.FounderParams[] calldata _founders, uint256 reservedUntilTokenId) internal {
         // Used to store the total percent ownership among the founders
         uint256 totalOwnership;
 
@@ -153,7 +167,7 @@ contract PartialSoulboundToken is
                 uint256 schedule = 100 / founderPct;
 
                 // Used to store the base token id the founder will recieve
-                uint256 baseTokenId;
+                uint256 baseTokenId = reservedUntilTokenId;
 
                 // For each token to vest:
                 for (uint256 j; j < founderPct; ++j) {
@@ -202,6 +216,22 @@ contract PartialSoulboundToken is
         tokenId = _mintWithVesting(recipient);
     }
 
+    /// @notice Mints tokens from the reserve to the recipient
+    function mintFromReserveTo(address recipient, uint256 tokenId) external nonReentrant onlyMinter {
+        if (tokenId >= reservedUntilTokenId) revert TOKEN_NOT_RESERVED();
+        _mint(recipient, tokenId);
+    }
+
+    /// @notice Mints a token from the reserve and locks to the recipient
+    function mintFromReserveAndLockTo(address recipient, uint256 tokenId) external nonReentrant onlyMinter {
+        if (tokenId >= reservedUntilTokenId) revert TOKEN_NOT_RESERVED();
+
+        _mint(recipient, tokenId);
+        _lock(tokenId);
+
+        emit Locked(tokenId);
+    }
+
     /// @notice Mints the specified amount of tokens to the recipient and handles founder vesting
     function mintBatchTo(uint256 amount, address recipient) external nonReentrant onlyAuctionOrMinter returns (uint256[] memory tokenIds) {
         tokenIds = new uint256[](amount);
@@ -218,7 +248,7 @@ contract PartialSoulboundToken is
         unchecked {
             do {
                 // Get the next token to mint
-                tokenId = settings.mintCount++;
+                tokenId = reservedUntilTokenId + settings.mintCount++;
 
                 // Lookup whether the token is for a founder, and mint accordingly if so
             } while (_isForFounder(tokenId));
@@ -290,6 +320,35 @@ contract PartialSoulboundToken is
         unchecked {
             --settings.totalSupply;
         }
+    }
+
+    ///                                                          ///
+    ///                           LOCK                           ///
+    ///                                                          ///
+
+    function transferFromAndLock(
+        address from,
+        address to,
+        uint256 tokenId
+    ) external nonReentrant {
+        if (tokenId >= reservedUntilTokenId) revert TOKEN_NOT_LOCKABLE();
+
+        super.transferFrom(from, to, tokenId);
+        _lock(tokenId);
+
+        emit Locked(tokenId);
+    }
+
+    function locked(uint256 tokenId) external view returns (bool) {
+        return _locked(tokenId);
+    }
+
+    function _lock(uint256 tokenId) internal {
+        isTokenLockedBitMap.set(tokenId);
+    }
+
+    function _locked(uint256 tokenId) internal view returns (bool) {
+        return isTokenLockedBitMap.get(tokenId);
     }
 
     ///                                                          ///
@@ -415,7 +474,7 @@ contract PartialSoulboundToken is
         settings.totalOwnership = 0;
         emit FounderAllocationsCleared(newFounders);
 
-        _addFounders(newFounders);
+        _addFounders(newFounders, reservedUntilTokenId);
     }
 
     ///                                                          ///
@@ -460,6 +519,19 @@ contract PartialSoulboundToken is
     /// @param _minter Address to check
     function isMinter(address _minter) external view returns (bool) {
         return minter[_minter];
+    }
+
+    ///                                                          ///
+    ///                   BEFORE TRANSFER OVERRIDE               ///
+    ///                                                          ///
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal virtual override(ERC721) {
+        super._beforeTokenTransfer(from, to, tokenId);
+        if (_locked(tokenId)) revert TOKEN_LOCKED();
     }
 
     ///                                                          ///

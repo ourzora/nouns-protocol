@@ -2,6 +2,7 @@
 pragma solidity 0.8.16;
 
 import { PartialSoulboundTokenTypesV1 } from "../types/PartialSoulboundTokenTypesV1.sol";
+import { BitMaps } from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 
 /// @title PartialSoulboundTokenStorageV1
 /// @author Neokry
@@ -20,4 +21,10 @@ contract PartialSoulboundTokenStorageV1 is PartialSoulboundTokenTypesV1 {
 
     /// @notice The minter status of an address
     mapping(address => bool) public minter;
+
+    /// @notice Marks the first n tokens as reserved
+    uint256 public reservedUntilTokenId;
+
+    /// @notice ERC-721 token id => locked
+    BitMaps.BitMap internal isTokenLockedBitMap;
 }
