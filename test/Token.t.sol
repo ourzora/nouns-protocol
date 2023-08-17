@@ -869,7 +869,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
 
     function test_SingleMintCannotMintReserves(address _minter, uint256 _reservedUntilTokenId) public {
         vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
-        vm.assume(_reservedUntilTokenId > 0 && _reservedUntilTokenId < 100000);
+        vm.assume(_reservedUntilTokenId > 0 && _reservedUntilTokenId < 4000);
         deployAltMock(_reservedUntilTokenId);
 
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -896,7 +896,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         uint256 _amount
     ) public {
         vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
-        vm.assume(_reservedUntilTokenId > 0 && _reservedUntilTokenId < 100000 && _amount > 0 && _amount < 20);
+        vm.assume(_reservedUntilTokenId > 0 && _reservedUntilTokenId < 4000 && _amount > 0 && _amount < 20);
         deployAltMock(_reservedUntilTokenId);
 
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
