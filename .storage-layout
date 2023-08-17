@@ -92,3 +92,4 @@
 | founder                  | mapping(uint256 => struct TokenTypesV1.Founder)                        | 19   | 0      | 32    | src/token/Token.sol:Token |
 | tokenRecipient           | mapping(uint256 => struct TokenTypesV1.Founder)                        | 20   | 0      | 32    | src/token/Token.sol:Token |
 | minter                   | mapping(address => bool)                                               | 21   | 0      | 32    | src/token/Token.sol:Token |
+| reservedUntilTokenId     | uint256                                                                | 22   | 0      | 32    | src/token/Token.sol:Token |
