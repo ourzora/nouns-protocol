@@ -28,7 +28,7 @@
 | _status       | uint256                        | 2    | 0      | 32    | src/auction/Auction.sol:Auction |
 | _paused       | bool                           | 3    | 0      | 1     | src/auction/Auction.sol:Auction |
 | settings      | struct AuctionTypesV1.Settings | 4    | 0      | 64    | src/auction/Auction.sol:Auction |
-| token         | contract Token                 | 6    | 0      | 20    | src/auction/Auction.sol:Auction |
+| token         | contract IBaseToken            | 6    | 0      | 20    | src/auction/Auction.sol:Auction |
 | auction       | struct AuctionTypesV1.Auction  | 7    | 0      | 96    | src/auction/Auction.sol:Auction |
 
 =======================
@@ -67,29 +67,29 @@
 ➡ Token
 =======================
 
-| Name                     | Type                                                                   | Slot | Offset | Bytes | Contract                  |
-|--------------------------|------------------------------------------------------------------------|------|--------|-------|---------------------------|
-| _initialized             | uint8                                                                  | 0    | 0      | 1     | src/token/Token.sol:Token |
-| _initializing            | bool                                                                   | 0    | 1      | 1     | src/token/Token.sol:Token |
-| _owner                   | address                                                                | 0    | 2      | 20    | src/token/Token.sol:Token |
-| _pendingOwner            | address                                                                | 1    | 0      | 20    | src/token/Token.sol:Token |
-| _status                  | uint256                                                                | 2    | 0      | 32    | src/token/Token.sol:Token |
-| HASHED_NAME              | bytes32                                                                | 3    | 0      | 32    | src/token/Token.sol:Token |
-| HASHED_VERSION           | bytes32                                                                | 4    | 0      | 32    | src/token/Token.sol:Token |
-| INITIAL_DOMAIN_SEPARATOR | bytes32                                                                | 5    | 0      | 32    | src/token/Token.sol:Token |
-| INITIAL_CHAIN_ID         | uint256                                                                | 6    | 0      | 32    | src/token/Token.sol:Token |
-| nonces                   | mapping(address => uint256)                                            | 7    | 0      | 32    | src/token/Token.sol:Token |
-| name                     | string                                                                 | 8    | 0      | 32    | src/token/Token.sol:Token |
-| symbol                   | string                                                                 | 9    | 0      | 32    | src/token/Token.sol:Token |
-| owners                   | mapping(uint256 => address)                                            | 10   | 0      | 32    | src/token/Token.sol:Token |
-| balances                 | mapping(address => uint256)                                            | 11   | 0      | 32    | src/token/Token.sol:Token |
-| tokenApprovals           | mapping(uint256 => address)                                            | 12   | 0      | 32    | src/token/Token.sol:Token |
-| operatorApprovals        | mapping(address => mapping(address => bool))                           | 13   | 0      | 32    | src/token/Token.sol:Token |
-| delegation               | mapping(address => address)                                            | 14   | 0      | 32    | src/token/Token.sol:Token |
-| numCheckpoints           | mapping(address => uint256)                                            | 15   | 0      | 32    | src/token/Token.sol:Token |
-| checkpoints              | mapping(address => mapping(uint256 => struct IERC721Votes.Checkpoint)) | 16   | 0      | 32    | src/token/Token.sol:Token |
-| settings                 | struct TokenTypesV1.Settings                                           | 17   | 0      | 64    | src/token/Token.sol:Token |
-| founder                  | mapping(uint256 => struct TokenTypesV1.Founder)                        | 19   | 0      | 32    | src/token/Token.sol:Token |
-| tokenRecipient           | mapping(uint256 => struct TokenTypesV1.Founder)                        | 20   | 0      | 32    | src/token/Token.sol:Token |
-| minter                   | mapping(address => bool)                                               | 21   | 0      | 32    | src/token/Token.sol:Token |
-| reservedUntilTokenId     | uint256                                                                | 22   | 0      | 32    | src/token/Token.sol:Token |
+| Name                     | Type                                                                   | Slot | Offset | Bytes | Contract                          |
+|--------------------------|------------------------------------------------------------------------|------|--------|-------|-----------------------------------|
+| _initialized             | uint8                                                                  | 0    | 0      | 1     | src/token/default/Token.sol:Token |
+| _initializing            | bool                                                                   | 0    | 1      | 1     | src/token/default/Token.sol:Token |
+| _owner                   | address                                                                | 0    | 2      | 20    | src/token/default/Token.sol:Token |
+| _pendingOwner            | address                                                                | 1    | 0      | 20    | src/token/default/Token.sol:Token |
+| _status                  | uint256                                                                | 2    | 0      | 32    | src/token/default/Token.sol:Token |
+| HASHED_NAME              | bytes32                                                                | 3    | 0      | 32    | src/token/default/Token.sol:Token |
+| HASHED_VERSION           | bytes32                                                                | 4    | 0      | 32    | src/token/default/Token.sol:Token |
+| INITIAL_DOMAIN_SEPARATOR | bytes32                                                                | 5    | 0      | 32    | src/token/default/Token.sol:Token |
+| INITIAL_CHAIN_ID         | uint256                                                                | 6    | 0      | 32    | src/token/default/Token.sol:Token |
+| nonces                   | mapping(address => uint256)                                            | 7    | 0      | 32    | src/token/default/Token.sol:Token |
+| name                     | string                                                                 | 8    | 0      | 32    | src/token/default/Token.sol:Token |
+| symbol                   | string                                                                 | 9    | 0      | 32    | src/token/default/Token.sol:Token |
+| owners                   | mapping(uint256 => address)                                            | 10   | 0      | 32    | src/token/default/Token.sol:Token |
+| balances                 | mapping(address => uint256)                                            | 11   | 0      | 32    | src/token/default/Token.sol:Token |
+| tokenApprovals           | mapping(uint256 => address)                                            | 12   | 0      | 32    | src/token/default/Token.sol:Token |
+| operatorApprovals        | mapping(address => mapping(address => bool))                           | 13   | 0      | 32    | src/token/default/Token.sol:Token |
+| delegation               | mapping(address => address)                                            | 14   | 0      | 32    | src/token/default/Token.sol:Token |
+| numCheckpoints           | mapping(address => uint256)                                            | 15   | 0      | 32    | src/token/default/Token.sol:Token |
+| checkpoints              | mapping(address => mapping(uint256 => struct IERC721Votes.Checkpoint)) | 16   | 0      | 32    | src/token/default/Token.sol:Token |
+| settings                 | struct TokenTypesV1.Settings                                           | 17   | 0      | 64    | src/token/default/Token.sol:Token |
+| founder                  | mapping(uint256 => struct TokenTypesV1.Founder)                        | 19   | 0      | 32    | src/token/default/Token.sol:Token |
+| tokenRecipient           | mapping(uint256 => struct TokenTypesV1.Founder)                        | 20   | 0      | 32    | src/token/default/Token.sol:Token |
+| minter                   | mapping(address => bool)                                               | 21   | 0      | 32    | src/token/default/Token.sol:Token |
+| reservedUntilTokenId     | uint256                                                                | 22   | 0      | 32    | src/token/default/Token.sol:Token |
