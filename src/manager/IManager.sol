@@ -20,6 +20,16 @@ interface IManager is IUUPS, IOwnable {
     /// @param governor The governor address
     event DAODeployed(address token, address metadata, address auction, address treasury, address governor);
 
+    /// @notice Emitted when an implementation is registered by the Builder DAO
+    /// @param implType The type of implementation
+    /// @param implAddress The implementation address
+    event ImplementationRegistered(uint8 implType, address implAddress);
+
+    /// @notice Emitted when an implementation is unregistered by the Builder DAO
+    /// @param implType The type of implementation
+    /// @param implAddress The implementation address
+    event ImplementationRemoved(uint8 implType, address implAddress);
+
     /// @notice Emitted when an upgrade is registered by the Builder DAO
     /// @param baseImpl The base implementation address
     /// @param upgradeImpl The upgrade implementation address
@@ -36,6 +46,15 @@ interface IManager is IUUPS, IOwnable {
 
     /// @dev Reverts if at least one founder is not provided upon deploy
     error FOUNDER_REQUIRED();
+
+    /// @dev Reverts if implementation parameters are incorrect length
+    error INVALID_IMPLEMENTATION_PARAMS();
+
+    /// @dev Reverts if an implementation is not registered
+    error IMPLEMENTATION_NOT_REGISTERED();
+
+    /// @dev Reverts if an implementation type is not valid on registration
+    error INVALID_IMPLEMENTATION_TYPE();
 
     ///                                                          ///
     ///                            STRUCTS                       ///
@@ -57,68 +76,29 @@ interface IManager is IUUPS, IOwnable {
         string metadata;
         string auction;
         string treasury;
-        string governor; 
+        string governor;
     }
 
     /// @notice The ERC-721 token parameters
-    /// @param initStrings The encoded token name, symbol, collection description, collection image uri, renderer base uri
-    struct TokenParams {
-        bytes initStrings;
-    }
-
-    /// @notice The auction parameters
-    /// @param reservePrice The reserve price of each auction
-    /// @param duration The duration of each auction
-    struct AuctionParams {
-        uint256 reservePrice;
-        uint256 duration;
-    }
-
-    /// @notice The governance parameters
-    /// @param timelockDelay The time delay to execute a queued transaction
-    /// @param votingDelay The time delay to vote on a created proposal
-    /// @param votingPeriod The time period to vote on a proposal
-    /// @param proposalThresholdBps The basis points of the token supply required to create a proposal
-    /// @param quorumThresholdBps The basis points of the token supply required to reach quorum
-    /// @param vetoer The address authorized to veto proposals (address(0) if none desired)
-    struct GovParams {
-        uint256 timelockDelay;
-        uint256 votingDelay;
-        uint256 votingPeriod;
-        uint256 proposalThresholdBps;
-        uint256 quorumThresholdBps;
-        address vetoer;
+    /// @param impl The address of the implementation
+    /// @param data The encoded implementation parameters
+    struct ImplementationParams {
+        address impl;
+        bytes data;
     }
 
     ///                                                          ///
     ///                           FUNCTIONS                      ///
     ///                                                          ///
 
-    /// @notice The token implementation address
-    function tokenImpl() external view returns (address);
-
-    /// @notice The metadata renderer implementation address
-    function metadataImpl() external view returns (address);
-
-    /// @notice The auction house implementation address
-    function auctionImpl() external view returns (address);
-
-    /// @notice The treasury implementation address
-    function treasuryImpl() external view returns (address);
-
-    /// @notice The governor implementation address
-    function governorImpl() external view returns (address);
-
     /// @notice Deploys a DAO with custom token, auction, and governance settings
     /// @param founderParams The DAO founder(s)
-    /// @param tokenParams The ERC-721 token settings
-    /// @param auctionParams The auction settings
-    /// @param govParams The governance settings
+    /// @param implAddresses The implementation addresses
+    /// @param implData The encoded list of implementation data
     function deploy(
         FounderParams[] calldata founderParams,
-        TokenParams calldata tokenParams,
-        AuctionParams calldata auctionParams,
-        GovParams calldata govParams
+        address[] calldata implAddresses,
+        bytes[] calldata implData
     )
         external
         returns (

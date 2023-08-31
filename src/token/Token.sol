@@ -54,13 +54,13 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
 
     /// @notice Initializes a DAO's ERC-721 token contract
     /// @param _founders The DAO founders
-    /// @param _initStrings The encoded token and metadata initialization strings
+    /// @param _data The encoded token initialization parameters
     /// @param _metadataRenderer The token's metadata renderer
     /// @param _auction The token's auction house
     /// @param _initialOwner The initial owner of the token
     function initialize(
         IManager.FounderParams[] calldata _founders,
-        bytes calldata _initStrings,
+        bytes calldata _data,
         address _metadataRenderer,
         address _auction,
         address _initialOwner
@@ -80,10 +80,10 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         _addFounders(_founders);
 
         // Decode the token name and symbol
-        (string memory _name, string memory _symbol, , , , ) = abi.decode(_initStrings, (string, string, string, string, string, string));
+        IToken.TokenParams memory params = abi.decode(_data, (IToken.TokenParams));
 
         // Initialize the ERC-721 token
-        __ERC721_init(_name, _symbol);
+        __ERC721_init(params.name, params.symbol);
 
         // Store the metadata renderer and auction house
         settings.metadataRenderer = IBaseMetadata(_metadataRenderer);

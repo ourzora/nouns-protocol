@@ -18,7 +18,7 @@ import { VersionedContract } from "../VersionedContract.sol";
 /// @title Auction
 /// @author Rohan Kulkarni
 /// @notice A DAO's auction house
-/// @custom:repo github.com/ourzora/nouns-protocol 
+/// @custom:repo github.com/ourzora/nouns-protocol
 /// Modified from:
 /// - NounsAuctionHouse.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
 /// - Zora V3 ReserveAuctionCoreEth module commit 795aeca - licensed under the GPL-3.0 license.
@@ -58,14 +58,12 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @param _token The ERC-721 token address
     /// @param _founder The founder responsible for starting the first auction
     /// @param _treasury The treasury address where ETH will be sent
-    /// @param _duration The duration of each auction
-    /// @param _reservePrice The reserve price of each auction
+    /// @param _data The encoded auction settings
     function initialize(
         address _token,
         address _founder,
         address _treasury,
-        uint256 _duration,
-        uint256 _reservePrice
+        bytes calldata _data
     ) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) revert ONLY_MANAGER();
@@ -82,9 +80,11 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         // Store DAO's ERC-721 token
         token = Token(_token);
 
+        AuctionParams memory params = abi.decode(_data, (AuctionParams));
+
         // Store the auction house settings
-        settings.duration = SafeCast.toUint40(_duration);
-        settings.reservePrice = _reservePrice;
+        settings.duration = SafeCast.toUint40(params.duration);
+        settings.reservePrice = params.reservePrice;
         settings.treasury = _treasury;
         settings.timeBuffer = INITIAL_TIME_BUFFER;
         settings.minBidIncrement = INITIAL_MIN_BID_INCREMENT_PERCENT;

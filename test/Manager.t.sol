@@ -18,6 +18,16 @@ contract ManagerTest is NounsBuilderTest {
         mockImpl = new MockImpl();
     }
 
+    function setupAltMock() internal virtual {
+        setMockFounderParams();
+
+        setMockTokenParams();
+
+        setMockAuctionParams();
+
+        setMockGovParams();
+    }
+
     function test_GetAddresses() public {
         deployMock();
 
@@ -47,18 +57,6 @@ contract ManagerTest is NounsBuilderTest {
         assertEq(metadataRenderer.owner(), address(founder));
     }
 
-    function test_GetLatestVersions() public {
-        deployMock();
-
-        string memory version = manager.contractVersion();
-        IManager.DAOVersionInfo memory versionInfo = manager.getLatestVersions();
-        assertEq(versionInfo.token, version);
-        assertEq(versionInfo.metadata, version);
-        assertEq(versionInfo.governor, version);
-        assertEq(versionInfo.auction, version);
-        assertEq(versionInfo.treasury, version);
-    }
-
     function test_GetDAOVersions() public {
         deployMock();
 
@@ -84,13 +82,11 @@ contract ManagerTest is NounsBuilderTest {
         assertEq(auction.minBidIncrement(), 10);
     }
 
-
-
     function test_TreasuryInitialized() public {
         deployMock();
 
         assertEq(treasury.owner(), address(governor));
-        assertEq(treasury.delay(), govParams.timelockDelay);
+        assertEq(treasury.delay(), treasuryParams.timelockDelay);
     }
 
     function test_GovernorInitialized() public {
@@ -111,7 +107,7 @@ contract ManagerTest is NounsBuilderTest {
         foundersArr.push();
 
         vm.expectRevert(abi.encodeWithSignature("FOUNDER_REQUIRED()"));
-        deploy(foundersArr, tokenParams, auctionParams, govParams);
+        deploy(foundersArr, implAddresses, implData);
     }
 
     function test_RegisterUpgrade() public {
@@ -143,5 +139,72 @@ contract ManagerTest is NounsBuilderTest {
     function testRevert_OnlyOwnerCanRemoveUpgrade() public {
         vm.expectRevert(abi.encodeWithSignature("ONLY_OWNER()"));
         manager.removeUpgrade(address(token), address(mockImpl));
+    }
+
+    function test_RegisterImplementation() public {
+        address owner = manager.owner();
+
+        vm.prank(owner);
+        manager.registerImplementation(0, address(mockImpl));
+
+        assertTrue(manager.isRegisteredImplementation(0, address(mockImpl)));
+    }
+
+    function test_RemoveImplementation() public {
+        address owner = manager.owner();
+
+        vm.prank(owner);
+        manager.registerImplementation(0, address(mockImpl));
+
+        vm.prank(owner);
+        manager.removeImplementation(0, address(mockImpl));
+
+        assertFalse(manager.isRegisteredImplementation(0, address(mockImpl)));
+    }
+
+    function testRevert_OnlyOwnerCanRegisterImplementation() public {
+        vm.expectRevert(abi.encodeWithSignature("ONLY_OWNER()"));
+        manager.registerImplementation(0, address(mockImpl));
+    }
+
+    function testRevert_OnlyOwnerCanRemoveImplementation() public {
+        vm.expectRevert(abi.encodeWithSignature("ONLY_OWNER()"));
+        manager.removeImplementation(0, address(mockImpl));
+    }
+
+    function testRevert_InvalidImplementationType() public {
+        address owner = manager.owner();
+
+        vm.prank(owner);
+        vm.expectRevert(abi.encodeWithSignature("INVALID_IMPLEMENTATION_TYPE()"));
+        manager.registerImplementation(8, address(mockImpl));
+    }
+
+    function testRevert_InvalidImplementationAddresses() public {
+        address[] memory altImplAddresses = new address[](1);
+
+        setupAltMock();
+
+        vm.expectRevert(abi.encodeWithSignature("INVALID_IMPLEMENTATION_PARAMS()"));
+        deploy(foundersArr, altImplAddresses, implData);
+    }
+
+    function testRevert_InvalidImplementationData() public {
+        bytes[] memory altImplData = new bytes[](1);
+
+        setupAltMock();
+
+        vm.expectRevert(abi.encodeWithSignature("INVALID_IMPLEMENTATION_PARAMS()"));
+        deploy(foundersArr, implAddresses, altImplData);
+    }
+
+    function testRevert_UnregisteredImplementation() public {
+        address[] memory altImplAddresses = new address[](5);
+        altImplAddresses[0] = address(24);
+
+        setupAltMock();
+
+        vm.expectRevert(abi.encodeWithSignature("IMPLEMENTATION_NOT_REGISTERED()"));
+        deploy(foundersArr, altImplAddresses, implData);
     }
 }

@@ -17,12 +17,13 @@ import { MetadataRendererStorageV2 } from "./storage/MetadataRendererStorageV2.s
 import { IToken } from "../../token/IToken.sol";
 import { IPropertyIPFSMetadataRenderer } from "./interfaces/IPropertyIPFSMetadataRenderer.sol";
 import { IManager } from "../../manager/IManager.sol";
+import { IBaseMetadata } from "./interfaces/IBaseMetadata.sol";
 import { VersionedContract } from "../../VersionedContract.sol";
 
 /// @title Metadata Renderer
 /// @author Iain Nash & Rohan Kulkarni
 /// @notice A DAO's artwork generator and renderer
-/// @custom:repo github.com/ourzora/nouns-protocol 
+/// @custom:repo github.com/ourzora/nouns-protocol
 contract MetadataRenderer is
     IPropertyIPFSMetadataRenderer,
     VersionedContract,
@@ -65,26 +66,23 @@ contract MetadataRenderer is
     ///                                                          ///
 
     /// @notice Initializes a DAO's token metadata renderer
-    /// @param _initStrings The encoded token and metadata initialization strings
+    /// @param _data The encoded metadata initialization parameters
     /// @param _token The ERC-721 token address
-    function initialize(bytes calldata _initStrings, address _token) external initializer {
+    function initialize(bytes calldata _data, address _token) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) {
             revert ONLY_MANAGER();
         }
 
         // Decode the token initialization strings
-        (, , string memory _description, string memory _contractImage, string memory _projectURI, string memory _rendererBase) = abi.decode(
-            _initStrings,
-            (string, string, string, string, string, string)
-        );
+        IBaseMetadata.MetadataParams memory params = abi.decode(_data, (IBaseMetadata.MetadataParams));
 
         // Store the renderer settings
-        settings.projectURI = _projectURI;
-        settings.description = _description;
-        settings.contractImage = _contractImage;
-        settings.rendererBase = _rendererBase;
-        settings.projectURI = _projectURI;
+        settings.projectURI = params.projectURI;
+        settings.description = params.description;
+        settings.contractImage = params.contractImage;
+        settings.rendererBase = params.rendererBase;
+        settings.projectURI = params.projectURI;
         settings.token = _token;
     }
 

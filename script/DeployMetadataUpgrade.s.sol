@@ -54,7 +54,7 @@ contract DeployMetadataUpgrade is Script {
         // Deploy metadata renderer implementation
         address metadataRendererImpl = address(new MetadataRenderer(managerProxy));
 
-        address managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
+        address managerImpl = address(new Manager());
 
         console2.log("MR");
         console2.log(metadataRendererImpl);

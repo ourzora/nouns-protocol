@@ -15,7 +15,7 @@ import { VersionedContract } from "../../VersionedContract.sol";
 /// @title Treasury
 /// @author Rohan Kulkarni
 /// @notice A DAO's treasury and transaction executor
-/// @custom:repo github.com/ourzora/nouns-protocol 
+/// @custom:repo github.com/ourzora/nouns-protocol
 /// Modified from:
 /// - OpenZeppelin Contracts v4.7.3 (governance/TimelockController.sol)
 /// - NounsDAOExecutor.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
@@ -49,8 +49,8 @@ contract Treasury is ITreasury, VersionedContract, UUPS, Ownable, ProposalHasher
 
     /// @notice Initializes an instance of a DAO's treasury
     /// @param _governor The DAO's governor address
-    /// @param _delay The time delay to execute a queued transaction
-    function initialize(address _governor, uint256 _delay) external initializer {
+    /// @param _data The encoded treasury parameters
+    function initialize(address _governor, bytes calldata _data) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) revert ONLY_MANAGER();
 
@@ -60,13 +60,15 @@ contract Treasury is ITreasury, VersionedContract, UUPS, Ownable, ProposalHasher
         // Grant ownership to the governor
         __Ownable_init(_governor);
 
+        TreasuryParams memory params = abi.decode(_data, (TreasuryParams));
+
         // Store the time delay
-        settings.delay = SafeCast.toUint128(_delay);
+        settings.delay = SafeCast.toUint128(params.timelockDelay);
 
         // Set the default grace period
         settings.gracePeriod = INITIAL_GRACE_PERIOD;
 
-        emit DelayUpdated(0, _delay);
+        emit DelayUpdated(0, params.timelockDelay);
     }
 
     ///                                                          ///

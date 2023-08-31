@@ -114,25 +114,35 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
     error ONLY_MANAGER();
 
     ///                                                          ///
+    ///                          STRUCTS                         ///
+    ///                                                          ///
+
+    /// @notice The governance parameters
+    /// @param votingDelay The time delay to vote on a created proposal
+    /// @param votingPeriod The time period to vote on a proposal
+    /// @param proposalThresholdBps The basis points of the token supply required to create a proposal
+    /// @param quorumThresholdBps The basis points of the token supply required to reach quorum
+    /// @param vetoer The address authorized to veto proposals (address(0) if none desired)
+    struct GovParams {
+        uint256 votingDelay;
+        uint256 votingPeriod;
+        uint256 proposalThresholdBps;
+        uint256 quorumThresholdBps;
+        address vetoer;
+    }
+
+    ///                                                          ///
     ///                          FUNCTIONS                       ///
     ///                                                          ///
 
     /// @notice Initializes a DAO's governor
     /// @param treasury The DAO's treasury address
     /// @param token The DAO's governance token address
-    /// @param vetoer The address eligible to veto proposals
-    /// @param votingDelay The voting delay
-    /// @param votingPeriod The voting period
-    /// @param proposalThresholdBps The proposal threshold basis points
-    /// @param quorumThresholdBps The quorum threshold basis points
+    /// @param data The encoded governance parameters
     function initialize(
         address treasury,
         address token,
-        address vetoer,
-        uint256 votingDelay,
-        uint256 votingPeriod,
-        uint256 proposalThresholdBps,
-        uint256 quorumThresholdBps
+        bytes calldata data
     ) external;
 
     /// @notice Creates a proposal

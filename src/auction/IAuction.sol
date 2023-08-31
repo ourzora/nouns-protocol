@@ -90,6 +90,15 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     error AUCTION_CREATE_FAILED_TO_LAUNCH();
 
     ///                                                          ///
+    ///                          STRUCTS                         ///
+    ///                                                          ///
+
+    struct AuctionParams {
+        uint256 duration;
+        uint256 reservePrice;
+    }
+
+    ///                                                          ///
     ///                          FUNCTIONS                       ///
     ///                                                          ///
 
@@ -97,14 +106,12 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @param token The ERC-721 token address
     /// @param founder The founder responsible for starting the first auction
     /// @param treasury The treasury address where ETH will be sent
-    /// @param duration The duration of each auction
-    /// @param reservePrice The reserve price of each auction
+    /// @param data The encoded auction initialization data
     function initialize(
         address token,
         address founder,
         address treasury,
-        uint256 duration,
-        uint256 reservePrice
+        bytes calldata data
     ) external;
 
     /// @notice Creates a bid for the current token

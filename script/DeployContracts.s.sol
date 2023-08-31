@@ -38,7 +38,7 @@ contract DeployContracts is Script {
         vm.startBroadcast(deployerAddress);
 
         // Deploy root manager implementation + proxy
-        address managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0)));
+        address managerImpl0 = address(new Manager());
 
         Manager manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", owner))));
 
@@ -57,7 +57,7 @@ contract DeployContracts is Script {
         // Deploy governor implementation
         address governorImpl = address(new Governor(address(manager)));
 
-        address managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
+        address managerImpl = address(new Manager());
 
         // vm.prank(owner);
         // manager.upgradeTo(managerImpl);

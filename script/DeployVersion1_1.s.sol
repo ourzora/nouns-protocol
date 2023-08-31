@@ -60,9 +60,7 @@ contract DeployVersion1_1 is Script {
         // Deploy metadata upgrade implementation
         address metadataUpgradeImpl = address(new MetadataRenderer(managerProxy));
 
-        address managerImpl = address(
-            new Manager(tokenUpgradeImpl, metadataUpgradeImpl, auctionUpgradeImpl, treasuryUpgradeImpl, governorUpgradeImpl)
-        );
+        address managerImpl = address(new Manager());
 
         vm.stopBroadcast();
 
