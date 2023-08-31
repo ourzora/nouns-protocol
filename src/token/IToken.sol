@@ -58,6 +58,9 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
     /// @dev Reverts if the caller was not the contract manager
     error ONLY_MANAGER();
 
+    /// @dev Reverts if the token is not reserved
+    error TOKEN_NOT_RESERVED();
+
     ///                                                          ///
     ///                           STRUCTS                        ///
     ///                                                          ///
@@ -65,6 +68,7 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
     struct TokenParams {
         string name;
         string symbol;
+        uint256 reservedUntilTokenId;
     }
 
     ///                                                          ///
