@@ -10,8 +10,6 @@ import { MockImpl } from "./utils/mocks/MockImpl.sol";
 contract ManagerTest is NounsBuilderTest {
     MockImpl internal mockImpl;
 
-    address internal builderDAO;
-
     function setUp() public virtual override {
         super.setUp();
 

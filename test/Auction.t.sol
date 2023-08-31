@@ -25,6 +25,22 @@ contract AuctionTest is NounsBuilderTest {
         mockImpl = new MockImpl();
     }
 
+    function deployAltMock(uint256 founderRewardPercent) internal virtual {
+        setMockFounderParams();
+
+        setMockTokenParams();
+
+        setAuctionParams(0.01 ether, 10 minutes, founderRewardPercent);
+
+        setMockGovParams();
+
+        setImplementationAddresses();
+
+        deploy(foundersArr, implAddresses, implData);
+
+        setMockMetadata();
+    }
+
     function test_AuctionHouseInitialized() public {
         deployMock();
 
@@ -585,5 +601,28 @@ contract AuctionTest is NounsBuilderTest {
         vm.prank(address(treasury));
         vm.expectRevert(abi.encodeWithSignature("UNPAUSED()"));
         auction.upgradeTo(address(mockImpl));
+    }
+
+    function test_FounderRewardSet() public {
+        // deploy with 5% founder fee
+        deployAltMock(500);
+
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(bidder1);
+        auction.createBid{ value: 0.420 ether }(2);
+
+        vm.prank(bidder2);
+        auction.createBid{ value: 1 ether }(2);
+
+        vm.warp(10 minutes + 1 seconds);
+
+        auction.settleCurrentAndCreateNewAuction();
+
+        assertEq(token.ownerOf(2), bidder2);
+        assertEq(token.getVotes(bidder2), 1);
+
+        assertEq(address(treasury).balance, 0.95 ether);
     }
 }

@@ -13,15 +13,24 @@ import { ITreasury, Treasury } from "../src/governance/treasury/Treasury.sol";
 import { MetadataRenderer } from "../src/token/metadata/MetadataRenderer.sol";
 import { MetadataRendererTypesV1 } from "../src/token/metadata/types/MetadataRendererTypesV1.sol";
 import { ERC1967Proxy } from "../src/lib/proxy/ERC1967Proxy.sol";
+import { ProtocolRewards } from "../src/rewards/ProtocolRewards.sol";
 
 contract DeployContracts is Script {
     using Strings for uint256;
+
+    string configFile;
+
+    function _getKey(string memory key) internal returns (address result) {
+        (result) = abi.decode(vm.parseJson(configFile, key), (address));
+    }
 
     function run() public {
         uint256 chainID = vm.envUint("CHAIN_ID");
         uint256 key = vm.envUint("PRIVATE_KEY");
         address weth = vm.envAddress("WETH_ADDRESS");
         address owner = vm.envAddress("MANAGER_OWNER");
+
+        configFile = vm.readFile(string.concat("./addresses/", Strings.toString(chainID), ".json"));
 
         address deployerAddress = vm.addr(key);
 
@@ -42,6 +51,8 @@ contract DeployContracts is Script {
 
         Manager manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", owner))));
 
+        ProtocolRewards rewards = new ProtocolRewards(address(manager), _getKey("BuilderDAO"));
+
         // Deploy token implementation
         address tokenImpl = address(new Token(address(manager)));
 
@@ -49,7 +60,7 @@ contract DeployContracts is Script {
         address metadataRendererImpl = address(new MetadataRenderer(address(manager)));
 
         // Deploy auction house implementation
-        address auctionImpl = address(new Auction(address(manager), weth));
+        address auctionImpl = address(new Auction(address(manager), address(rewards), weth));
 
         // Deploy treasury implementation
         address treasuryImpl = address(new Treasury(address(manager)));

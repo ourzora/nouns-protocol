@@ -14,6 +14,7 @@ import { ITreasury, Treasury } from "../src/governance/treasury/Treasury.sol";
 import { MetadataRenderer } from "../src/token/metadata/MetadataRenderer.sol";
 import { MetadataRendererTypesV1 } from "../src/token/metadata/types/MetadataRendererTypesV1.sol";
 import { ERC1967Proxy } from "../src/lib/proxy/ERC1967Proxy.sol";
+import { ProtocolRewards } from "../src/rewards/ProtocolRewards.sol";
 
 contract DeployVersion1_1 is Script {
     using Strings for uint256;
@@ -34,6 +35,7 @@ contract DeployVersion1_1 is Script {
 
         address managerProxy = _getKey("Manager");
         address weth = _getKey("WETH");
+        address builderRewardsRecipent = _getKey("BuilderDAO");
 
         console2.log("~~~~~~~~~~ DEPLOYER ADDRESS ~~~~~~~~~~~");
         console2.logAddress(deployerAddress);
@@ -49,8 +51,10 @@ contract DeployVersion1_1 is Script {
         // Get root manager implementation + proxy
         Manager manager = Manager(managerProxy);
 
+        ProtocolRewards rewards = new ProtocolRewards(address(manager), builderRewardsRecipent);
+
         // Deploy auction upgrade implementation
-        address auctionUpgradeImpl = address(new Auction(managerProxy, weth));
+        address auctionUpgradeImpl = address(new Auction(managerProxy, address(rewards), weth));
         // Deploy governor upgrade implementation
         address governorUpgradeImpl = address(new Governor(managerProxy));
         // Deploy treasury upgrade implementation

@@ -15,6 +15,7 @@ import { ERC1967Proxy } from "../../src/lib/proxy/ERC1967Proxy.sol";
 import { MockERC721 } from "../utils/mocks/MockERC721.sol";
 import { MockERC1155 } from "../utils/mocks/MockERC1155.sol";
 import { WETH } from ".././utils/mocks/WETH.sol";
+import { ProtocolRewards } from "../../src/rewards/ProtocolRewards.sol";
 
 contract NounsBuilderTest is Test {
     ///                                                          ///
@@ -22,6 +23,7 @@ contract NounsBuilderTest is Test {
     ///                                                          ///
 
     Manager internal manager;
+    ProtocolRewards internal rewards;
 
     address internal managerImpl0;
     address internal managerImpl;
@@ -33,6 +35,7 @@ contract NounsBuilderTest is Test {
 
     address internal nounsDAO;
     address internal zoraDAO;
+    address internal builderDAO;
     address internal founder;
     address internal founder2;
     address internal weth;
@@ -48,9 +51,10 @@ contract NounsBuilderTest is Test {
 
         nounsDAO = vm.addr(0xA11CE);
         zoraDAO = vm.addr(0xB0B);
+        builderDAO = vm.addr(0xCAB);
 
-        founder = vm.addr(0xCAB);
-        founder2 = vm.addr(0xDAD);
+        founder = vm.addr(0xDAD);
+        founder2 = vm.addr(0xE1AD);
 
         vm.label(zoraDAO, "ZORA_DAO");
         vm.label(nounsDAO, "NOUNS_DAO");
@@ -61,9 +65,11 @@ contract NounsBuilderTest is Test {
         managerImpl0 = address(new Manager());
         manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", zoraDAO))));
 
+        rewards = new ProtocolRewards(address(manager), builderDAO);
+
         tokenImpl = address(new Token(address(manager)));
         metadataRendererImpl = address(new MetadataRenderer(address(manager)));
-        auctionImpl = address(new Auction(address(manager), weth));
+        auctionImpl = address(new Auction(address(manager), address(rewards), weth));
         treasuryImpl = address(new Treasury(address(manager)));
         governorImpl = address(new Governor(address(manager)));
 
@@ -177,12 +183,16 @@ contract NounsBuilderTest is Test {
     }
 
     function setMockAuctionParams() internal virtual {
-        setAuctionParams(0.01 ether, 10 minutes);
+        setAuctionParams(0.01 ether, 10 minutes, 0);
     }
 
-    function setAuctionParams(uint256 _reservePrice, uint256 _duration) internal virtual {
+    function setAuctionParams(
+        uint256 _reservePrice,
+        uint256 _duration,
+        uint256 _founderRewardBPS
+    ) internal virtual {
         implData.push();
-        auctionParams = IAuction.AuctionParams({ reservePrice: _reservePrice, duration: _duration });
+        auctionParams = IAuction.AuctionParams({ reservePrice: _reservePrice, duration: _duration, founderRewardBPS: _founderRewardBPS });
         implData[manager.IMPLEMENTATION_TYPE_AUCTION()] = abi.encode(auctionParams);
     }
 

@@ -96,6 +96,7 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     struct AuctionParams {
         uint256 duration;
         uint256 reservePrice;
+        uint256 founderRewardBPS;
     }
 
     ///                                                          ///
