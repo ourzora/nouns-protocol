@@ -8,21 +8,23 @@ import { Pausable } from "../lib/utils/Pausable.sol";
 import { SafeCast } from "../lib/utils/SafeCast.sol";
 
 import { AuctionStorageV1 } from "./storage/AuctionStorageV1.sol";
+import { AuctionStorageV2 } from "./storage/AuctionStorageV2.sol";
 import { Token } from "../token/Token.sol";
 import { IManager } from "../manager/IManager.sol";
 import { IAuction } from "./IAuction.sol";
 import { IWETH } from "../lib/interfaces/IWETH.sol";
+import { IProtocolRewards } from "../rewards/interfaces/IProtocolRewards.sol";
 
 import { VersionedContract } from "../VersionedContract.sol";
 
 /// @title Auction
-/// @author Rohan Kulkarni
+/// @author Rohan Kulkarni & Neokry
 /// @notice A DAO's auction house
 /// @custom:repo github.com/ourzora/nouns-protocol
 /// Modified from:
 /// - NounsAuctionHouse.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
 /// - Zora V3 ReserveAuctionCoreEth module commit 795aeca - licensed under the GPL-3.0 license.
-contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionStorageV1 {
+contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionStorageV1, AuctionStorageV2 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -39,15 +41,23 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @notice The contract upgrade manager
     IManager private immutable manager;
 
+    /// @notice The rewards manager
+    IProtocolRewards private immutable rewards;
+
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
     /// @param _manager The contract upgrade manager address
     /// @param _weth The address of WETH
-    constructor(address _manager, address _weth) payable initializer {
+    constructor(
+        address _manager,
+        address _rewards,
+        address _weth
+    ) payable initializer {
         manager = IManager(_manager);
         WETH = _weth;
+        rewards = IProtocolRewards(_rewards);
     }
 
     ///                                                          ///
@@ -88,6 +98,10 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         settings.treasury = _treasury;
         settings.timeBuffer = INITIAL_TIME_BUFFER;
         settings.minBidIncrement = INITIAL_MIN_BID_INCREMENT_PERCENT;
+
+        // Store the founder rewards recipient
+        founderRewardsRecipent = _founder;
+        founderRewardBPS = params.founderRewardBPS;
     }
 
     ///                                                          ///
@@ -96,7 +110,21 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
 
     /// @notice Creates a bid for the current token
     /// @param _tokenId The ERC-721 token id
+    function createBidWithReferral(uint256 _tokenId, address _referral) external payable nonReentrant {
+        currentBidReferral = _referral;
+        _createBid(_tokenId);
+    }
+
+    /// @notice Creates a bid for the current token
+    /// @param _tokenId The ERC-721 token id
     function createBid(uint256 _tokenId) external payable nonReentrant {
+        currentBidReferral = address(0);
+        _createBid(_tokenId);
+    }
+
+    /// @notice Creates a bid for the current token
+    /// @param _tokenId The ERC-721 token id
+    function _createBid(uint256 _tokenId) private {
         // Ensure the bid is for the current token
         if (auction.tokenId != _tokenId) {
             revert INVALID_TOKEN_ID();
@@ -203,8 +231,25 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
             // Cache the amount of the highest bid
             uint256 highestBid = _auction.highestBid;
 
-            // If the highest bid included ETH: Transfer it to the DAO treasury
-            if (highestBid != 0) _handleOutgoingTransfer(settings.treasury, highestBid);
+            // If the highest bid included ETH: Pay rewards and transfer remaining amount to the DAO treasury
+            if (highestBid != 0) {
+                // Calculate rewards
+                IProtocolRewards.RewardSplits memory split = rewards.computeTotalRewards(highestBid, founderRewardBPS);
+
+                if (split.totalRewards != 0) {
+                    // Deposit rewards
+                    rewards.depositRewards{ value: split.totalRewards }(
+                        founderRewardsRecipent,
+                        split.founderReward,
+                        currentBidReferral,
+                        split.refferalReward,
+                        split.builderReward
+                    );
+                }
+
+                // Deposit remaining amount to treasury
+                _handleOutgoingTransfer(settings.treasury, highestBid - split.totalRewards);
+            }
 
             // Transfer the token to the highest bidder
             token.transferFrom(address(this), _auction.highestBidder, _auction.tokenId);
