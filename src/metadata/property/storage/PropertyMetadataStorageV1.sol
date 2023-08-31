@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import { MetadataRendererTypesV1 } from "../types/MetadataRendererTypesV1.sol";
+import { PropertyMetadataTypesV1 } from "../types/PropertyMetadataTypesV1.sol";
 
-/// @title MetadataRendererTypesV1
+/// @title PropertyMetadataTypesV1
 /// @author Iain Nash & Rohan Kulkarni
 /// @notice The Metadata Renderer storage contract
-contract MetadataRendererStorageV1 is MetadataRendererTypesV1 {
+contract PropertyMetadataStorageV1 is PropertyMetadataTypesV1 {
     /// @notice The metadata renderer settings
     Settings public settings;
 

@@ -2,13 +2,13 @@
 pragma solidity 0.8.16;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
-import { MetadataRendererTypesV1 } from "../src/token/metadata/types/MetadataRendererTypesV1.sol";
-import { MetadataRendererTypesV2 } from "../src/token/metadata/types/MetadataRendererTypesV2.sol";
+import { PropertyMetadataTypesV1 } from "../src/metadata/property/types/PropertyMetadataTypesV1.sol";
+import { PropertyMetadataTypesV2 } from "../src/metadata/property/types/PropertyMetadataTypesV2.sol";
 
 import { Base64URIDecoder } from "./utils/Base64URIDecoder.sol";
 import "forge-std/console2.sol";
 
-contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
+contract PropertyMetadataTest is NounsBuilderTest, PropertyMetadataTypesV1 {
     function setUp() public virtual override {
         super.setUp();
 
@@ -94,7 +94,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
     function testRevert_CannotExceedMaxProperties() public {
         string[] memory names = new string[](16);
 
-        MetadataRendererTypesV1.ItemParam[] memory items = new MetadataRendererTypesV1.ItemParam[](16);
+        PropertyMetadataTypesV1.ItemParam[] memory items = new PropertyMetadataTypesV1.ItemParam[](16);
 
         for (uint256 j; j < 16; j++) {
             names[j] = "aaa"; // Add random properties
@@ -104,7 +104,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
             items[j].isNewProperty = true;
         }
 
-        MetadataRendererTypesV1.IPFSGroup memory group = MetadataRendererTypesV1.IPFSGroup("aaa", "aaa");
+        PropertyMetadataTypesV1.IPFSGroup memory group = PropertyMetadataTypesV1.IPFSGroup("aaa", "aaa");
 
         vm.prank(founder);
         vm.expectRevert(abi.encodeWithSignature("TOO_MANY_PROPERTIES()"));
@@ -187,9 +187,9 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         vm.prank(address(auction));
         token.mint();
 
-        MetadataRendererTypesV2.AdditionalTokenProperty[] memory additionalTokenProperties = new MetadataRendererTypesV2.AdditionalTokenProperty[](2);
-        additionalTokenProperties[0] = MetadataRendererTypesV2.AdditionalTokenProperty({ key: "testing", value: "HELLO", quote: true });
-        additionalTokenProperties[1] = MetadataRendererTypesV2.AdditionalTokenProperty({
+        PropertyMetadataTypesV2.AdditionalTokenProperty[] memory additionalTokenProperties = new PropertyMetadataTypesV2.AdditionalTokenProperty[](2);
+        additionalTokenProperties[0] = PropertyMetadataTypesV2.AdditionalTokenProperty({ key: "testing", value: "HELLO", quote: true });
+        additionalTokenProperties[1] = PropertyMetadataTypesV2.AdditionalTokenProperty({
             key: "participationAgreement",
             value: "This is a JSON quoted participation agreement.",
             quote: true
@@ -238,9 +238,9 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         vm.prank(address(auction));
         token.mint();
 
-        MetadataRendererTypesV2.AdditionalTokenProperty[] memory additionalTokenProperties = new MetadataRendererTypesV2.AdditionalTokenProperty[](2);
-        additionalTokenProperties[0] = MetadataRendererTypesV2.AdditionalTokenProperty({ key: "testing", value: "HELLO", quote: true });
-        additionalTokenProperties[1] = MetadataRendererTypesV2.AdditionalTokenProperty({
+        PropertyMetadataTypesV2.AdditionalTokenProperty[] memory additionalTokenProperties = new PropertyMetadataTypesV2.AdditionalTokenProperty[](2);
+        additionalTokenProperties[0] = PropertyMetadataTypesV2.AdditionalTokenProperty({ key: "testing", value: "HELLO", quote: true });
+        additionalTokenProperties[1] = PropertyMetadataTypesV2.AdditionalTokenProperty({
             key: "participationAgreement",
             value: "This is a JSON quoted participation agreement.",
             quote: true
@@ -250,7 +250,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
 
         string memory withAdditionalTokenProperties = token.tokenURI(0);
 
-        MetadataRendererTypesV2.AdditionalTokenProperty[] memory clearedTokenProperties = new MetadataRendererTypesV2.AdditionalTokenProperty[](0);
+        PropertyMetadataTypesV2.AdditionalTokenProperty[] memory clearedTokenProperties = new PropertyMetadataTypesV2.AdditionalTokenProperty[](0);
         vm.prank(founder);
         metadataRenderer.setAdditionalTokenProperties(clearedTokenProperties);
 
@@ -282,9 +282,9 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
         vm.prank(address(auction));
         token.mint();
 
-        MetadataRendererTypesV2.AdditionalTokenProperty[] memory additionalTokenProperties = new MetadataRendererTypesV2.AdditionalTokenProperty[](2);
-        additionalTokenProperties[0] = MetadataRendererTypesV2.AdditionalTokenProperty({ key: "testing", value: "HELLO", quote: true });
-        additionalTokenProperties[1] = MetadataRendererTypesV2.AdditionalTokenProperty({
+        PropertyMetadataTypesV2.AdditionalTokenProperty[] memory additionalTokenProperties = new PropertyMetadataTypesV2.AdditionalTokenProperty[](2);
+        additionalTokenProperties[0] = PropertyMetadataTypesV2.AdditionalTokenProperty({ key: "testing", value: "HELLO", quote: true });
+        additionalTokenProperties[1] = PropertyMetadataTypesV2.AdditionalTokenProperty({
             key: "participationAgreement",
             value: "This is a JSON quoted participation agreement.",
             quote: true
@@ -294,7 +294,7 @@ contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
 
         string memory withAdditionalTokenProperties = token.tokenURI(0);
 
-        MetadataRendererTypesV2.AdditionalTokenProperty[] memory clearedTokenProperties = new MetadataRendererTypesV2.AdditionalTokenProperty[](0);
+        PropertyMetadataTypesV2.AdditionalTokenProperty[] memory clearedTokenProperties = new PropertyMetadataTypesV2.AdditionalTokenProperty[](0);
         vm.prank(founder);
         metadataRenderer.setAdditionalTokenProperties(clearedTokenProperties);
 

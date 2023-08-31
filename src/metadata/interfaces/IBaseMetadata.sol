@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import { IUUPS } from "../../../lib/interfaces/IUUPS.sol";
+import { IUUPS } from "../../lib/interfaces/IUUPS.sol";
 
 /// @title IBaseMetadata
 /// @author Rohan Kulkarni
@@ -13,17 +13,6 @@ interface IBaseMetadata is IUUPS {
 
     /// @dev Reverts if the caller was not the contract manager
     error ONLY_MANAGER();
-
-    ///                                                          ///
-    ///                           STRUCTS                        ///
-    ///                                                          ///
-
-    struct MetadataParams {
-        string description;
-        string contractImage;
-        string projectURI;
-        string rendererBase;
-    }
 
     ///                                                          ///
     ///                           FUNCTIONS                      ///

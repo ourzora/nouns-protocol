@@ -205,4 +205,12 @@ contract ManagerTest is NounsBuilderTest {
         vm.expectRevert(abi.encodeWithSignature("IMPLEMENTATION_NOT_REGISTERED()"));
         deploy(foundersArr, altImplAddresses, implData);
     }
+
+    function test_SetNewRenderer() public {
+        deployMock();
+
+        vm.startPrank(founder);
+        manager.setMetadataRenderer(address(token), metadataRendererImpl, implData[manager.IMPLEMENTATION_TYPE_METADATA()]);
+        vm.stopPrank();
+    }
 }

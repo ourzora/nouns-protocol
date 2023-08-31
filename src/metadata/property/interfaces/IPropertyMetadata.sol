@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import { MetadataRendererTypesV1 } from "../types/MetadataRendererTypesV1.sol";
-import { MetadataRendererTypesV2 } from "../types/MetadataRendererTypesV2.sol";
-import { IBaseMetadata } from "./IBaseMetadata.sol";
+import { PropertyMetadataTypesV1 } from "../types/PropertyMetadataTypesV1.sol";
+import { PropertyMetadataTypesV2 } from "../types/PropertyMetadataTypesV2.sol";
+import { IBaseMetadata } from "../../interfaces/IBaseMetadata.sol";
 
-/// @title IPropertyIPFSMetadataRenderer
+/// @title IPropertyMetadata
 /// @author Iain Nash & Rohan Kulkarni
 /// @notice The external Metadata Renderer events, errors, and functions
-interface IPropertyIPFSMetadataRenderer is IBaseMetadata, MetadataRendererTypesV1, MetadataRendererTypesV2 {
+interface IPropertyMetadata is IBaseMetadata, PropertyMetadataTypesV1, PropertyMetadataTypesV2 {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///
@@ -49,6 +49,19 @@ interface IPropertyIPFSMetadataRenderer is IBaseMetadata, MetadataRendererTypesV
 
     ///
     error TOO_MANY_PROPERTIES();
+
+    error TOKEN_ALREADY_GENERATED(uint256 tokenId);
+
+    ///                                                          ///
+    ///                           STRUCTS                        ///
+    ///                                                          ///
+
+    struct PropertyMetadataParams {
+        string description;
+        string contractImage;
+        string projectURI;
+        string rendererBase;
+    }
 
     ///                                                          ///
     ///                           FUNCTIONS                      ///
