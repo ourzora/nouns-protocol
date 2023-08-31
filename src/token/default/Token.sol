@@ -1,19 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import { UUPS } from "../lib/proxy/UUPS.sol";
-import { ReentrancyGuard } from "../lib/utils/ReentrancyGuard.sol";
-import { ERC721Votes } from "../lib/token/ERC721Votes.sol";
-import { ERC721 } from "../lib/token/ERC721.sol";
-import { Ownable } from "../lib/utils/Ownable.sol";
+import { UUPS } from "../../lib/proxy/UUPS.sol";
+import { ReentrancyGuard } from "../../lib/utils/ReentrancyGuard.sol";
+import { ERC721Votes } from "../../lib/token/ERC721Votes.sol";
+import { ERC721 } from "../../lib/token/ERC721.sol";
+import { Ownable } from "../../lib/utils/Ownable.sol";
 import { TokenStorageV1 } from "./storage/TokenStorageV1.sol";
 import { TokenStorageV2 } from "./storage/TokenStorageV2.sol";
 import { TokenStorageV3 } from "./storage/TokenStorageV3.sol";
-import { IBaseMetadata } from "./metadata/interfaces/IBaseMetadata.sol";
-import { IManager } from "../manager/IManager.sol";
-import { IAuction } from "../auction/IAuction.sol";
+import { IBaseMetadata } from "../metadata/interfaces/IBaseMetadata.sol";
+import { IManager } from "../../manager/IManager.sol";
+import { IAuction } from "../../auction/IAuction.sol";
 import { IToken } from "./IToken.sol";
-import { VersionedContract } from "../VersionedContract.sol";
+import { IBaseToken } from "../interfaces/IBaseToken.sol";
+import { VersionedContract } from "../../VersionedContract.sol";
 
 /// @title Token
 /// @author Rohan Kulkarni

@@ -2,29 +2,21 @@
 pragma solidity 0.8.16;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
-import { MockERC1271 } from "./utils/mocks/MockERC1271.sol";
+import { PartialSoulboundToken } from "../src/token/partial-soulbound/PartialSoulboundToken.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
 import { IToken, Token } from "../src/token/default/Token.sol";
 import { TokenTypesV1 } from "../src/token/default/types/TokenTypesV1.sol";
 import { TokenTypesV2 } from "../src/token/default/types/TokenTypesV2.sol";
 
-contract TokenTest is NounsBuilderTest, TokenTypesV1 {
+contract PartialSoulboundTokenTest is NounsBuilderTest, TokenTypesV1 {
     mapping(address => uint256) public mintedTokens;
 
-    address internal delegator;
-    uint256 internal delegatorPK;
+    PartialSoulboundToken soulboundToken;
+    address soulboundTokenImpl;
 
     function setUp() public virtual override {
         super.setUp();
-        createDelegator();
-    }
-
-    function createDelegator() internal {
-        delegatorPK = 0xABE;
-        delegator = vm.addr(delegatorPK);
-
-        vm.deal(delegator, 100 ether);
     }
 
     function deployAltMock(uint256 _reservedUntilTokenId) internal virtual {
@@ -38,13 +30,23 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
 
         setImplementationAddresses();
 
+        soulboundTokenImpl = address(new PartialSoulboundToken(address(manager)));
+
+        vm.startPrank(zoraDAO);
+        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TOKEN(), soulboundTokenImpl);
+        vm.stopPrank();
+
+        implAddresses[manager.IMPLEMENTATION_TYPE_TOKEN()] = soulboundTokenImpl;
+
         deploy(foundersArr, implAddresses, implData);
+
+        soulboundToken = PartialSoulboundToken(address(token));
 
         setMockMetadata();
     }
 
     function test_MockTokenInit() public {
-        deployMock();
+        deployAltMock(0);
 
         assertEq(token.name(), "Mock Token");
         assertEq(token.symbol(), "MOCK");
@@ -114,7 +116,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function test_MockFounders() public {
-        deployMock();
+        deployAltMock(0);
 
         assertEq(token.totalFounders(), 2);
         assertEq(token.totalFounderOwnership(), 15);
@@ -136,7 +138,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function test_MockAuctionUnpause() public {
-        deployMock();
+        deployAltMock(0);
 
         vm.prank(founder);
         auction.unpause();
@@ -271,7 +273,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     // Test that when tokens are minted / burned over time,
     // no two tokens end up with the same ID
     function test_TokenIdCollisionAvoidance(uint8 mintCount) public {
-        deployMock();
+        deployAltMock(0);
 
         // avoid overflows specific to this test, shouldn't occur in practice
         vm.assume(mintCount < 100);
@@ -343,7 +345,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function test_OverwriteCheckpointWithSameTimestamp() public {
-        deployMock();
+        deployAltMock(0);
 
         vm.prank(founder);
         auction.unpause();
@@ -394,7 +396,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function test_AuctionCanMintAfterDeploy() public {
-        deployMock();
+        deployAltMock(0);
 
         vm.prank(founder);
         auction.unpause();
@@ -408,7 +410,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function test_MinterCanMintBatch() public {
-        deployMock();
+        deployAltMock(0);
 
         vm.prank(founder);
         auction.unpause();
@@ -422,7 +424,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function test_MintBatch(uint8 amount, address recipient) public {
-        deployMock();
+        deployAltMock(0);
 
         vm.assume(amount > 0 && amount < 100 && recipient != address(0) && recipient != address(auction));
         vm.prank(founder);
@@ -438,7 +440,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
 
     function testRevert_OnlyMinterCanMint(address newMinter, address nonMinter) public {
         vm.assume(newMinter != nonMinter && newMinter != founder && newMinter != address(0) && newMinter != address(auction));
-        deployMock();
+        deployAltMock(0);
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -462,7 +464,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         vm.assume(
             newMinter != nonMinter && newMinter != founder && newMinter != address(0) && newMinter != address(auction) && recipient != address(0)
         );
-        deployMock();
+        deployAltMock(0);
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -493,7 +495,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
                 amount > 0 &&
                 amount < 100
         );
-        deployMock();
+        deployAltMock(0);
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -510,7 +512,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function testRevert_OnlyDAOCanUpgrade() public {
-        deployMock();
+        deployAltMock(0);
 
         vm.prank(founder);
         auction.unpause();
@@ -520,7 +522,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function testRevert_OnlyDAOCanUpgradeToAndCall() public {
-        deployMock();
+        deployAltMock(0);
 
         vm.prank(founder);
         auction.unpause();
@@ -601,7 +603,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function testRevert_OnlyOwnerUpdateFounders() public {
-        deployMock();
+        deployAltMock(0);
 
         address f1Wallet = address(0x1);
         address f2Wallet = address(0x2);
@@ -632,7 +634,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function test_UpdateFoundersZeroOwnership() public {
-        deployMock();
+        deployAltMock(0);
 
         IManager.FounderParams[] memory newFoundersArr = new IManager.FounderParams[](2);
         newFoundersArr[0] = IManager.FounderParams({
@@ -657,7 +659,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         uint256 f2Percentage,
         uint256 f3Percentage
     ) public {
-        deployMock();
+        deployAltMock(0);
 
         address f1Wallet = address(0x1);
         address f2Wallet = address(0x2);
@@ -719,7 +721,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
             m1 != founder && m1 != address(0) && m1 != address(auction) && m2 != founder && m2 != address(0) && m2 != address(auction) && m1 != m2
         );
 
-        deployMock();
+        deployAltMock(0);
 
         TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: m1, allowed: true });
         TokenTypesV2.MinterParams memory p2 = TokenTypesV2.MinterParams({ minter: m2, allowed: true });
@@ -745,7 +747,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     function test_isMinterReturnsMinterStatus(address _minter) public {
         vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
 
-        deployMock();
+        deployAltMock(0);
 
         TokenTypesV2.MinterParams memory p = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -766,7 +768,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
             m1 != founder && m1 != address(0) && m1 != address(auction) && m2 != founder && m2 != address(0) && m2 != address(auction) && m1 != m2
         );
 
-        deployMock();
+        deployAltMock(0);
 
         // authorize two minters
         TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: m1, allowed: true });
@@ -803,7 +805,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function testRevert_OnlyOwnerUpdateMinters() public {
-        deployMock();
+        deployAltMock(0);
 
         TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: address(0x1), allowed: true });
         TokenTypesV2.MinterParams memory p2 = TokenTypesV2.MinterParams({ minter: address(0x2), allowed: true });
@@ -818,7 +820,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     function test_MinterCanBurnTheirOwnToken(address newMinter) public {
         vm.assume(newMinter != founder && newMinter != address(0) && newMinter != address(auction));
 
-        deployMock();
+        deployAltMock(0);
 
         TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -932,166 +934,99 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         }
     }
 
-    function test_BatchDelegateWithSig() public {
-        deployMock();
+    function test_MinterCanTransferAndLock(
+        address _minter,
+        address _to,
+        uint256 _reservedUntilTokenId,
+        uint256 _tokenId
+    ) public {
+        vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
+        vm.assume(_to != founder && _to != address(0) && _to != address(auction) && _to != _minter);
+        vm.assume(_tokenId < _reservedUntilTokenId);
+        deployAltMock(_reservedUntilTokenId);
 
-        address[] memory fromAddresses = new address[](2);
-        fromAddresses[0] = address(new MockERC1271(delegator));
-        fromAddresses[1] = address(new MockERC1271(delegator));
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
+        minters[0] = p1;
 
-        address[] memory toAddresses = new address[](2);
-        toAddresses[0] = delegator;
-        toAddresses[1] = delegator;
+        vm.prank(address(founder));
+        token.updateMinters(minters);
 
-        uint256[] memory deadlines = new uint256[](2);
-        deadlines[0] = block.timestamp + 100;
-        deadlines[1] = block.timestamp + 100;
+        vm.prank(minters[0].minter);
+        token.mintFromReserveTo(minters[0].minter, _tokenId);
+        assertEq(token.ownerOf(_tokenId), minters[0].minter);
 
-        bytes32 digest = token.getBatchDelegateBySigTypedDataHash(fromAddresses, toAddresses, deadlines);
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(delegatorPK, digest);
-        bytes memory signature = abi.encodePacked(r, s, v);
-
-        vm.startPrank(address(auction));
-        token.mintTo(fromAddresses[0]);
-        token.mintTo(fromAddresses[1]);
-        vm.stopPrank();
-
-        assertEq(token.getVotes(delegator), 0);
-
-        token.batchDelegateBySigERC1271(fromAddresses, toAddresses, deadlines, signature);
-
-        assertEq(token.getVotes(delegator), 2);
+        vm.prank(minters[0].minter);
+        soulboundToken.transferFromAndLock(minters[0].minter, _to, _tokenId);
+        assertEq(token.ownerOf(_tokenId), _to);
     }
 
-    function testRevert_BatchDelegateWithSigSignatureExpired() public {
-        deployMock();
+    function test_CanTransferWhenNotLocked(
+        address _minter,
+        address _to,
+        uint256 _reservedUntilTokenId,
+        uint256 _tokenId
+    ) public {
+        vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
+        vm.assume(_to != founder && _to != address(0) && _to != address(auction) && _to != _minter);
+        vm.assume(_tokenId < _reservedUntilTokenId);
+        deployAltMock(_reservedUntilTokenId);
 
-        address[] memory fromAddresses = new address[](2);
-        fromAddresses[0] = address(new MockERC1271(delegator));
-        fromAddresses[1] = address(new MockERC1271(delegator));
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
+        minters[0] = p1;
 
-        address[] memory toAddresses = new address[](2);
-        toAddresses[0] = delegator;
-        toAddresses[1] = delegator;
+        vm.prank(address(founder));
+        token.updateMinters(minters);
 
-        uint256[] memory deadlines = new uint256[](2);
-        deadlines[0] = block.timestamp + 100;
-        deadlines[1] = block.timestamp + 100;
+        vm.prank(minters[0].minter);
+        token.mintFromReserveTo(minters[0].minter, _tokenId);
+        assertEq(token.ownerOf(_tokenId), minters[0].minter);
 
-        bytes32 digest = token.getBatchDelegateBySigTypedDataHash(fromAddresses, toAddresses, deadlines);
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(delegatorPK, digest);
-        bytes memory signature = abi.encodePacked(r, s, v);
-
-        vm.startPrank(address(auction));
-        token.mintTo(fromAddresses[0]);
-        token.mintTo(fromAddresses[1]);
-        vm.stopPrank();
-
-        vm.warp(block.timestamp + 101);
-
-        assertEq(token.getVotes(delegator), 0);
-
-        vm.expectRevert(abi.encodeWithSignature("EXPIRED_SIGNATURE()"));
-        token.batchDelegateBySigERC1271(fromAddresses, toAddresses, deadlines, signature);
-
-        assertEq(token.getVotes(delegator), 0);
+        vm.prank(minters[0].minter);
+        token.transferFrom(minters[0].minter, _to, _tokenId);
+        assertEq(token.ownerOf(_tokenId), _to);
     }
 
-    function test_BatchDelegateWithSigInvalidSignature() public {
-        deployMock();
+    function testRevert_CannotTransferOnceLocked(
+        address _minter,
+        address _to,
+        uint256 _reservedUntilTokenId,
+        uint256 _tokenId
+    ) public {
+        vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
+        vm.assume(_to != founder && _to != address(0) && _to != address(auction) && _to != _minter);
+        vm.assume(_tokenId < _reservedUntilTokenId);
+        deployAltMock(_reservedUntilTokenId);
 
-        address[] memory fromAddresses = new address[](2);
-        fromAddresses[0] = address(new MockERC1271(delegator));
-        fromAddresses[1] = address(new MockERC1271(delegator));
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
+        minters[0] = p1;
 
-        address[] memory toAddresses = new address[](2);
-        toAddresses[0] = delegator;
-        toAddresses[1] = delegator;
+        vm.prank(address(founder));
+        token.updateMinters(minters);
 
-        uint256[] memory deadlines = new uint256[](2);
-        deadlines[0] = block.timestamp + 100;
-        deadlines[1] = block.timestamp + 100;
+        vm.prank(minters[0].minter);
+        token.mintFromReserveTo(minters[0].minter, _tokenId);
+        assertEq(token.ownerOf(_tokenId), minters[0].minter);
 
-        bytes memory signature = new bytes(0);
+        vm.prank(minters[0].minter);
+        soulboundToken.transferFromAndLock(minters[0].minter, _to, _tokenId);
+        assertEq(token.ownerOf(_tokenId), _to);
 
-        vm.startPrank(address(auction));
-        token.mintTo(fromAddresses[0]);
-        token.mintTo(fromAddresses[1]);
-        vm.stopPrank();
-
-        assertEq(token.getVotes(delegator), 0);
-
-        vm.expectRevert(abi.encodeWithSignature("INVALID_SIGNATURE()"));
-        token.batchDelegateBySigERC1271(fromAddresses, toAddresses, deadlines, signature);
-
-        assertEq(token.getVotes(delegator), 0);
+        vm.expectRevert(abi.encodeWithSignature("TOKEN_LOCKED()"));
+        vm.prank(_to);
+        token.transferFrom(_to, minters[0].minter, _tokenId);
     }
 
-    function test_BatchDelegateWithSigInvalidSignatureValidation() public {
-        deployMock();
-
-        address[] memory fromAddresses = new address[](2);
-        fromAddresses[0] = address(1);
-        fromAddresses[1] = address(new MockERC1271(delegator));
-
-        address[] memory toAddresses = new address[](2);
-        toAddresses[0] = delegator;
-        toAddresses[1] = delegator;
-
-        uint256[] memory deadlines = new uint256[](2);
-        deadlines[0] = block.timestamp + 100;
-        deadlines[1] = block.timestamp + 100;
-
-        bytes32 digest = token.getBatchDelegateBySigTypedDataHash(fromAddresses, toAddresses, deadlines);
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(delegatorPK, digest);
-        bytes memory signature = abi.encodePacked(r, s, v);
+    function testRevert_CannotTransferAndLockNonReservedToken(address _to, uint256 _reservedUntilTokenId) public {
+        vm.assume(_to != founder && _to != address(0) && _to != address(auction));
+        deployAltMock(_reservedUntilTokenId);
 
         vm.startPrank(address(auction));
-        token.mintTo(fromAddresses[0]);
-        token.mintTo(fromAddresses[1]);
+        uint256 tokenId = token.mint();
+        vm.expectRevert(abi.encodeWithSignature("TOKEN_NOT_LOCKABLE()"));
+        soulboundToken.transferFromAndLock(address(auction), _to, tokenId);
         vm.stopPrank();
-
-        assertEq(token.getVotes(delegator), 0);
-
-        vm.expectRevert(abi.encodeWithSignature("INVALID_SIGNATURE()"));
-        token.batchDelegateBySigERC1271(fromAddresses, toAddresses, deadlines, signature);
-
-        assertEq(token.getVotes(delegator), 0);
-    }
-
-    function test_BatchDelegateWithSigOwnerNotDelegator() public {
-        deployMock();
-
-        address[] memory fromAddresses = new address[](2);
-        fromAddresses[0] = address(new MockERC1271(address(1)));
-        fromAddresses[1] = address(new MockERC1271(delegator));
-
-        address[] memory toAddresses = new address[](2);
-        toAddresses[0] = delegator;
-        toAddresses[1] = delegator;
-
-        uint256[] memory deadlines = new uint256[](2);
-        deadlines[0] = block.timestamp + 100;
-        deadlines[1] = block.timestamp + 100;
-
-        bytes32 digest = token.getBatchDelegateBySigTypedDataHash(fromAddresses, toAddresses, deadlines);
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(delegatorPK, digest);
-        bytes memory signature = abi.encodePacked(r, s, v);
-
-        vm.startPrank(address(auction));
-        token.mintTo(fromAddresses[0]);
-        token.mintTo(fromAddresses[1]);
-        vm.stopPrank();
-
-        assertEq(token.getVotes(delegator), 0);
-
-        vm.expectRevert(abi.encodeWithSignature("INVALID_SIGNATURE()"));
-        token.batchDelegateBySigERC1271(fromAddresses, toAddresses, deadlines, signature);
-
-        assertEq(token.getVotes(delegator), 0);
     }
 }

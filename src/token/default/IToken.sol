@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import { IUUPS } from "../lib/interfaces/IUUPS.sol";
-import { IERC721Votes } from "../lib/interfaces/IERC721Votes.sol";
-import { IManager } from "../manager/IManager.sol";
+import { IUUPS } from "../../lib/interfaces/IUUPS.sol";
+import { IERC721Votes } from "../../lib/interfaces/IERC721Votes.sol";
+import { IManager } from "../../manager/IManager.sol";
+import { IBaseToken } from "../interfaces/IBaseToken.sol";
 import { TokenTypesV1 } from "./types/TokenTypesV1.sol";
 import { TokenTypesV2 } from "./types/TokenTypesV2.sol";
 
 /// @title IToken
 /// @author Rohan Kulkarni
 /// @notice The external Token events, errors and functions
-interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
+interface IToken is IUUPS, IERC721Votes, IBaseToken, TokenTypesV1, TokenTypesV2 {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///

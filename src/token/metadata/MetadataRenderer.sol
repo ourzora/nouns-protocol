@@ -14,7 +14,7 @@ import { ERC721 } from "../../lib/token/ERC721.sol";
 
 import { MetadataRendererStorageV1 } from "./storage/MetadataRendererStorageV1.sol";
 import { MetadataRendererStorageV2 } from "./storage/MetadataRendererStorageV2.sol";
-import { IToken } from "../../token/IToken.sol";
+import { IToken } from "../../token/default/IToken.sol";
 import { IPropertyIPFSMetadataRenderer } from "./interfaces/IPropertyIPFSMetadataRenderer.sol";
 import { IManager } from "../../manager/IManager.sol";
 import { IBaseMetadata } from "./interfaces/IBaseMetadata.sol";
