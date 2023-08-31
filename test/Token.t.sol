@@ -2,6 +2,7 @@
 pragma solidity 0.8.16;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
+import { MockERC1271 } from "./utils/mocks/MockERC1271.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
 import { IToken, Token } from "../src/token/Token.sol";
@@ -11,8 +12,19 @@ import { TokenTypesV2 } from "../src/token/types/TokenTypesV2.sol";
 contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     mapping(address => uint256) public mintedTokens;
 
+    address internal delegator;
+    uint256 internal delegatorPK;
+
     function setUp() public virtual override {
         super.setUp();
+        createDelegator();
+    }
+
+    function createDelegator() internal {
+        delegatorPK = 0xABE;
+        delegator = vm.addr(delegatorPK);
+
+        vm.deal(delegator, 100 ether);
     }
 
     function deployAltMock(uint256 _reservedUntilTokenId) internal virtual {
@@ -918,5 +930,168 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
             vm.expectRevert();
             token.ownerOf(i);
         }
+    }
+
+    function test_BatchDelegateWithSig() public {
+        deployMock();
+
+        address[] memory fromAddresses = new address[](2);
+        fromAddresses[0] = address(new MockERC1271(delegator));
+        fromAddresses[1] = address(new MockERC1271(delegator));
+
+        address[] memory toAddresses = new address[](2);
+        toAddresses[0] = delegator;
+        toAddresses[1] = delegator;
+
+        uint256[] memory deadlines = new uint256[](2);
+        deadlines[0] = block.timestamp + 100;
+        deadlines[1] = block.timestamp + 100;
+
+        bytes32 digest = token.getBatchDelegateBySigTypedDataHash(fromAddresses, toAddresses, deadlines);
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(delegatorPK, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        vm.startPrank(address(auction));
+        token.mintTo(fromAddresses[0]);
+        token.mintTo(fromAddresses[1]);
+        vm.stopPrank();
+
+        assertEq(token.getVotes(delegator), 0);
+
+        token.batchDelegateBySigERC1271(fromAddresses, toAddresses, deadlines, signature);
+
+        assertEq(token.getVotes(delegator), 2);
+    }
+
+    function testRevert_BatchDelegateWithSigSignatureExpired() public {
+        deployMock();
+
+        address[] memory fromAddresses = new address[](2);
+        fromAddresses[0] = address(new MockERC1271(delegator));
+        fromAddresses[1] = address(new MockERC1271(delegator));
+
+        address[] memory toAddresses = new address[](2);
+        toAddresses[0] = delegator;
+        toAddresses[1] = delegator;
+
+        uint256[] memory deadlines = new uint256[](2);
+        deadlines[0] = block.timestamp + 100;
+        deadlines[1] = block.timestamp + 100;
+
+        bytes32 digest = token.getBatchDelegateBySigTypedDataHash(fromAddresses, toAddresses, deadlines);
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(delegatorPK, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        vm.startPrank(address(auction));
+        token.mintTo(fromAddresses[0]);
+        token.mintTo(fromAddresses[1]);
+        vm.stopPrank();
+
+        vm.warp(block.timestamp + 101);
+
+        assertEq(token.getVotes(delegator), 0);
+
+        vm.expectRevert(abi.encodeWithSignature("EXPIRED_SIGNATURE()"));
+        token.batchDelegateBySigERC1271(fromAddresses, toAddresses, deadlines, signature);
+
+        assertEq(token.getVotes(delegator), 0);
+    }
+
+    function test_BatchDelegateWithSigInvalidSignature() public {
+        deployMock();
+
+        address[] memory fromAddresses = new address[](2);
+        fromAddresses[0] = address(new MockERC1271(delegator));
+        fromAddresses[1] = address(new MockERC1271(delegator));
+
+        address[] memory toAddresses = new address[](2);
+        toAddresses[0] = delegator;
+        toAddresses[1] = delegator;
+
+        uint256[] memory deadlines = new uint256[](2);
+        deadlines[0] = block.timestamp + 100;
+        deadlines[1] = block.timestamp + 100;
+
+        bytes memory signature = new bytes(0);
+
+        vm.startPrank(address(auction));
+        token.mintTo(fromAddresses[0]);
+        token.mintTo(fromAddresses[1]);
+        vm.stopPrank();
+
+        assertEq(token.getVotes(delegator), 0);
+
+        vm.expectRevert(abi.encodeWithSignature("INVALID_SIGNATURE()"));
+        token.batchDelegateBySigERC1271(fromAddresses, toAddresses, deadlines, signature);
+
+        assertEq(token.getVotes(delegator), 0);
+    }
+
+    function test_BatchDelegateWithSigInvalidSignatureValidation() public {
+        deployMock();
+
+        address[] memory fromAddresses = new address[](2);
+        fromAddresses[0] = address(1);
+        fromAddresses[1] = address(new MockERC1271(delegator));
+
+        address[] memory toAddresses = new address[](2);
+        toAddresses[0] = delegator;
+        toAddresses[1] = delegator;
+
+        uint256[] memory deadlines = new uint256[](2);
+        deadlines[0] = block.timestamp + 100;
+        deadlines[1] = block.timestamp + 100;
+
+        bytes32 digest = token.getBatchDelegateBySigTypedDataHash(fromAddresses, toAddresses, deadlines);
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(delegatorPK, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        vm.startPrank(address(auction));
+        token.mintTo(fromAddresses[0]);
+        token.mintTo(fromAddresses[1]);
+        vm.stopPrank();
+
+        assertEq(token.getVotes(delegator), 0);
+
+        vm.expectRevert(abi.encodeWithSignature("INVALID_SIGNATURE()"));
+        token.batchDelegateBySigERC1271(fromAddresses, toAddresses, deadlines, signature);
+
+        assertEq(token.getVotes(delegator), 0);
+    }
+
+    function test_BatchDelegateWithSigOwnerNotDelegator() public {
+        deployMock();
+
+        address[] memory fromAddresses = new address[](2);
+        fromAddresses[0] = address(new MockERC1271(address(1)));
+        fromAddresses[1] = address(new MockERC1271(delegator));
+
+        address[] memory toAddresses = new address[](2);
+        toAddresses[0] = delegator;
+        toAddresses[1] = delegator;
+
+        uint256[] memory deadlines = new uint256[](2);
+        deadlines[0] = block.timestamp + 100;
+        deadlines[1] = block.timestamp + 100;
+
+        bytes32 digest = token.getBatchDelegateBySigTypedDataHash(fromAddresses, toAddresses, deadlines);
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(delegatorPK, digest);
+        bytes memory signature = abi.encodePacked(r, s, v);
+
+        vm.startPrank(address(auction));
+        token.mintTo(fromAddresses[0]);
+        token.mintTo(fromAddresses[1]);
+        vm.stopPrank();
+
+        assertEq(token.getVotes(delegator), 0);
+
+        vm.expectRevert(abi.encodeWithSignature("INVALID_SIGNATURE()"));
+        token.batchDelegateBySigERC1271(fromAddresses, toAddresses, deadlines, signature);
+
+        assertEq(token.getVotes(delegator), 0);
     }
 }
