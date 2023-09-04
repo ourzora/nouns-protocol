@@ -14,6 +14,7 @@ import { IAuction } from "../../auction/IAuction.sol";
 import { IToken } from "./IToken.sol";
 import { IBaseToken } from "../interfaces/IBaseToken.sol";
 import { VersionedContract } from "../../VersionedContract.sol";
+import { IBaseMetadata } from "../../metadata/interfaces/IBaseMetadata.sol";
 
 /// @title Token
 /// @author Rohan Kulkarni

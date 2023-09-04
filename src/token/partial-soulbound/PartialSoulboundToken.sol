@@ -7,7 +7,7 @@ import { ERC721Votes } from "../../lib/token/ERC721Votes.sol";
 import { ERC721 } from "../../lib/token/ERC721.sol";
 import { Ownable } from "../../lib/utils/Ownable.sol";
 import { PartialSoulboundTokenStorageV1 } from "./storage/PartialSoulboundTokenStorageV1.sol";
-import { IBaseMetadata } from "../metadata/interfaces/IBaseMetadata.sol";
+import { IBaseMetadata } from "../../metadata/interfaces/IBaseMetadata.sol";
 import { IManager } from "../../manager/IManager.sol";
 import { IAuction } from "../../auction/IAuction.sol";
 import { IPartialSoulboundToken } from "./IPartialSoulboundToken.sol";

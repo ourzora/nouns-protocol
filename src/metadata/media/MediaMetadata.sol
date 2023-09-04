@@ -13,7 +13,7 @@ import { IOwnable } from "../../lib/interfaces/IOwnable.sol";
 import { ERC721 } from "../../lib/token/ERC721.sol";
 
 import { MediaMetadataStorageV1 } from "./storage/MediaMetadataStorageV1.sol";
-import { IToken } from "../../token/IToken.sol";
+import { IToken } from "../../token/default/IToken.sol";
 import { IMediaMetadata } from "./interfaces/IMediaMetadata.sol";
 import { IManager } from "../../manager/IManager.sol";
 import { IBaseMetadata } from "../interfaces/IBaseMetadata.sol";
