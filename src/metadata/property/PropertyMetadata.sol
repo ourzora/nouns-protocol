@@ -4,6 +4,8 @@ pragma solidity 0.8.16;
 import { Base64 } from "@openzeppelin/contracts/utils/Base64.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { UriEncode } from "sol-uriencode/src/UriEncode.sol";
+import { MetadataBuilder } from "micro-onchain-metadata-utils/MetadataBuilder.sol";
+import { MetadataJSONKeys } from "micro-onchain-metadata-utils/MetadataJSONKeys.sol";
 
 import { UUPS } from "../../lib/proxy/UUPS.sol";
 import { Initializable } from "../../lib/utils/Initializable.sol";

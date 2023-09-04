@@ -440,6 +440,7 @@ contract PartialSoulboundTokenTest is NounsBuilderTest, TokenTypesV1 {
 
     function testRevert_OnlyMinterCanMint(address newMinter, address nonMinter) public {
         vm.assume(newMinter != nonMinter && newMinter != founder && newMinter != address(0) && newMinter != address(auction));
+        vm.assume(nonMinter != founder && nonMinter != address(0) && nonMinter != address(auction));
         deployAltMock(0);
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });
@@ -464,6 +465,7 @@ contract PartialSoulboundTokenTest is NounsBuilderTest, TokenTypesV1 {
         vm.assume(
             newMinter != nonMinter && newMinter != founder && newMinter != address(0) && newMinter != address(auction) && recipient != address(0)
         );
+        vm.assume(nonMinter != founder && nonMinter != address(0) && nonMinter != address(auction));
         deployAltMock(0);
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });
@@ -495,6 +497,7 @@ contract PartialSoulboundTokenTest is NounsBuilderTest, TokenTypesV1 {
                 amount > 0 &&
                 amount < 100
         );
+        vm.assume(nonMinter != founder && nonMinter != address(0) && nonMinter != address(auction));
         deployAltMock(0);
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });

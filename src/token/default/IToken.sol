@@ -7,6 +7,7 @@ import { IManager } from "../../manager/IManager.sol";
 import { IBaseToken } from "../interfaces/IBaseToken.sol";
 import { TokenTypesV1 } from "./types/TokenTypesV1.sol";
 import { TokenTypesV2 } from "./types/TokenTypesV2.sol";
+import { IBaseMetadata } from "../../metadata/interfaces/IBaseMetadata.sol";
 
 /// @title IToken
 /// @author Rohan Kulkarni
@@ -101,6 +102,9 @@ interface IToken is IUUPS, IERC721Votes, IBaseToken, TokenTypesV1, TokenTypesV2 
 
     /// @notice Mints the specified amount of tokens to the recipient and handles founder vesting
     function mintBatchTo(uint256 amount, address recipient) external returns (uint256[] memory tokenIds);
+
+    /// @notice Mints the specified token from the reserve to the recipent
+    function mintFromReserveTo(address recipient, uint256 tokenId) external;
 
     /// @notice Burns a token owned by the caller
     /// @param tokenId The ERC-721 token id
