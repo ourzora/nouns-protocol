@@ -942,15 +942,9 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         fromAddresses[0] = address(new MockERC1271(delegator));
         fromAddresses[1] = address(new MockERC1271(delegator));
 
-        address[] memory toAddresses = new address[](2);
-        toAddresses[0] = delegator;
-        toAddresses[1] = delegator;
+        uint256 deadline = block.timestamp + 100;
 
-        uint256[] memory deadlines = new uint256[](2);
-        deadlines[0] = block.timestamp + 100;
-        deadlines[1] = block.timestamp + 100;
-
-        bytes32 digest = token.getBatchDelegateBySigTypedDataHash(fromAddresses, toAddresses, deadlines);
+        bytes32 digest = token.getBatchDelegateBySigTypedDataHash(fromAddresses, delegator, block.timestamp + 100);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(delegatorPK, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
@@ -962,7 +956,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
 
         assertEq(token.getVotes(delegator), 0);
 
-        token.batchDelegateBySigERC1271(fromAddresses, toAddresses, deadlines, signature);
+        token.batchDelegateBySigERC1271(fromAddresses, delegator, deadline, signature);
 
         assertEq(token.getVotes(delegator), 2);
     }
@@ -974,15 +968,9 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         fromAddresses[0] = address(new MockERC1271(delegator));
         fromAddresses[1] = address(new MockERC1271(delegator));
 
-        address[] memory toAddresses = new address[](2);
-        toAddresses[0] = delegator;
-        toAddresses[1] = delegator;
+        uint256 deadline = block.timestamp + 100;
 
-        uint256[] memory deadlines = new uint256[](2);
-        deadlines[0] = block.timestamp + 100;
-        deadlines[1] = block.timestamp + 100;
-
-        bytes32 digest = token.getBatchDelegateBySigTypedDataHash(fromAddresses, toAddresses, deadlines);
+        bytes32 digest = token.getBatchDelegateBySigTypedDataHash(fromAddresses, delegator, deadline);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(delegatorPK, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
@@ -997,7 +985,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.getVotes(delegator), 0);
 
         vm.expectRevert(abi.encodeWithSignature("EXPIRED_SIGNATURE()"));
-        token.batchDelegateBySigERC1271(fromAddresses, toAddresses, deadlines, signature);
+        token.batchDelegateBySigERC1271(fromAddresses, delegator, deadline, signature);
 
         assertEq(token.getVotes(delegator), 0);
     }
@@ -1009,13 +997,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         fromAddresses[0] = address(new MockERC1271(delegator));
         fromAddresses[1] = address(new MockERC1271(delegator));
 
-        address[] memory toAddresses = new address[](2);
-        toAddresses[0] = delegator;
-        toAddresses[1] = delegator;
-
-        uint256[] memory deadlines = new uint256[](2);
-        deadlines[0] = block.timestamp + 100;
-        deadlines[1] = block.timestamp + 100;
+        uint256 deadline = block.timestamp + 100;
 
         bytes memory signature = new bytes(0);
 
@@ -1027,7 +1009,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.getVotes(delegator), 0);
 
         vm.expectRevert(abi.encodeWithSignature("INVALID_SIGNATURE()"));
-        token.batchDelegateBySigERC1271(fromAddresses, toAddresses, deadlines, signature);
+        token.batchDelegateBySigERC1271(fromAddresses, delegator, deadline, signature);
 
         assertEq(token.getVotes(delegator), 0);
     }
@@ -1039,15 +1021,9 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         fromAddresses[0] = address(1);
         fromAddresses[1] = address(new MockERC1271(delegator));
 
-        address[] memory toAddresses = new address[](2);
-        toAddresses[0] = delegator;
-        toAddresses[1] = delegator;
+        uint256 deadline = block.timestamp + 100;
 
-        uint256[] memory deadlines = new uint256[](2);
-        deadlines[0] = block.timestamp + 100;
-        deadlines[1] = block.timestamp + 100;
-
-        bytes32 digest = token.getBatchDelegateBySigTypedDataHash(fromAddresses, toAddresses, deadlines);
+        bytes32 digest = token.getBatchDelegateBySigTypedDataHash(fromAddresses, delegator, deadline);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(delegatorPK, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
@@ -1060,7 +1036,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.getVotes(delegator), 0);
 
         vm.expectRevert(abi.encodeWithSignature("INVALID_SIGNATURE()"));
-        token.batchDelegateBySigERC1271(fromAddresses, toAddresses, deadlines, signature);
+        token.batchDelegateBySigERC1271(fromAddresses, delegator, deadline, signature);
 
         assertEq(token.getVotes(delegator), 0);
     }
@@ -1072,15 +1048,9 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         fromAddresses[0] = address(new MockERC1271(address(1)));
         fromAddresses[1] = address(new MockERC1271(delegator));
 
-        address[] memory toAddresses = new address[](2);
-        toAddresses[0] = delegator;
-        toAddresses[1] = delegator;
+        uint256 deadline = block.timestamp + 100;
 
-        uint256[] memory deadlines = new uint256[](2);
-        deadlines[0] = block.timestamp + 100;
-        deadlines[1] = block.timestamp + 100;
-
-        bytes32 digest = token.getBatchDelegateBySigTypedDataHash(fromAddresses, toAddresses, deadlines);
+        bytes32 digest = token.getBatchDelegateBySigTypedDataHash(fromAddresses, delegator, deadline);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(delegatorPK, digest);
         bytes memory signature = abi.encodePacked(r, s, v);
@@ -1093,7 +1063,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.getVotes(delegator), 0);
 
         vm.expectRevert(abi.encodeWithSignature("INVALID_SIGNATURE()"));
-        token.batchDelegateBySigERC1271(fromAddresses, toAddresses, deadlines, signature);
+        token.batchDelegateBySigERC1271(fromAddresses, delegator, deadline, signature);
 
         assertEq(token.getVotes(delegator), 0);
     }

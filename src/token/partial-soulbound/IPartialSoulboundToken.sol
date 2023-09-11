@@ -104,9 +104,21 @@ interface IPartialSoulboundToken is IUUPS, IERC721Votes, IBaseToken, IERC5192, P
     /// @notice Mints the specified amount of tokens to the recipient and handles founder vesting
     function mintBatchTo(uint256 amount, address recipient) external returns (uint256[] memory tokenIds);
 
+    /// @notice Mints the specified token from the reserve to the recipent
+    function mintFromReserveTo(address recipient, uint256 tokenId) external;
+
+    /// @notice Mints a token from the reserve and locks to the recipient
+    function mintFromReserveAndLockTo(address recipient, uint256 tokenId) external;
+
     /// @notice Burns a token owned by the caller
     /// @param tokenId The ERC-721 token id
     function burn(uint256 tokenId) external;
+
+    function transferFromAndLock(
+        address from,
+        address to,
+        uint256 tokenId
+    ) external;
 
     /// @notice The URI for a token
     /// @param tokenId The ERC-721 token id
