@@ -82,16 +82,16 @@ contract CollectionPlusMinter {
     }
 
     /// @notice mints a token from reserve using the collection plus strategy and sets delegations
-    /// @param params Mint parameters
-    /// @param signature Signature for the ERC1271 delegation
-    /// @param deadline Deadline for the ERC1271 delegation
     function mintFromReserveAndDelegate(
-        MintParams calldata params,
+        address tokenContract,
+        address redeemFor,
+        uint256[] calldata tokenIds,
+        bytes calldata initData,
         bytes calldata signature,
         uint256 deadline
     ) public payable {
-        CollectionPlusSettings memory settings = allowedCollections[params.tokenContract];
-        uint256 tokenCount = params.tokenIds.length;
+        CollectionPlusSettings memory settings = allowedCollections[tokenContract];
+        uint256 tokenCount = tokenIds.length;
 
         _validateParams(settings, tokenCount);
 
@@ -99,57 +99,47 @@ contract CollectionPlusMinter {
 
         unchecked {
             for (uint256 i = 0; i < tokenCount; ++i) {
-                fromAddresses[i] = erc6551Registry.createAccount(
-                    erc6551Impl,
-                    block.chainid,
-                    settings.redeemToken,
-                    params.tokenIds[i],
-                    0,
-                    params.initData
-                );
-                IPartialSoulboundToken(params.tokenContract).mintFromReserveAndLockTo(fromAddresses[i], params.tokenIds[i]);
+                fromAddresses[i] = erc6551Registry.createAccount(erc6551Impl, block.chainid, settings.redeemToken, tokenIds[i], 0, initData);
+                IPartialSoulboundToken(tokenContract).mintFromReserveAndLockTo(fromAddresses[i], tokenIds[i]);
 
-                if (IERC721(settings.redeemToken).ownerOf(params.tokenIds[i]) != params.redeemFor) {
+                if (IERC721(settings.redeemToken).ownerOf(tokenIds[i]) != redeemFor) {
                     revert INVALID_OWNER();
                 }
             }
         }
 
-        IPartialSoulboundToken(params.tokenContract).batchDelegateBySigERC1271(fromAddresses, params.redeemFor, deadline, signature);
+        IPartialSoulboundToken(tokenContract).batchDelegateBySigERC1271(fromAddresses, redeemFor, deadline, signature);
 
         if (settings.pricePerToken > 0) {
-            _distributeFees(params.tokenContract, tokenCount);
+            _distributeFees(tokenContract, tokenCount);
         }
     }
 
     /// @notice mints a token from reserve using the collection plus strategy
-    /// @param params Mint parameters
-    function mintFromReserve(MintParams calldata params) public payable {
-        CollectionPlusSettings memory settings = allowedCollections[params.tokenContract];
-        uint256 tokenCount = params.tokenIds.length;
+    function mintFromReserve(
+        address tokenContract,
+        address redeemFor,
+        uint256[] calldata tokenIds,
+        bytes calldata initData
+    ) public payable {
+        CollectionPlusSettings memory settings = allowedCollections[tokenContract];
+        uint256 tokenCount = tokenIds.length;
 
         _validateParams(settings, tokenCount);
 
         unchecked {
             for (uint256 i = 0; i < tokenCount; ++i) {
-                address account = erc6551Registry.createAccount(
-                    erc6551Impl,
-                    block.chainid,
-                    settings.redeemToken,
-                    params.tokenIds[i],
-                    0,
-                    params.initData
-                );
-                IPartialSoulboundToken(params.tokenContract).mintFromReserveAndLockTo(account, params.tokenIds[i]);
+                address account = erc6551Registry.createAccount(erc6551Impl, block.chainid, settings.redeemToken, tokenIds[i], 0, initData);
+                IPartialSoulboundToken(tokenContract).mintFromReserveAndLockTo(account, tokenIds[i]);
 
-                if (IERC721(settings.redeemToken).ownerOf(params.tokenIds[i]) != params.redeemFor) {
+                if (IERC721(settings.redeemToken).ownerOf(tokenIds[i]) != redeemFor) {
                     revert INVALID_OWNER();
                 }
             }
         }
 
         if (settings.pricePerToken > 0) {
-            _distributeFees(params.tokenContract, tokenCount);
+            _distributeFees(tokenContract, tokenCount);
         }
     }
 

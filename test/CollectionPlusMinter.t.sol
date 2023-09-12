@@ -90,14 +90,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         uint256[] memory tokenIds = new uint256[](1);
         tokenIds[0] = 6;
 
-        CollectionPlusMinter.MintParams memory mintParams = CollectionPlusMinter.MintParams({
-            tokenContract: address(token),
-            tokenIds: tokenIds,
-            redeemFor: claimer,
-            initData: ""
-        });
-
-        minter.mintFromReserve(mintParams);
+        minter.mintFromReserve(address(token), claimer, tokenIds, "");
 
         address tokenBoundAccount = erc6551Registry.account(erc6551Impl, block.chainid, address(redeemToken), 6, 0);
 
@@ -152,13 +145,6 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         uint256[] memory tokenIds = new uint256[](1);
         tokenIds[0] = 6;
 
-        CollectionPlusMinter.MintParams memory mintParams = CollectionPlusMinter.MintParams({
-            tokenContract: address(token),
-            tokenIds: tokenIds,
-            redeemFor: claimer,
-            initData: ""
-        });
-
         address[] memory fromAddresses = new address[](1);
         fromAddresses[0] = erc6551Registry.account(erc6551Impl, block.chainid, address(redeemToken), 6, 0);
 
@@ -171,7 +157,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
 
         assertEq(token.getVotes(claimer), 0);
 
-        minter.mintFromReserveAndDelegate(mintParams, signature, deadline);
+        minter.mintFromReserveAndDelegate(address(token), claimer, tokenIds, "", signature, deadline);
 
         assertEq(soulboundToken.ownerOf(6), fromAddresses[0]);
         assertEq(soulboundToken.locked(6), true);
@@ -204,14 +190,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         tokenIds[0] = 6;
         tokenIds[1] = 7;
 
-        CollectionPlusMinter.MintParams memory mintParams = CollectionPlusMinter.MintParams({
-            tokenContract: address(token),
-            tokenIds: tokenIds,
-            redeemFor: claimer,
-            initData: ""
-        });
-
-        minter.mintFromReserve(mintParams);
+        minter.mintFromReserve(address(token), claimer, tokenIds, "");
 
         address tokenBoundAccount1 = erc6551Registry.account(erc6551Impl, block.chainid, address(redeemToken), 6, 0);
         address tokenBoundAccount2 = erc6551Registry.account(erc6551Impl, block.chainid, address(redeemToken), 7, 0);
@@ -252,13 +231,6 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         tokenIds[0] = 6;
         tokenIds[1] = 7;
 
-        CollectionPlusMinter.MintParams memory mintParams = CollectionPlusMinter.MintParams({
-            tokenContract: address(token),
-            tokenIds: tokenIds,
-            redeemFor: claimer,
-            initData: ""
-        });
-
         address[] memory fromAddresses = new address[](2);
         fromAddresses[0] = erc6551Registry.account(erc6551Impl, block.chainid, address(redeemToken), 6, 0);
         fromAddresses[1] = erc6551Registry.account(erc6551Impl, block.chainid, address(redeemToken), 7, 0);
@@ -272,7 +244,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
 
         assertEq(token.getVotes(claimer), 0);
 
-        minter.mintFromReserveAndDelegate(mintParams, signature, deadline);
+        minter.mintFromReserveAndDelegate(address(token), claimer, tokenIds, "", signature, deadline);
 
         assertEq(soulboundToken.ownerOf(6), fromAddresses[0]);
         assertEq(soulboundToken.locked(6), true);
@@ -309,20 +281,13 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         tokenIds[0] = 6;
         tokenIds[1] = 7;
 
-        CollectionPlusMinter.MintParams memory mintParams = CollectionPlusMinter.MintParams({
-            tokenContract: address(token),
-            tokenIds: tokenIds,
-            redeemFor: claimer,
-            initData: ""
-        });
-
         uint256 fees = minter.getTotalFeesForMint(address(token), tokenIds.length);
 
         uint256 prevTreasuryBalance = address(treasury).balance;
         uint256 prevBuilderBalance = address(builderDAO).balance;
         uint256 builderFee = minter.BUILDER_DAO_FEE() * tokenIds.length;
 
-        minter.mintFromReserve{ value: fees }(mintParams);
+        minter.mintFromReserve{ value: fees }(address(token), claimer, tokenIds, "");
 
         assertEq(address(builderDAO).balance, prevBuilderBalance + builderFee);
         assertEq(address(treasury).balance, prevTreasuryBalance + (fees - builderFee));
@@ -354,17 +319,10 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         tokenIds[0] = 6;
         tokenIds[1] = 7;
 
-        CollectionPlusMinter.MintParams memory mintParams = CollectionPlusMinter.MintParams({
-            tokenContract: address(token),
-            tokenIds: tokenIds,
-            redeemFor: claimer,
-            initData: ""
-        });
-
         uint256 fees = minter.getTotalFeesForMint(address(token), tokenIds.length);
 
         vm.expectRevert(abi.encodeWithSignature("MINT_NOT_STARTED()"));
-        minter.mintFromReserve{ value: fees }(mintParams);
+        minter.mintFromReserve{ value: fees }(address(token), claimer, tokenIds, "");
     }
 
     function testRevert_MintEnded() public {
@@ -395,17 +353,10 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         tokenIds[0] = 6;
         tokenIds[1] = 7;
 
-        CollectionPlusMinter.MintParams memory mintParams = CollectionPlusMinter.MintParams({
-            tokenContract: address(token),
-            tokenIds: tokenIds,
-            redeemFor: claimer,
-            initData: ""
-        });
-
         uint256 fees = minter.getTotalFeesForMint(address(token), tokenIds.length);
 
         vm.expectRevert(abi.encodeWithSignature("MINT_ENDED()"));
-        minter.mintFromReserve{ value: fees }(mintParams);
+        minter.mintFromReserve{ value: fees }(address(token), claimer, tokenIds, "");
     }
 
     function testRevert_InvalidValue() public {
@@ -436,14 +387,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         tokenIds[0] = 6;
         tokenIds[1] = 7;
 
-        CollectionPlusMinter.MintParams memory mintParams = CollectionPlusMinter.MintParams({
-            tokenContract: address(token),
-            tokenIds: tokenIds,
-            redeemFor: claimer,
-            initData: ""
-        });
-
         vm.expectRevert(abi.encodeWithSignature("INVALID_VALUE()"));
-        minter.mintFromReserve{ value: 0.001 ether }(mintParams);
+        minter.mintFromReserve{ value: 0.0001 ether }(address(token), claimer, tokenIds, "");
     }
 }
