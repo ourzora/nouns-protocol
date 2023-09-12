@@ -23,18 +23,6 @@ contract CollectionPlusMinter {
         address redeemToken;
     }
 
-    /// @notice Parameters for collection plus minting
-    struct MintParams {
-        /// @notice DAO token contract to set settings for
-        address tokenContract;
-        /// @notice User to redeem tokens for
-        address redeemFor;
-        /// @notice List of tokenIds to redeem
-        uint256[] tokenIds;
-        /// @notice ERC6551 account init data
-        bytes initData;
-    }
-
     /// @notice Event for mint settings updated
     event MinterSet(address indexed mediaContract, CollectionPlusSettings merkleSaleSettings);
 
@@ -82,6 +70,12 @@ contract CollectionPlusMinter {
     }
 
     /// @notice mints a token from reserve using the collection plus strategy and sets delegations
+    /// @param tokenContract The DAO token contract to mint from
+    /// @param redeemFor Address to redeem tokens for
+    /// @param tokenIds List of tokenIds to redeem
+    /// @param initData ERC6551 account init data
+    /// @param signature ERC1271 signature for delegation
+    /// @param deadline Deadline for signature
     function mintFromReserveAndDelegate(
         address tokenContract,
         address redeemFor,
@@ -116,6 +110,11 @@ contract CollectionPlusMinter {
     }
 
     /// @notice mints a token from reserve using the collection plus strategy
+    /// @notice mints a token from reserve using the collection plus strategy and sets delegations
+    /// @param tokenContract The DAO token contract to mint from
+    /// @param redeemFor Address to redeem tokens for
+    /// @param tokenIds List of tokenIds to redeem
+    /// @param initData ERC6551 account init data
     function mintFromReserve(
         address tokenContract,
         address redeemFor,
