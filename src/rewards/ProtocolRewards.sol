@@ -15,8 +15,10 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
     /// @notice An account's balance
     mapping(address => uint256) public balanceOf;
 
+    /// @notice Manager contract
     address immutable manager;
 
+    /// @notice Configuration for the protocol rewards
     RewardConfig public config;
 
     constructor(address _manager, address _builderRewardRecipient) payable initializer {

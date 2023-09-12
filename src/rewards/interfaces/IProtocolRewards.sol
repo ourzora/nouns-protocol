@@ -53,24 +53,33 @@ interface IProtocolRewards {
     /// @notice Low-level ETH transfer has failed
     error TRANSFER_FAILED();
 
+    /// @notice Caller is not managers owner
     error ONLY_MANAGER_OWNER();
 
+    /// @notice Config for protocol rewards
     struct RewardConfig {
+        //// @notice Address to send Builder DAO rewards to
         address builderRewardRecipient;
+        //// @notice Percentage of final bid amount in BPS claimable by the bid referral
         uint256 referralRewardBPS;
+        //// @notice Percentage of final bid amount in BPS claimable by BuilderDAO
         uint256 builderRewardBPS;
     }
 
     struct RewardSplits {
+        //// @notice Total rewards amount
         uint256 totalRewards;
+        //// @notice Founder rewards amount
         uint256 founderReward;
+        //// @notice Bid referral rewards amount
         uint256 refferalReward;
+        //// @notice BuilderDAO rewards amount
         uint256 builderReward;
     }
 
     /// @notice Generic function to deposit ETH for a recipient, with an optional comment
     /// @param to Address to deposit to
-    /// @param to Reason system reason for deposit (used for indexing)
+    /// @param why Reason system reason for deposit (used for indexing)
     /// @param comment Optional comment as reason for deposit
     function deposit(
         address to,
@@ -90,14 +99,17 @@ interface IProtocolRewards {
         string calldata comment
     ) external payable;
 
-    function computeTotalRewards(uint256 finalBidAmount, uint256 founderRewardPercent) external returns (RewardSplits memory split);
+    /// @notice Computes the total rewards given a bid amount and founders reward percentage
+    /// @param finalBidAmount Final bid amount
+    /// @param founderRewardBPS Percentage of final bid amount in BPS claimable by the founder
+    function computeTotalRewards(uint256 finalBidAmount, uint256 founderRewardBPS) external returns (RewardSplits memory split);
 
-    /// @notice Used by Zora ERC-721 & ERC-1155 contracts to deposit protocol rewards
-    /// @param founder Creator for NFT rewards
-    /// @param founderReward Creator for NFT rewards
-    /// @param referral Creator reward amount
-    /// @param referralReward Mint referral user
-    /// @param builderReward Mint referral user
+    /// @notice Used by Auction contracts to deposit protocol rewards
+    /// @param founder Deployer for founder rewards
+    /// @param founderReward Founder reward amount
+    /// @param referral Bid referral user
+    /// @param referralReward Bid referral reward amount
+    /// @param builderReward BuilderDAO reward amount
     function depositRewards(
         address founder,
         uint256 founderReward,
