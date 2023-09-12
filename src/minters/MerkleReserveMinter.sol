@@ -46,7 +46,17 @@ contract MerkleReserveMinter {
     error MINT_ENDED();
     error MINT_NOT_STARTED();
     error INVALID_VALUE();
-    error InvalidMerkleProof(address mintTo, bytes32[] merkleProof, bytes32 merkleRoot);
+    error INVALID_CLAIM_COUNT();
+    error INVALID_MERKLE_PROOF(address mintTo, bytes32[] merkleProof, bytes32 merkleRoot);
+
+    /// @notice Checks if the caller is the contract owner
+    /// @param tokenContract Token contract to check
+    modifier onlyContractOwner(address tokenContract) {
+        if (!_isContractOwner(tokenContract)) {
+            revert NOT_TOKEN_OWNER();
+        }
+        _;
+    }
 
     constructor(IManager _manager) {
         manager = _manager;
@@ -58,6 +68,10 @@ contract MerkleReserveMinter {
     function mintFromReserve(address tokenContract, MerkleClaim[] calldata claims) public payable {
         MerkleMinterSettings memory settings = allowedMerkles[tokenContract];
         uint256 claimCount = claims.length;
+
+        if (claimCount == 0) {
+            revert INVALID_CLAIM_COUNT();
+        }
 
         // Check sale end
         if (block.timestamp > settings.mintEnd) {
@@ -79,7 +93,7 @@ contract MerkleReserveMinter {
                 MerkleClaim memory claim = claims[i];
 
                 if (!MerkleProof.verify(claim.merkleProof, settings.merkleRoot, keccak256(abi.encode(claim.mintTo, claim.tokenId)))) {
-                    revert InvalidMerkleProof(claim.mintTo, claim.merkleProof, settings.merkleRoot);
+                    revert INVALID_MERKLE_PROOF(claim.mintTo, claim.merkleProof, settings.merkleRoot);
                 }
 
                 IToken(tokenContract).mintFromReserveTo(claim.mintTo, claim.tokenId);
@@ -101,11 +115,7 @@ contract MerkleReserveMinter {
     /// @notice Sets the minter settings for a token
     /// @param tokenContract Token contract to set settings for
     /// @param merkleMinterSettings Settings to set
-    function setSettings(address tokenContract, MerkleMinterSettings memory merkleMinterSettings) external {
-        if (IOwnable(tokenContract).owner() != msg.sender) {
-            revert NOT_TOKEN_OWNER();
-        }
-
+    function setSettings(address tokenContract, MerkleMinterSettings memory merkleMinterSettings) external onlyContractOwner(tokenContract) {
         allowedMerkles[tokenContract] = merkleMinterSettings;
 
         // Emit event for new settings
@@ -114,14 +124,14 @@ contract MerkleReserveMinter {
 
     /// @notice Resets the minter settings for a token
     /// @param tokenContract Token contract to reset settings for
-    function resetSettings(address tokenContract) external {
-        if (IOwnable(tokenContract).owner() != msg.sender) {
-            revert NOT_TOKEN_OWNER();
-        }
-
+    function resetSettings(address tokenContract) external onlyContractOwner(tokenContract) {
         delete allowedMerkles[tokenContract];
 
         // Emit event with null settings
         emit MinterSet(tokenContract, allowedMerkles[tokenContract]);
+    }
+
+    function _isContractOwner(address tokenContract) internal view returns (bool) {
+        return IOwnable(tokenContract).owner() == msg.sender;
     }
 }

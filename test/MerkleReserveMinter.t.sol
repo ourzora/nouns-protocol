@@ -275,7 +275,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         MerkleReserveMinter.MerkleClaim[] memory claims = new MerkleReserveMinter.MerkleClaim[](1);
         claims[0] = MerkleReserveMinter.MerkleClaim({ mintTo: claimer1, tokenId: 5, merkleProof: proof });
 
-        vm.expectRevert(abi.encodeWithSignature("InvalidMerkleProof(address,bytes32[],bytes32)", claimer1, proof, root));
+        vm.expectRevert(abi.encodeWithSignature("INVALID_MERKLE_PROOF(address,bytes32[],bytes32)", claimer1, proof, root));
         minter.mintFromReserve(address(token), claims);
     }
 

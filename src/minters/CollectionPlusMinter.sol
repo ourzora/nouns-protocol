@@ -59,7 +59,7 @@ contract CollectionPlusMinter {
     address immutable builderFundsRecipent;
 
     /// @notice Address of the ERC6551 implementation
-    address erc6551Impl;
+    address immutable erc6551Impl;
 
     /// @notice Stores the collection plus settings for a token
     mapping(address => CollectionPlusSettings) public allowedCollections;
@@ -178,16 +178,6 @@ contract CollectionPlusMinter {
 
         // Emit event with null settings
         emit MinterSet(tokenContract, allowedCollections[tokenContract]);
-    }
-
-    /// @notice Allows the manager admin to set the ERC6551 implementation address
-    /// @param _erc6551Impl Address of the ERC6551 implementation
-    function setERC6551Implementation(address _erc6551Impl) external {
-        if (msg.sender != manager.owner()) {
-            revert NOT_MANAGER_OWNER();
-        }
-
-        erc6551Impl = _erc6551Impl;
     }
 
     function _getTotalFeesForMint(uint256 pricePerToken, uint256 quantity) internal pure returns (uint256) {
