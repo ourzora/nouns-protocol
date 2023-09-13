@@ -132,7 +132,9 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         address _newRendererImpl,
         bytes memory _setupRenderer
     ) external returns (address metadata) {
-        if (msg.sender != IOwnable(_token).owner()) revert ONLY_TOKEN_OWNER();
+        if (msg.sender != IOwnable(_token).owner()) {
+            revert ONLY_TOKEN_OWNER();
+        }
 
         metadata = address(new ERC1967Proxy(_newRendererImpl, ""));
         daoAddressesByToken[_token].metadata = metadata;

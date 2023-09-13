@@ -323,7 +323,7 @@ contract PropertyMetadata is IPropertyMetadata, VersionedContract, Initializable
                 // Use the token's seed to select an item
                 tokenAttributes[i + 1] = uint16(seed % numItems);
 
-                // Adjust the randomness
+                // Get next 16 random bits
                 seed >>= 16;
             }
         }

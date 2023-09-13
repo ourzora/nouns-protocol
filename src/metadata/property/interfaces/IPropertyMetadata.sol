@@ -50,8 +50,6 @@ interface IPropertyMetadata is IBaseMetadata, PropertyMetadataTypesV1, PropertyM
     ///
     error TOO_MANY_PROPERTIES();
 
-    error TOKEN_ALREADY_GENERATED(uint256 tokenId);
-
     ///                                                          ///
     ///                           STRUCTS                        ///
     ///                                                          ///
