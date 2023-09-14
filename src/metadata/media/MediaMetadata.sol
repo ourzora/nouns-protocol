@@ -81,8 +81,7 @@ contract MediaMetadata is IMediaMetadata, VersionedContract, Initializable, UUPS
     ///                     PROPERTIES & ITEMS                   ///
     ///                                                          ///
 
-    /// @notice The number of items in a property
-    /// @return items array length
+    /// @notice The number of total media items
     function mediaItemsCount() external view returns (uint256) {
         return mediaItems.length;
     }
@@ -119,6 +118,7 @@ contract MediaMetadata is IMediaMetadata, VersionedContract, Initializable, UUPS
         // Cache the number of new properties
         uint256 numNewMediaItems = _items.length;
 
+        // Minimum of 1 media item required
         if (numNewMediaItems == 0) {
             revert ONE_MEDIA_ITEM_REQUIRED();
         }
@@ -175,10 +175,12 @@ contract MediaMetadata is IMediaMetadata, VersionedContract, Initializable, UUPS
     /// @notice The token URI
     /// @param _tokenId The ERC-721 token id
     function tokenURI(uint256 _tokenId) external view returns (string memory) {
+        // Pull the media item refrence by tokenId
         MediaItem storage mediaItem = mediaItems[_tokenId];
 
         MetadataBuilder.JSONItem[] memory items = new MetadataBuilder.JSONItem[](4);
 
+        // Set JSON properties
         items[0] = MetadataBuilder.JSONItem({
             key: MetadataJSONKeys.keyName,
             value: string.concat(_name(), " #", Strings.toString(_tokenId)),
@@ -240,6 +242,8 @@ contract MediaMetadata is IMediaMetadata, VersionedContract, Initializable, UUPS
         settings.description = _newDescription;
     }
 
+    /// @notice Updates the project URI
+    /// @param _newProjectURI The new URI
     function updateProjectURI(string memory _newProjectURI) external onlyOwner {
         emit WebsiteURIUpdated(settings.projectURI, _newProjectURI);
 

@@ -55,9 +55,13 @@ interface IPropertyMetadata is IBaseMetadata, PropertyMetadataTypesV1, PropertyM
     ///                                                          ///
 
     struct PropertyMetadataParams {
+        /// @notice The collection description
         string description;
+        /// @notice The contract image
         string contractImage;
+        /// @notice The project URI
         string projectURI;
+        /// @notice The renderer base
         string rendererBase;
     }
 

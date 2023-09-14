@@ -4,6 +4,10 @@ pragma solidity 0.8.16;
 /// @title IProtocolRewards
 /// @notice The interface for deposits & withdrawals for Protocol Rewards
 interface IProtocolRewards {
+    ///                                                          ///
+    ///                            EVENTS                        ///
+    ///                                                          ///
+
     /// @notice Rewards Deposit Event
     /// @param founder Creator for NFT rewards
     /// @param bidReferral Mint referral user
@@ -35,6 +39,10 @@ interface IProtocolRewards {
     /// @param amount Amount of deposit
     event Withdraw(address indexed from, address indexed to, uint256 amount);
 
+    ///                                                          ///
+    ///                            ERRORS                        ///
+    ///                                                          ///
+
     /// @notice Invalid percentages
     error INVALID_PERCENTAGES();
 
@@ -56,6 +64,10 @@ interface IProtocolRewards {
     /// @notice Caller is not managers owner
     error ONLY_MANAGER_OWNER();
 
+    ///                                                          ///
+    ///                            STRUCTS                       ///
+    ///                                                          ///
+
     /// @notice Config for protocol rewards
     struct RewardConfig {
         //// @notice Address to send Builder DAO rewards to
@@ -76,6 +88,10 @@ interface IProtocolRewards {
         //// @notice BuilderDAO rewards amount
         uint256 builderReward;
     }
+
+    ///                                                          ///
+    ///                            FUNCTIONS                     ///
+    ///                                                          ///
 
     /// @notice Generic function to deposit ETH for a recipient, with an optional comment
     /// @param to Address to deposit to

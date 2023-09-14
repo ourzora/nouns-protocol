@@ -33,6 +33,9 @@ interface PartialSoulboundTokenTypesV1 {
         uint32 vestExpiry;
     }
 
+    /// @notice The minter params type
+    /// @param minter The minter address
+    /// @param allowed Whether the minter is enabled
     struct MinterParams {
         address minter;
         bool allowed;

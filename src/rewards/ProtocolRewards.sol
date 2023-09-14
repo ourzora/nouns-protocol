@@ -9,17 +9,33 @@ import { IProtocolRewards } from "./interfaces/IProtocolRewards.sol";
 /// @title ProtocolRewards
 /// @notice Manager of deposits & withdrawals for protocol rewards
 contract ProtocolRewards is IProtocolRewards, EIP712 {
+    ///                                                          ///
+    ///                            CONSTANTS                     ///
+    ///                                                          ///
+
     /// @notice The EIP-712 typehash for gasless withdraws
     bytes32 public constant WITHDRAW_TYPEHASH = keccak256("Withdraw(address from,address to,uint256 amount,uint256 nonce,uint256 deadline)");
 
-    /// @notice An account's balance
-    mapping(address => uint256) public balanceOf;
+    ///                                                          ///
+    ///                            IMMUTABLES                    ///
+    ///                                                          ///
 
     /// @notice Manager contract
     address immutable manager;
 
+    ///                                                          ///
+    ///                            STORAGE                       ///
+    ///                                                          ///
+
+    /// @notice An account's balance
+    mapping(address => uint256) public balanceOf;
+
     /// @notice Configuration for the protocol rewards
     RewardConfig public config;
+
+    ///                                                          ///
+    ///                            CONSTRUCTOR                   ///
+    ///                                                          ///
 
     constructor(address _manager, address _builderRewardRecipient) payable initializer {
         manager = _manager;
@@ -27,10 +43,18 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
         __EIP712_init("ProtocolRewards", "1");
     }
 
+    ///                                                          ///
+    ///                            SUPPLY                        ///
+    ///                                                          ///
+
     /// @notice The total amount of ETH held in the contract
     function totalSupply() external view returns (uint256) {
         return address(this).balance;
     }
+
+    ///                                                          ///
+    ///                            CONFIGURATION                 ///
+    ///                                                          ///
 
     /// @notice Function to set the reward percentages
     /// @param referralRewardBPS The reward to be paid to the referrer in BPS
@@ -53,6 +77,10 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
 
         config.builderRewardRecipient = builderRewardRecipient;
     }
+
+    ///                                                          ///
+    ///                            DEPOSIT                       ///
+    ///                                                          ///
 
     /// @notice Generic function to deposit ETH for a recipient, with an optional comment
     /// @param to Address to deposit to
@@ -124,24 +152,34 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
         }
     }
 
+    ///                                                          ///
+    ///                            REWARDS                       ///
+    ///                                                          ///
+
+    /// @notice Computes the total rewards for a bid
+    /// @param finalBidAmount The final bid amount
+    /// @param founderRewardBPS The reward to be paid to the founder in BPS
     function computeTotalRewards(uint256 finalBidAmount, uint256 founderRewardBPS) external view returns (RewardSplits memory split) {
         uint256 referralBPSCached = config.referralRewardBPS;
         uint256 builderBPSCached = config.referralRewardBPS;
 
         uint256 totalBPS = founderRewardBPS + referralBPSCached + builderBPSCached;
 
+        // Verify percentage is not more than 100
         if (totalBPS >= 10_000) {
             revert INVALID_PERCENTAGES();
         }
 
+        // Calulate total rewards
         split.totalRewards = (finalBidAmount * totalBPS) / 10_000;
 
+        // Calculate reward splits
         split.founderReward = (finalBidAmount * founderRewardBPS) / 10_000;
         split.refferalReward = (finalBidAmount * referralBPSCached) / 10_000;
         split.builderReward = (finalBidAmount * builderBPSCached) / 10_000;
     }
 
-    /// @notice Used by Zora ERC-721 & ERC-1155 contracts to deposit protocol rewards
+    /// @notice Used by Auction contracts to deposit protocol rewards
     /// @param founder Creator for NFT rewards
     /// @param founderReward Creator for NFT rewards
     /// @param referral Creator reward amount
@@ -178,6 +216,10 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
 
         emit RewardsDeposit(founder, referral, cachedBuilderRecipent, msg.sender, founderReward, referralReward, builderReward);
     }
+
+    ///                                                          ///
+    ///                            WITHDRAW                      ///
+    ///                                                          ///
 
     /// @notice Withdraw protocol rewards
     /// @param to Withdraws from msg.sender to this address

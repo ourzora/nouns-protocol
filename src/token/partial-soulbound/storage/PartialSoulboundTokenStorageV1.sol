@@ -25,6 +25,7 @@ contract PartialSoulboundTokenStorageV1 is PartialSoulboundTokenTypesV1 {
     /// @notice Marks the first n tokens as reserved
     uint256 public reservedUntilTokenId;
 
-    /// @notice ERC-721 token id => locked
+    /// @notice The locked status of a token
+    /// @dev ERC-721 token id => locked
     BitMaps.BitMap internal isTokenLockedBitMap;
 }

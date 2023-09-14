@@ -114,6 +114,7 @@ interface IPartialSoulboundToken is IUUPS, IERC721Votes, IBaseToken, IERC5192, P
     /// @param tokenId The ERC-721 token id
     function burn(uint256 tokenId) external;
 
+    /// @notice An extension of transferFrom that also locks the token to the recipients account
     function transferFromAndLock(
         address from,
         address to,

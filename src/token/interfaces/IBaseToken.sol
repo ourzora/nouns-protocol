@@ -5,7 +5,7 @@ import { IERC721 } from "../../lib/interfaces/IERC721.sol";
 import { IERC721Votes } from "../../lib/interfaces/IERC721Votes.sol";
 import { IManager } from "../../manager/IManager.sol";
 
-/// @title ITokenBase2
+/// @title IBaseToken
 /// @author Neokry
 /// @notice The external Token events, errors and functions
 interface IBaseToken is IERC721, IERC721Votes {

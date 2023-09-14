@@ -3,7 +3,7 @@ pragma solidity 0.8.16;
 
 import { MediaMetadataTypesV1 } from "../types/MediaMetadataTypesV1.sol";
 
-/// @title MediaMetadataTypesV1
+/// @title MediaMetadataStorageV1
 /// @author Neokry
 /// @notice The Metadata Renderer storage contract
 contract MediaMetadataStorageV1 is MediaMetadataTypesV1 {

@@ -57,6 +57,10 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
         }
     }
 
+    /// @notice Gets the typed data hash for a delegation signature
+    /// @param _fromAddresses The accounts delegating votes from
+    /// @param _toAddress The account delegating votes to
+    /// @param _deadline The signature deadline
     function getBatchDelegateBySigTypedDataHash(
         address[] calldata _fromAddresses,
         address _toAddress,
@@ -217,6 +221,11 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
         _delegate(_from, _to);
     }
 
+    /// @notice Batch delegates votes from multiple ERC1271 accounts to one account
+    /// @param _fromAddresses The addresses delegating votes from
+    /// @param _toAddress The address delegating votes to
+    /// @param _deadline The signature deadline
+    /// @param _signature The signature
     function batchDelegateBySigERC1271(
         address[] calldata _fromAddresses,
         address _toAddress,
@@ -258,6 +267,7 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
                 )
             );
 
+            // Set delegation for all from addresses
             for (uint256 i = 0; i < length; ++i) {
                 address cachedFromAddress = _fromAddresses[i];
 
@@ -271,6 +281,7 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
                     // Update the delegate
                     _delegate(cachedFromAddress, _toAddress);
                 } else {
+                    // Revert invalid signature
                     revert INVALID_SIGNATURE();
                 }
             }

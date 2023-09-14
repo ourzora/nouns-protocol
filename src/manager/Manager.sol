@@ -243,6 +243,7 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
     }
 
     /// @notice Safely get the contract version of a target contract.
+    /// @param target The ERC-721 token address
     /// @dev Assume `target` is a contract
     /// @return Contract version if found, empty string if not.
     function _safeGetVersion(address target) internal pure returns (string memory) {
@@ -253,6 +254,9 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         }
     }
 
+    /// @notice Safely get the contract version of all DAO contracts given a token address.
+    /// @param token The ERC-721 token address
+    /// @return Contract versions if found, empty string if not.
     function getDAOVersions(address token) external view returns (DAOVersionInfo memory) {
         (address metadata, address auction, address treasury, address governor) = getAddresses(token);
         return

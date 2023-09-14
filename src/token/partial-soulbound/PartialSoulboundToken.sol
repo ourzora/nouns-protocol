@@ -19,7 +19,7 @@ import { BitMaps } from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 /// @title Token
 /// @author Neokry
 /// @custom:repo github.com/ourzora/nouns-protocol
-/// @notice A DAO's ERC-721 governance token
+/// @notice A DAO's ERC-721 governance token modified to support partial soulbinding
 contract PartialSoulboundToken is
     IPartialSoulboundToken,
     VersionedContract,
@@ -326,6 +326,10 @@ contract PartialSoulboundToken is
     ///                           LOCK                           ///
     ///                                                          ///
 
+    /// @notice An extension of transferFrom that also locks the token to the recipients account
+    /// @param from The current token holder
+    /// @param to The transfer recipent
+    /// @param tokenId The ERC-721 token id
     function transferFromAndLock(
         address from,
         address to,
@@ -339,6 +343,9 @@ contract PartialSoulboundToken is
         emit Locked(tokenId);
     }
 
+    /// @notice Check if a token is locked
+    /// @param tokenId The ERC-721 token id
+    /// @return Locked status of the token
     function locked(uint256 tokenId) external view returns (bool) {
         return _locked(tokenId);
     }

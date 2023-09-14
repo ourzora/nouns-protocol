@@ -61,6 +61,7 @@ interface IManager is IUUPS, IOwnable {
     /// @dev Reverts if an implementation type is not valid on registration
     error INVALID_IMPLEMENTATION_TYPE();
 
+    /// @dev Reverts if caller is not the token owner
     error ONLY_TOKEN_OWNER();
 
     ///                                                          ///

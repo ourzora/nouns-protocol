@@ -4,7 +4,7 @@ pragma solidity 0.8.16;
 import { MediaMetadataTypesV1 } from "../types/MediaMetadataTypesV1.sol";
 import { IBaseMetadata } from "../../interfaces/IBaseMetadata.sol";
 
-/// @title IMediaMetadataRenderer
+/// @title IMediaMetadata
 /// @author Neokry
 /// @notice The external Metadata Renderer events, errors, and functions
 interface IMediaMetadata is IBaseMetadata, MediaMetadataTypesV1 {
@@ -39,8 +39,11 @@ interface IMediaMetadata is IBaseMetadata, MediaMetadataTypesV1 {
     ///                                                          ///
 
     struct MediaMetadataParams {
+        /// @notice The collection description
         string description;
+        /// @notice The contract image
         string contractImage;
+        /// @notice The project URI
         string projectURI;
     }
 
