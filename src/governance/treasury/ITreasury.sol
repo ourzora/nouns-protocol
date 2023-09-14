@@ -58,7 +58,9 @@ interface ITreasury is IUUPS, IOwnable {
     ///                          STRUCTS                         ///
     ///                                                          ///
 
+    /// @notice The trasury initilization parameters
     struct TreasuryParams {
+        /// @notice timelockDelay The time delay to execute a queued transaction
         uint256 timelockDelay;
     }
 

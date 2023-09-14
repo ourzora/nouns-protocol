@@ -117,17 +117,17 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
     ///                          STRUCTS                         ///
     ///                                                          ///
 
-    /// @notice The governance parameters
-    /// @param votingDelay The time delay to vote on a created proposal
-    /// @param votingPeriod The time period to vote on a proposal
-    /// @param proposalThresholdBps The basis points of the token supply required to create a proposal
-    /// @param quorumThresholdBps The basis points of the token supply required to reach quorum
-    /// @param vetoer The address authorized to veto proposals (address(0) if none desired)
+    /// @notice The governance initilization parameters
     struct GovParams {
+        /// @notice votingDelay The time delay to vote on a created proposal
         uint256 votingDelay;
+        /// @notice votingPeriod The time period to vote on a proposal
         uint256 votingPeriod;
+        /// @notice proposalThresholdBps The basis points of the token supply required to create a proposal
         uint256 proposalThresholdBps;
+        /// @notice quorumThresholdBps The basis points of the token supply required to reach quorum
         uint256 quorumThresholdBps;
+        /// @notice vetoer The address authorized to veto proposals (address(0) if none desired)
         address vetoer;
     }
 

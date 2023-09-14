@@ -71,9 +71,13 @@ interface IToken is IUUPS, IERC721Votes, IBaseToken, TokenTypesV1, TokenTypesV2 
     ///                           STRUCTS                        ///
     ///                                                          ///
 
+    /// @notice The tokens initilization parameters
     struct TokenParams {
+        /// @notice The token name
         string name;
+        /// @notice The token symbol
         string symbol;
+        /// @notice The tokenId that a DAO's auctions will start at
         uint256 reservedUntilTokenId;
     }
 
