@@ -100,6 +100,7 @@ contract CollectionPlusMinter is IMintStrategy {
     /// @notice Checks if the caller is the token contract or the owner of the token contract
     /// @param tokenContract Token contract to check
     modifier onlyTokenOwner(address tokenContract) {
+        // Revert if sender is not the token contract owner
         if (!_isContractOwner(msg.sender, tokenContract)) {
             revert NOT_TOKEN_OWNER();
         }
@@ -146,9 +147,13 @@ contract CollectionPlusMinter is IMintStrategy {
         bytes calldata signature,
         uint256 deadline
     ) public payable {
+        // Load settings from storage
         CollectionPlusSettings memory settings = allowedCollections[tokenContract];
+
+        // Cache token count
         uint256 tokenCount = tokenIds.length;
 
+        // Validate params
         _validateParams(settings, tokenCount);
 
         // Keep track of the ERC6551 accounts for delegation step
@@ -190,9 +195,13 @@ contract CollectionPlusMinter is IMintStrategy {
         uint256[] calldata tokenIds,
         bytes calldata initData
     ) public payable {
+        // Load settings from storage
         CollectionPlusSettings memory settings = allowedCollections[tokenContract];
+
+        // Cache token count
         uint256 tokenCount = tokenIds.length;
 
+        // Validate params
         _validateParams(settings, tokenCount);
 
         unchecked {
@@ -279,8 +288,17 @@ contract CollectionPlusMinter is IMintStrategy {
     // @notice Sets the minter settings from the token contract with generic data
     /// @param data Encoded settings to set
     function setMintSettings(bytes calldata data) external {
+        // Decode settings data
         CollectionPlusSettings memory settings = abi.decode(data, (CollectionPlusSettings));
-        _setMintSettings(msg.sender, settings);
+
+        // Cache sender
+        address sender = msg.sender;
+
+        // Set new collection settings
+        _setMintSettings(sender, settings);
+
+        // Emit event for new settings
+        emit MinterSet(sender, settings);
     }
 
     /// @notice Sets the minter settings for a token
@@ -289,6 +307,9 @@ contract CollectionPlusMinter is IMintStrategy {
     function setMintSettings(address tokenContract, CollectionPlusSettings memory settings) external onlyTokenOwner(tokenContract) {
         // Set new collection settings
         _setMintSettings(tokenContract, settings);
+
+        // Emit event for new settings
+        emit MinterSet(tokenContract, settings);
     }
 
     /// @notice Resets the minter settings for a token
@@ -302,11 +323,7 @@ contract CollectionPlusMinter is IMintStrategy {
     }
 
     function _setMintSettings(address tokenContract, CollectionPlusSettings memory settings) internal {
-        // Set new collection settings
         allowedCollections[tokenContract] = settings;
-
-        // Emit event for new settings
-        emit MinterSet(tokenContract, settings);
     }
 
     function _isContractOwner(address caller, address tokenContract) internal view returns (bool) {

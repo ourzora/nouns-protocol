@@ -93,6 +93,7 @@ contract MerkleReserveMinter is IMintStrategy {
     /// @notice Checks if the caller is the token contract or the owner of the token contract
     /// @param tokenContract Token contract to check
     modifier onlyTokenOwner(address tokenContract) {
+        // Revert if sender is not the token contract owner
         if (!_isContractOwner(msg.sender, tokenContract)) {
             revert NOT_TOKEN_OWNER();
         }
@@ -118,6 +119,7 @@ contract MerkleReserveMinter is IMintStrategy {
         MerkleMinterSettings memory settings = allowedMerkles[tokenContract];
         uint256 claimCount = claims.length;
 
+        // Ensure claims are not empty
         if (claimCount == 0) {
             revert INVALID_CLAIM_COUNT();
         }
@@ -140,6 +142,7 @@ contract MerkleReserveMinter is IMintStrategy {
         // Mint tokens
         unchecked {
             for (uint256 i = 0; i < claimCount; ++i) {
+                // Load claim in memory
                 MerkleClaim memory claim = claims[i];
 
                 // Requires one proof per tokenId to handle cases where users want to partially claim
@@ -158,6 +161,7 @@ contract MerkleReserveMinter is IMintStrategy {
 
             (bool success, ) = treasury.call{ value: msg.value }("");
 
+            // Revert if transfer fails
             if (!success) {
                 revert TRANSFER_FAILED();
             }
@@ -171,20 +175,34 @@ contract MerkleReserveMinter is IMintStrategy {
     /// @notice Sets the minter settings from the token contract with generic data
     /// @param data Encoded settings to set
     function setMintSettings(bytes calldata data) external {
+        // Decode settings data
         MerkleMinterSettings memory settings = abi.decode(data, (MerkleMinterSettings));
-        _setMintSettings(msg.sender, settings);
+
+        // Cache sender
+        address sender = msg.sender;
+
+        // Set new collection settings
+        _setMintSettings(sender, settings);
+
+        // Emit event for new settings
+        emit MinterSet(sender, settings);
     }
 
     /// @notice Sets the minter settings for a token
     /// @param tokenContract Token contract to set settings for
     /// @param settings Settings to set
     function setMintSettings(address tokenContract, MerkleMinterSettings memory settings) external onlyTokenOwner(tokenContract) {
+        // Set new collection settings
         _setMintSettings(tokenContract, settings);
+
+        // Emit event for new settings
+        emit MinterSet(tokenContract, settings);
     }
 
     /// @notice Resets the minter settings for a token
     /// @param tokenContract Token contract to reset settings for
     function resetMintSettings(address tokenContract) external onlyTokenOwner(tokenContract) {
+        // Reset collection settings to null
         delete allowedMerkles[tokenContract];
 
         // Emit event with null settings
@@ -193,9 +211,6 @@ contract MerkleReserveMinter is IMintStrategy {
 
     function _setMintSettings(address tokenContract, MerkleMinterSettings memory settings) internal {
         allowedMerkles[tokenContract] = settings;
-
-        // Emit event for new settings
-        emit MinterSet(tokenContract, settings);
     }
 
     ///                                                          ///
