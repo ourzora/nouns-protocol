@@ -7,12 +7,13 @@ import { ERC721 } from "../token/ERC721.sol";
 import { EIP712 } from "../utils/EIP712.sol";
 
 /// @title ERC721Votes
-/// @author Rohan Kulkarni
+/// @author Rohan Kulkarni & Neokry
 /// @notice Modified from OpenZeppelin Contracts v4.7.3 (token/ERC721/extensions/draft-ERC721Votes.sol) & Nouns DAO ERC721Checkpointable.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
 /// - Uses custom errors defined in IERC721Votes
 /// - Checkpoints are based on timestamps instead of block numbers
 /// - Tokens are self-delegated by default
 /// - The total number of votes is the token supply itself
+/// - Added batch delegate with sig for ERC1271 accounts
 abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
     ///                                                          ///
     ///                          CONSTANTS                       ///
@@ -61,6 +62,7 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
     /// @param _fromAddresses The accounts delegating votes from
     /// @param _toAddress The account delegating votes to
     /// @param _deadline The signature deadline
+    /// @dev All addresses in _fromAddress must be unique
     function getBatchDelegateBySigTypedDataHash(
         address[] calldata _fromAddresses,
         address _toAddress,
@@ -78,6 +80,7 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
 
             for (uint256 i = 0; i < length; ++i) {
                 // Add the addresses current nonce to the list of nonces
+                // Having two of the same from addresses will cause the nonce to be invalid when verifying the sig this is unsupported behavior but not checked here
                 currentNonces[i] = nonces[_fromAddresses[i]];
             }
 
@@ -91,9 +94,9 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
                             abi.encode(
                                 BATCH_DELEGATION_TYPEHASH,
                                 keccak256(abi.encodePacked(_fromAddresses)),
-                                keccak256(abi.encodePacked(_toAddress)),
+                                _toAddress,
                                 keccak256(abi.encodePacked(currentNonces)),
-                                keccak256(abi.encodePacked(_deadline))
+                                _deadline
                             )
                         )
                     )
@@ -259,9 +262,9 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
                         abi.encode(
                             BATCH_DELEGATION_TYPEHASH,
                             keccak256(abi.encodePacked(_fromAddresses)),
-                            keccak256(abi.encodePacked(_toAddress)),
+                            _toAddress,
                             keccak256(abi.encodePacked(currentNonces)),
-                            keccak256(abi.encodePacked(_deadline))
+                            _deadline
                         )
                     )
                 )

@@ -34,6 +34,18 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
     RewardConfig public config;
 
     ///                                                          ///
+    ///                            MODIFIERS                     ///
+    ///                                                          ///
+
+    /// @notice Checks if the current caller is the owner of the manager contract
+    modifier onlyManagerOwner() {
+        if (!_isManagerOwner()) {
+            revert ONLY_MANAGER_OWNER();
+        }
+        _;
+    }
+
+    ///                                                          ///
     ///                            CONSTRUCTOR                   ///
     ///                                                          ///
 
@@ -59,22 +71,14 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
     /// @notice Function to set the reward percentages
     /// @param referralRewardBPS The reward to be paid to the referrer in BPS
     /// @param builderRewardBPS The reward to be paid to Build DAO in BPS
-    function setRewardPercentages(uint256 referralRewardBPS, uint256 builderRewardBPS) external {
-        if (msg.sender != Ownable(manager).owner()) {
-            revert ONLY_MANAGER_OWNER();
-        }
-
+    function setRewardPercentages(uint256 referralRewardBPS, uint256 builderRewardBPS) external onlyManagerOwner {
         config.referralRewardBPS = referralRewardBPS;
         config.builderRewardBPS = builderRewardBPS;
     }
 
     /// @notice Function to set the builder reward recipient
     /// @param builderRewardRecipient The address to send Builder DAO rewards to
-    function setBuilderRewardRecipient(address builderRewardRecipient) external {
-        if (msg.sender != Ownable(manager).owner()) {
-            revert ONLY_MANAGER_OWNER();
-        }
-
+    function setBuilderRewardRecipient(address builderRewardRecipient) external onlyManagerOwner {
         config.builderRewardRecipient = builderRewardRecipient;
     }
 
@@ -91,6 +95,7 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
         bytes4 reason,
         string calldata comment
     ) external payable {
+        // Cannot deposit to 0 address
         if (to == address(0)) {
             revert ADDRESS_ZERO();
         }
@@ -111,14 +116,17 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
         bytes4[] calldata reasons,
         string calldata comment
     ) external payable {
+        // Cache length of recipients array
         uint256 numRecipients = recipients.length;
 
+        // Verify array lengths match
         if (numRecipients != amounts.length || numRecipients != reasons.length) {
             revert ARRAY_LENGTH_MISMATCH();
         }
 
         uint256 expectedTotalValue;
 
+        // Calculate expected total value
         for (uint256 i; i < numRecipients; ) {
             expectedTotalValue += amounts[i];
 
@@ -127,6 +135,7 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
             }
         }
 
+        // Verify sent value matches expected total value
         if (msg.value != expectedTotalValue) {
             revert INVALID_DEPOSIT();
         }
@@ -134,14 +143,17 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
         address currentRecipient;
         uint256 currentAmount;
 
+        // Deposit for each recipient
         for (uint256 i; i < numRecipients; ) {
             currentRecipient = recipients[i];
             currentAmount = amounts[i];
 
+            // Cannot deposit to 0 address
             if (currentRecipient == address(0)) {
                 revert ADDRESS_ZERO();
             }
 
+            // Deposit for recipient
             balanceOf[currentRecipient] += currentAmount;
 
             emit Deposit(msg.sender, currentRecipient, reasons[i], currentAmount, comment);
@@ -160,9 +172,11 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
     /// @param finalBidAmount The final bid amount
     /// @param founderRewardBPS The reward to be paid to the founder in BPS
     function computeTotalRewards(uint256 finalBidAmount, uint256 founderRewardBPS) external view returns (RewardSplits memory split) {
+        // Cache values from storage
         uint256 referralBPSCached = config.referralRewardBPS;
         uint256 builderBPSCached = config.referralRewardBPS;
 
+        // Calculate the total rewards percentage
         uint256 totalBPS = founderRewardBPS + referralBPSCached + builderBPSCached;
 
         // Verify percentage is not more than 100
@@ -192,16 +206,20 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
         uint256 referralReward,
         uint256 builderReward
     ) external payable {
+        // Validate deposit amount
         if (msg.value != (founderReward + referralReward + builderReward)) {
             revert INVALID_DEPOSIT();
         }
 
+        // Cache builder reward recipient from storage
         address cachedBuilderRecipent = config.builderRewardRecipient;
 
+        // Set referral to builder if not set
         if (referral == address(0)) {
             referral = cachedBuilderRecipent;
         }
 
+        // Set claim amounts for each reward
         unchecked {
             if (founder != address(0)) {
                 balanceOf[founder] += founderReward;
@@ -225,16 +243,19 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
     /// @param to Withdraws from msg.sender to this address
     /// @param amount Amount to withdraw (0 for total balance)
     function withdraw(address to, uint256 amount) external {
+        // Cannot withdraw to 0 address
         if (to == address(0)) {
             revert ADDRESS_ZERO();
         }
 
         address owner = msg.sender;
 
+        // Cannot withdraw more than balance
         if (amount > balanceOf[owner]) {
             revert INVALID_WITHDRAW();
         }
 
+        // Withdraw full balance if amount is 0
         if (amount == 0) {
             amount = balanceOf[owner];
         }
@@ -245,6 +266,7 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
 
         (bool success, ) = to.call{ value: amount }("");
 
+        // Revert if transfer fails
         if (!success) {
             revert TRANSFER_FAILED();
         }
@@ -254,14 +276,17 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
     /// @param to The address to withdraw for
     /// @param amount The amount to withdraw (0 for total balance)
     function withdrawFor(address to, uint256 amount) external {
+        // Cannot withdraw to 0 address
         if (to == address(0)) {
             revert ADDRESS_ZERO();
         }
 
+        // Cannot withdraw more than balance
         if (amount > balanceOf[to]) {
             revert INVALID_WITHDRAW();
         }
 
+        // Withdraw full balance if amount is 0
         if (amount == 0) {
             amount = balanceOf[to];
         }
@@ -272,6 +297,7 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
 
         (bool success, ) = to.call{ value: amount }("");
 
+        // Revert if transfer fails
         if (!success) {
             revert TRANSFER_FAILED();
         }
@@ -294,12 +320,14 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
         bytes32 r,
         bytes32 s
     ) external {
+        // Cannot withdraw if signature has expired
         if (block.timestamp > deadline) {
             revert SIGNATURE_DEADLINE_EXPIRED();
         }
 
         bytes32 withdrawHash;
 
+        // Generate the hashed withdraw message
         unchecked {
             withdrawHash = keccak256(abi.encode(WITHDRAW_TYPEHASH, from, to, amount, nonces[from]++, deadline));
         }
@@ -308,18 +336,22 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
 
         address recoveredAddress = ecrecover(digest, v, r, s);
 
+        // Verify signature is valid
         if (recoveredAddress == address(0) || recoveredAddress != from) {
             revert INVALID_SIGNATURE();
         }
 
+        // Cannot withdraw to 0 address
         if (to == address(0)) {
             revert ADDRESS_ZERO();
         }
 
+        // Cannot withdraw more than balance
         if (amount > balanceOf[from]) {
             revert INVALID_WITHDRAW();
         }
 
+        // Withdraw full balance if amount is 0
         if (amount == 0) {
             amount = balanceOf[from];
         }
@@ -330,8 +362,17 @@ contract ProtocolRewards is IProtocolRewards, EIP712 {
 
         (bool success, ) = to.call{ value: amount }("");
 
+        // Revert if transfer fails
         if (!success) {
             revert TRANSFER_FAILED();
         }
+    }
+
+    ///                                                          ///
+    ///                            Ownership                     ///
+    ///                                                          ///
+
+    function _isManagerOwner() internal view returns (bool) {
+        return msg.sender == Ownable(manager).owner();
     }
 }
