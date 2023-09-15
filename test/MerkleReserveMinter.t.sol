@@ -35,6 +35,26 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         setMockMetadata();
     }
 
+    function deployAltMockAndSetMinter(
+        uint256 _reservedUntilTokenId,
+        address _minter,
+        bytes memory _minterData
+    ) internal virtual {
+        setMockFounderParams();
+
+        setMockTokenParamsWithReserveAndMinter(_reservedUntilTokenId, _minter, _minterData);
+
+        setMockAuctionParams();
+
+        setMockGovParams();
+
+        setImplementationAddresses();
+
+        deploy(foundersArr, implAddresses, implData);
+
+        setMockMetadata();
+    }
+
     function test_MintFlow() public {
         deployAltMock(20);
 
@@ -48,7 +68,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         });
 
         vm.prank(address(founder));
-        minter.setSettings(address(token), settings);
+        minter.setMintSettings(address(token), settings);
 
         (uint64 mintStart, uint64 mintEnd, uint64 pricePerToken, bytes32 merkleRoot) = minter.allowedMerkles(address(token));
         assertEq(mintStart, settings.mintStart);
@@ -61,6 +81,35 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         minters[0] = params;
         vm.prank(address(founder));
         token.updateMinters(minters);
+
+        bytes32[] memory proof = new bytes32[](1);
+        proof[0] = bytes32(0xd77d6d8eeae66a03ce8ecdba82c6a0ce9cff76f7a4a6bc2bdc670680d3714273);
+
+        MerkleReserveMinter.MerkleClaim[] memory claims = new MerkleReserveMinter.MerkleClaim[](1);
+        claims[0] = MerkleReserveMinter.MerkleClaim({ mintTo: claimer1, tokenId: 5, merkleProof: proof });
+
+        minter.mintFromReserve(address(token), claims);
+
+        assertEq(token.ownerOf(5), claimer1);
+    }
+
+    function test_MintFlowSetFromToken() public {
+        bytes32 root = bytes32(0x5e0da80989496579de029b8ad2f9c234e8de75f5487035210bfb7676e386af8b);
+
+        MerkleReserveMinter.MerkleMinterSettings memory settings = MerkleReserveMinter.MerkleMinterSettings({
+            mintStart: 0,
+            mintEnd: uint64(block.timestamp + 1000),
+            pricePerToken: 0 ether,
+            merkleRoot: root
+        });
+
+        deployAltMockAndSetMinter(20, address(minter), abi.encode(settings));
+
+        (uint64 mintStart, uint64 mintEnd, uint64 pricePerToken, bytes32 merkleRoot) = minter.allowedMerkles(address(token));
+        assertEq(mintStart, settings.mintStart);
+        assertEq(mintEnd, settings.mintEnd);
+        assertEq(pricePerToken, settings.pricePerToken);
+        assertEq(merkleRoot, settings.merkleRoot);
 
         bytes32[] memory proof = new bytes32[](1);
         proof[0] = bytes32(0xd77d6d8eeae66a03ce8ecdba82c6a0ce9cff76f7a4a6bc2bdc670680d3714273);
@@ -86,7 +135,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         });
 
         vm.prank(address(founder));
-        minter.setSettings(address(token), settings);
+        minter.setMintSettings(address(token), settings);
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: address(minter), allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -121,7 +170,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         });
 
         vm.prank(address(founder));
-        minter.setSettings(address(token), settings);
+        minter.setMintSettings(address(token), settings);
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: address(minter), allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -161,7 +210,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         });
 
         vm.prank(address(founder));
-        minter.setSettings(address(token), settings);
+        minter.setMintSettings(address(token), settings);
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: address(minter), allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -198,7 +247,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         });
 
         vm.prank(address(founder));
-        minter.setSettings(address(token), settings);
+        minter.setMintSettings(address(token), settings);
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: address(minter), allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -229,7 +278,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         });
 
         vm.prank(address(founder));
-        minter.setSettings(address(token), settings);
+        minter.setMintSettings(address(token), settings);
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: address(minter), allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -261,7 +310,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         });
 
         vm.prank(address(founder));
-        minter.setSettings(address(token), settings);
+        minter.setMintSettings(address(token), settings);
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: address(minter), allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -292,10 +341,10 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         });
 
         vm.prank(address(founder));
-        minter.setSettings(address(token), settings);
+        minter.setMintSettings(address(token), settings);
 
         vm.prank(address(founder));
-        minter.resetSettings(address(token));
+        minter.resetMintSettings(address(token));
 
         (uint64 mintStart, uint64 mintEnd, uint64 pricePerToken, bytes32 merkleRoot) = minter.allowedMerkles(address(token));
         assertEq(mintStart, 0);

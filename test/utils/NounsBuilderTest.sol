@@ -142,7 +142,9 @@ contract NounsBuilderTest is Test {
             "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
             "https://nouns.build",
             "http://localhost:5000/render",
-            0
+            0,
+            address(0),
+            new bytes(0)
         );
     }
 
@@ -154,7 +156,27 @@ contract NounsBuilderTest is Test {
             "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
             "https://nouns.build",
             "http://localhost:5000/render",
-            _reservedUntilTokenId
+            _reservedUntilTokenId,
+            address(0),
+            new bytes(0)
+        );
+    }
+
+    function setMockTokenParamsWithReserveAndMinter(
+        uint256 _reservedUntilTokenId,
+        address minter,
+        bytes memory minterData
+    ) internal virtual {
+        setTokenParams(
+            "Mock Token",
+            "MOCK",
+            "This is a mock token",
+            "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
+            "https://nouns.build",
+            "http://localhost:5000/render",
+            _reservedUntilTokenId,
+            minter,
+            minterData
         );
     }
 
@@ -165,9 +187,17 @@ contract NounsBuilderTest is Test {
         string memory _contractImage,
         string memory _contractURI,
         string memory _rendererBase,
-        uint256 _reservedUntilTokenId
+        uint256 _reservedUntilTokenId,
+        address _initalMinter,
+        bytes memory _initalMinterData
     ) internal virtual {
-        tokenParams = IToken.TokenParams({ name: _name, symbol: _symbol, reservedUntilTokenId: _reservedUntilTokenId });
+        tokenParams = IToken.TokenParams({
+            name: _name,
+            symbol: _symbol,
+            reservedUntilTokenId: _reservedUntilTokenId,
+            initalMinter: _initalMinter,
+            initalMinterData: _initalMinterData
+        });
         metadataParams = IPropertyMetadata.PropertyMetadataParams({
             description: _description,
             contractImage: _contractImage,
@@ -310,7 +340,7 @@ contract NounsBuilderTest is Test {
     ) internal {
         setMockFounderParams();
 
-        setTokenParams(_name, _symbol, _description, _contractImage, _projectURI, _rendererBase, 0);
+        setTokenParams(_name, _symbol, _description, _contractImage, _projectURI, _rendererBase, 0, address(0), new bytes(0));
 
         setMockAuctionParams();
 

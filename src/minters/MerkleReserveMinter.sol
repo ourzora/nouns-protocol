@@ -5,11 +5,12 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import { IOwnable } from "../lib/interfaces/IOwnable.sol";
 import { IToken } from "../token/default/IToken.sol";
 import { IManager } from "../manager/IManager.sol";
+import { IMintStrategy } from "./interfaces/IMintStrategy.sol";
 
 /// @title MerkleReserveMinter
 /// @notice A mint strategy that mints reserved tokens based on a merkle tree
 /// @author @neokry
-contract MerkleReserveMinter {
+contract MerkleReserveMinter is IMintStrategy {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///
@@ -89,10 +90,10 @@ contract MerkleReserveMinter {
     ///                            MODIFIERS                     ///
     ///                                                          ///
 
-    /// @notice Checks if the caller is the contract owner
+    /// @notice Checks if the caller is the token contract or the owner of the token contract
     /// @param tokenContract Token contract to check
-    modifier onlyContractOwner(address tokenContract) {
-        if (!_isContractOwner(tokenContract)) {
+    modifier onlyTokenOwner(address tokenContract) {
+        if (!_isContractOwner(msg.sender, tokenContract)) {
             revert NOT_TOKEN_OWNER();
         }
         _;
@@ -167,30 +168,41 @@ contract MerkleReserveMinter {
     ///                            Settings                      ///
     ///                                                          ///
 
+    /// @notice Sets the minter settings from the token contract with generic data
+    /// @param data Encoded settings to set
+    function setMintSettings(bytes calldata data) external {
+        MerkleMinterSettings memory settings = abi.decode(data, (MerkleMinterSettings));
+        _setMintSettings(msg.sender, settings);
+    }
+
     /// @notice Sets the minter settings for a token
     /// @param tokenContract Token contract to set settings for
-    /// @param merkleMinterSettings Settings to set
-    function setSettings(address tokenContract, MerkleMinterSettings memory merkleMinterSettings) external onlyContractOwner(tokenContract) {
-        allowedMerkles[tokenContract] = merkleMinterSettings;
-
-        // Emit event for new settings
-        emit MinterSet(tokenContract, merkleMinterSettings);
+    /// @param settings Settings to set
+    function setMintSettings(address tokenContract, MerkleMinterSettings memory settings) external onlyTokenOwner(tokenContract) {
+        _setMintSettings(tokenContract, settings);
     }
 
     /// @notice Resets the minter settings for a token
     /// @param tokenContract Token contract to reset settings for
-    function resetSettings(address tokenContract) external onlyContractOwner(tokenContract) {
+    function resetMintSettings(address tokenContract) external onlyTokenOwner(tokenContract) {
         delete allowedMerkles[tokenContract];
 
         // Emit event with null settings
         emit MinterSet(tokenContract, allowedMerkles[tokenContract]);
     }
 
+    function _setMintSettings(address tokenContract, MerkleMinterSettings memory settings) internal {
+        allowedMerkles[tokenContract] = settings;
+
+        // Emit event for new settings
+        emit MinterSet(tokenContract, settings);
+    }
+
     ///                                                          ///
     ///                            Ownership                     ///
     ///                                                          ///
 
-    function _isContractOwner(address tokenContract) internal view returns (bool) {
-        return IOwnable(tokenContract).owner() == msg.sender;
+    function _isContractOwner(address caller, address tokenContract) internal view returns (bool) {
+        return IOwnable(tokenContract).owner() == caller;
     }
 }

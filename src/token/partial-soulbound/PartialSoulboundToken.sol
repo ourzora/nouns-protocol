@@ -15,6 +15,7 @@ import { IBaseToken } from "../interfaces/IBaseToken.sol";
 import { VersionedContract } from "../../VersionedContract.sol";
 
 import { BitMaps } from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
+import { IMintStrategy } from "../../minters/interfaces/IMintStrategy.sol";
 
 /// @title Token
 /// @author Neokry
@@ -110,6 +111,16 @@ contract PartialSoulboundToken is
         settings.metadataRenderer = IBaseMetadata(_metadataRenderer);
         settings.auction = _auction;
         reservedUntilTokenId = params.reservedUntilTokenId;
+
+        // Check if an inital minter was specified
+        if (params.initalMinter != address(0)) {
+            minter[params.initalMinter] = true;
+
+            // Set minter settings if specified
+            if (params.initalMinterData.length > 0) {
+                IMintStrategy(params.initalMinter).setMintSettings(params.initalMinterData);
+            }
+        }
     }
 
     /// @notice Called by the auction upon the first unpause / token mint to transfer ownership from founder to treasury
@@ -218,15 +229,22 @@ contract PartialSoulboundToken is
 
     /// @notice Mints tokens from the reserve to the recipient
     function mintFromReserveTo(address recipient, uint256 tokenId) external nonReentrant onlyMinter {
+        // Token must be reserved
         if (tokenId >= reservedUntilTokenId) revert TOKEN_NOT_RESERVED();
+
+        // Mint the token without vesting (reserved tokens do not count towards founders vesting)
         _mint(recipient, tokenId);
     }
 
     /// @notice Mints a token from the reserve and locks to the recipient
     function mintFromReserveAndLockTo(address recipient, uint256 tokenId) external nonReentrant onlyMinter {
+        // Token must be reserved
         if (tokenId >= reservedUntilTokenId) revert TOKEN_NOT_RESERVED();
 
+        // Mint the token without vesting (reserved tokens do not count towards founders vesting)
         _mint(recipient, tokenId);
+
+        // Permenantly lock the token
         _lock(tokenId);
 
         emit Locked(tokenId);
@@ -307,6 +325,7 @@ contract PartialSoulboundToken is
     /// @notice Burns a token owned by the caller
     /// @param _tokenId The ERC-721 token id
     function burn(uint256 _tokenId) external onlyAuctionOrMinter {
+        // Ensure the caller owns the token
         if (ownerOf(_tokenId) != msg.sender) {
             revert ONLY_TOKEN_OWNER();
         }
@@ -315,8 +334,10 @@ contract PartialSoulboundToken is
     }
 
     function _burn(uint256 _tokenId) internal override {
+        // Call the parent burn function
         super._burn(_tokenId);
 
+        // Reduce the total supply
         unchecked {
             --settings.totalSupply;
         }
@@ -335,9 +356,13 @@ contract PartialSoulboundToken is
         address to,
         uint256 tokenId
     ) external nonReentrant {
+        // Only reserved tokends are allowed to be locked
         if (tokenId >= reservedUntilTokenId) revert TOKEN_NOT_LOCKABLE();
 
+        // Call the parent transferFrom function
         super.transferFrom(from, to, tokenId);
+
+        // Permenantly lock the token
         _lock(tokenId);
 
         emit Locked(tokenId);
@@ -477,6 +502,7 @@ contract PartialSoulboundToken is
             }
         }
 
+        // Clear values from storage before adding new founders
         settings.numFounders = 0;
         settings.totalOwnership = 0;
         emit FounderAllocationsCleared(newFounders);
@@ -503,6 +529,7 @@ contract PartialSoulboundToken is
         return address(settings.metadataRenderer);
     }
 
+    /// @notice The contract owner
     function owner() public view override(IPartialSoulboundToken, Ownable) returns (address) {
         return super.owner();
     }
@@ -526,6 +553,17 @@ contract PartialSoulboundToken is
     /// @param _minter Address to check
     function isMinter(address _minter) external view returns (bool) {
         return minter[_minter];
+    }
+
+    /// @notice Set a new metadata renderer
+    /// @param newRenderer new renderer address to use
+    function setMetadataRenderer(IBaseMetadata newRenderer) external {
+        // Ensure the caller is the contract manager
+        if (msg.sender != address(manager)) {
+            revert ONLY_MANAGER();
+        }
+
+        settings.metadataRenderer = newRenderer;
     }
 
     ///                                                          ///

@@ -6,11 +6,12 @@ import { IERC6551Registry } from "../lib/interfaces/IERC6551Registry.sol";
 import { IPartialSoulboundToken } from "../token/partial-soulbound/IPartialSoulboundToken.sol";
 import { IManager } from "../manager/IManager.sol";
 import { IOwnable } from "../lib/interfaces/IOwnable.sol";
+import { IMintStrategy } from "./interfaces/IMintStrategy.sol";
 
 /// @title CollectionPlusMinter
 /// @notice A mint strategy that mints and locks reserved tokens to ERC6551 accounts
 /// @author @neokry
-contract CollectionPlusMinter {
+contract CollectionPlusMinter is IMintStrategy {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///
@@ -91,6 +92,19 @@ contract CollectionPlusMinter {
 
     /// @notice Stores the collection plus settings for a token
     mapping(address => CollectionPlusSettings) public allowedCollections;
+
+    ///                                                          ///
+    ///                            MODIFIERS                     ///
+    ///                                                          ///
+
+    /// @notice Checks if the caller is the token contract or the owner of the token contract
+    /// @param tokenContract Token contract to check
+    modifier onlyTokenOwner(address tokenContract) {
+        if (!_isContractOwner(msg.sender, tokenContract)) {
+            revert NOT_TOKEN_OWNER();
+        }
+        _;
+    }
 
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
@@ -242,7 +256,7 @@ contract CollectionPlusMinter {
         // Pay out fees to the Builder DAO
         (bool builderSuccess, ) = builderFundsRecipent.call{ value: builderFee }("");
 
-        // Sanity check: revert if Builder DAO recipent cannot accept funds
+        // Revert if Builder DAO recipent cannot accept funds
         if (!builderSuccess) {
             revert TRANSFER_FAILED();
         }
@@ -251,7 +265,7 @@ contract CollectionPlusMinter {
         if (value > builderFee) {
             (bool treasurySuccess, ) = treasury.call{ value: value - builderFee }("");
 
-            // Sanity check: revert if treasury cannot accept funds
+            // Revert if treasury cannot accept funds
             if (!builderSuccess || !treasurySuccess) {
                 revert TRANSFER_FAILED();
             }
@@ -262,32 +276,40 @@ contract CollectionPlusMinter {
     ///                            SETTINGS                      ///
     ///                                                          ///
 
+    // @notice Sets the minter settings from the token contract with generic data
+    /// @param data Encoded settings to set
+    function setMintSettings(bytes calldata data) external {
+        CollectionPlusSettings memory settings = abi.decode(data, (CollectionPlusSettings));
+        _setMintSettings(msg.sender, settings);
+    }
+
     /// @notice Sets the minter settings for a token
     /// @param tokenContract Token contract to set settings for
-    /// @param collectionPlusSettings Settings to set
-    function setSettings(address tokenContract, CollectionPlusSettings memory collectionPlusSettings) external {
-        if (IOwnable(tokenContract).owner() != msg.sender) {
-            revert NOT_TOKEN_OWNER();
-        }
-
+    /// @param settings Settings to set
+    function setMintSettings(address tokenContract, CollectionPlusSettings memory settings) external onlyTokenOwner(tokenContract) {
         // Set new collection settings
-        allowedCollections[tokenContract] = collectionPlusSettings;
-
-        // Emit event for new settings
-        emit MinterSet(tokenContract, collectionPlusSettings);
+        _setMintSettings(tokenContract, settings);
     }
 
     /// @notice Resets the minter settings for a token
     /// @param tokenContract Token contract to reset settings for
-    function resetSettings(address tokenContract) external {
-        if (IOwnable(tokenContract).owner() != msg.sender) {
-            revert NOT_TOKEN_OWNER();
-        }
-
+    function resetMintSettings(address tokenContract) external onlyTokenOwner(tokenContract) {
         // Reset collection settings to null
         delete allowedCollections[tokenContract];
 
         // Emit event with null settings
         emit MinterSet(tokenContract, allowedCollections[tokenContract]);
+    }
+
+    function _setMintSettings(address tokenContract, CollectionPlusSettings memory settings) internal {
+        // Set new collection settings
+        allowedCollections[tokenContract] = settings;
+
+        // Emit event for new settings
+        emit MinterSet(tokenContract, settings);
+    }
+
+    function _isContractOwner(address caller, address tokenContract) internal view returns (bool) {
+        return IOwnable(tokenContract).owner() == caller;
     }
 }

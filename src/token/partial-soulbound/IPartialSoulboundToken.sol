@@ -80,6 +80,10 @@ interface IPartialSoulboundToken is IUUPS, IERC721Votes, IBaseToken, IERC5192, P
         string symbol;
         /// @notice The tokenId that a DAO's auctions will start at
         uint256 reservedUntilTokenId;
+        /// @notice The minter a DAO enables by default
+        address initalMinter;
+        /// @notice The initilization data for the inital minter
+        bytes initalMinterData;
     }
 
     ///                                                          ///

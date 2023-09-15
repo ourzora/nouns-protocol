@@ -15,9 +15,10 @@ import { IToken } from "./IToken.sol";
 import { IBaseToken } from "../interfaces/IBaseToken.sol";
 import { VersionedContract } from "../../VersionedContract.sol";
 import { IBaseMetadata } from "../../metadata/interfaces/IBaseMetadata.sol";
+import { IMintStrategy } from "../../minters/interfaces/IMintStrategy.sol";
 
 /// @title Token
-/// @author Rohan Kulkarni
+/// @author Rohan Kulkarni & Neokry
 /// @custom:repo github.com/ourzora/nouns-protocol
 /// @notice A DAO's ERC-721 governance token
 contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1, TokenStorageV2, TokenStorageV3 {
@@ -100,6 +101,16 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         settings.metadataRenderer = IBaseMetadata(_metadataRenderer);
         settings.auction = _auction;
         reservedUntilTokenId = params.reservedUntilTokenId;
+
+        // Check if an inital minter was specified
+        if (params.initalMinter != address(0)) {
+            minter[params.initalMinter] = true;
+
+            // Set minter settings if specified
+            if (params.initalMinterData.length > 0) {
+                IMintStrategy(params.initalMinter).setMintSettings(params.initalMinterData);
+            }
+        }
     }
 
     /// @notice Called by the auction upon the first unpause / token mint to transfer ownership from founder to treasury
@@ -208,7 +219,10 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
 
     /// @notice Mints tokens from the reserve to the recipient
     function mintFromReserveTo(address recipient, uint256 tokenId) external nonReentrant onlyMinter {
+        // Token must be reserved
         if (tokenId >= reservedUntilTokenId) revert TOKEN_NOT_RESERVED();
+
+        // Mint the token without vesting (reserved tokens do not count towards founders vesting)
         _mint(recipient, tokenId);
     }
 
@@ -287,6 +301,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     /// @notice Burns a token owned by the caller
     /// @param _tokenId The ERC-721 token id
     function burn(uint256 _tokenId) external onlyAuctionOrMinter {
+        // Ensure the caller owns the token
         if (ownerOf(_tokenId) != msg.sender) {
             revert ONLY_TOKEN_OWNER();
         }
@@ -295,8 +310,10 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     }
 
     function _burn(uint256 _tokenId) internal override {
+        // Call the parent burn function
         super._burn(_tokenId);
 
+        // Reduce the total supply
         unchecked {
             --settings.totalSupply;
         }
@@ -421,6 +438,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
             }
         }
 
+        // Clear values from storage before adding new founders
         settings.numFounders = 0;
         settings.totalOwnership = 0;
         emit FounderAllocationsCleared(newFounders);
@@ -447,6 +465,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         return address(settings.metadataRenderer);
     }
 
+    /// @notice The contract owner
     function owner() public view override(IToken, Ownable) returns (address) {
         return super.owner();
     }

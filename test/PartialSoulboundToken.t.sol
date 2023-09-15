@@ -3,6 +3,7 @@ pragma solidity 0.8.16;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 import { PartialSoulboundToken } from "../src/token/partial-soulbound/PartialSoulboundToken.sol";
+import { MockMinter } from "./utils/mocks/MockMinter.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
 import { IToken, Token } from "../src/token/default/Token.sol";
@@ -45,6 +46,36 @@ contract PartialSoulboundTokenTest is NounsBuilderTest, TokenTypesV1 {
         setMockMetadata();
     }
 
+    function deployAltMockAndSetMinter(
+        uint256 _reservedUntilTokenId,
+        address _minter,
+        bytes memory _minterData
+    ) internal virtual {
+        setMockFounderParams();
+
+        setMockTokenParamsWithReserveAndMinter(_reservedUntilTokenId, _minter, _minterData);
+
+        setMockAuctionParams();
+
+        setMockGovParams();
+
+        setImplementationAddresses();
+
+        soulboundTokenImpl = address(new PartialSoulboundToken(address(manager)));
+
+        vm.startPrank(zoraDAO);
+        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TOKEN(), soulboundTokenImpl);
+        vm.stopPrank();
+
+        implAddresses[manager.IMPLEMENTATION_TYPE_TOKEN()] = soulboundTokenImpl;
+
+        deploy(foundersArr, implAddresses, implData);
+
+        soulboundToken = PartialSoulboundToken(address(token));
+
+        setMockMetadata();
+    }
+
     function test_MockTokenInit() public {
         deployAltMock(0);
 
@@ -55,6 +86,14 @@ contract PartialSoulboundTokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.owner(), address(founder));
         assertEq(token.metadataRenderer(), address(metadataRenderer));
         assertEq(token.totalSupply(), 0);
+    }
+
+    function test_MockTokenWithMinter() public {
+        MockMinter minter = new MockMinter();
+        deployAltMockAndSetMinter(20, address(minter), hex"112233");
+
+        assertEq(token.minter(address(minter)), true);
+        assertEq(minter.data(address(token)), hex"112233");
     }
 
     /// Test that the percentages for founders all ends up as expected
