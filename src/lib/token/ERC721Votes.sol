@@ -2,18 +2,16 @@
 pragma solidity 0.8.16;
 
 import { IERC721Votes } from "../interfaces/IERC721Votes.sol";
-import { IERC1271 } from "../interfaces/IERC1271.sol";
 import { ERC721 } from "../token/ERC721.sol";
 import { EIP712 } from "../utils/EIP712.sol";
 
 /// @title ERC721Votes
-/// @author Rohan Kulkarni & Neokry
+/// @author Rohan Kulkarni
 /// @notice Modified from OpenZeppelin Contracts v4.7.3 (token/ERC721/extensions/draft-ERC721Votes.sol) & Nouns DAO ERC721Checkpointable.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
 /// - Uses custom errors defined in IERC721Votes
 /// - Checkpoints are based on timestamps instead of block numbers
 /// - Tokens are self-delegated by default
 /// - The total number of votes is the token supply itself
-/// - Added batch delegate with sig for ERC1271 accounts
 abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
     ///                                                          ///
     ///                          CONSTANTS                       ///
@@ -21,9 +19,6 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
 
     /// @dev The EIP-712 typehash to delegate with a signature
     bytes32 internal constant DELEGATION_TYPEHASH = keccak256("Delegation(address from,address to,uint256 nonce,uint256 deadline)");
-
-    /// @dev The EIP-712 typehash to batch delegate with a signature
-    bytes32 internal constant BATCH_DELEGATION_TYPEHASH = keccak256("Delegation(address[] from,address to,uint256[] nonce,uint256 deadline)");
 
     ///                                                          ///
     ///                           STORAGE                        ///
@@ -55,52 +50,6 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
         unchecked {
             // Return the number of votes at the latest checkpoint if applicable
             return nCheckpoints != 0 ? checkpoints[_account][nCheckpoints - 1].votes : 0;
-        }
-    }
-
-    /// @notice Gets the typed data hash for a delegation signature
-    /// @param _fromAddresses The accounts delegating votes from
-    /// @param _toAddress The account delegating votes to
-    /// @param _deadline The signature deadline
-    /// @dev All addresses in _fromAddress must be unique
-    function getBatchDelegateBySigTypedDataHash(
-        address[] calldata _fromAddresses,
-        address _toAddress,
-        uint256 _deadline
-    ) public view returns (bytes32) {
-        uint256 length = _fromAddresses.length;
-
-        // Ensure the signature has not expired
-        if (block.timestamp > _deadline) revert EXPIRED_SIGNATURE();
-
-        // Cannot realistically overflow
-        unchecked {
-            // Store nonces for each from address
-            uint256[] memory currentNonces = new uint256[](length);
-
-            for (uint256 i = 0; i < length; ++i) {
-                // Add the addresses current nonce to the list of nonces
-                // Having two of the same from addresses will cause the nonce to be invalid when verifying the sig this is unsupported behavior but not checked here
-                currentNonces[i] = nonces[_fromAddresses[i]];
-            }
-
-            // Compute the hash of the domain seperator with the typed delegation data
-            return
-                keccak256(
-                    abi.encodePacked(
-                        "\x19\x01",
-                        DOMAIN_SEPARATOR(),
-                        keccak256(
-                            abi.encode(
-                                BATCH_DELEGATION_TYPEHASH,
-                                keccak256(abi.encodePacked(_fromAddresses)),
-                                _toAddress,
-                                keccak256(abi.encodePacked(currentNonces)),
-                                _deadline
-                            )
-                        )
-                    )
-                );
         }
     }
 
@@ -222,73 +171,6 @@ abstract contract ERC721Votes is IERC721Votes, EIP712, ERC721 {
 
         // Update the delegate
         _delegate(_from, _to);
-    }
-
-    /// @notice Batch delegates votes from multiple ERC1271 accounts to one account
-    /// @param _fromAddresses The addresses delegating votes from
-    /// @param _toAddress The address delegating votes to
-    /// @param _deadline The signature deadline
-    /// @param _signature The signature
-    function batchDelegateBySigERC1271(
-        address[] calldata _fromAddresses,
-        address _toAddress,
-        uint256 _deadline,
-        bytes memory _signature
-    ) external {
-        uint256 length = _fromAddresses.length;
-
-        // Used to store the digest
-        bytes32 digest;
-
-        // Ensure the signature has not expired
-        if (block.timestamp > _deadline) revert EXPIRED_SIGNATURE();
-
-        // Cannot realistically overflow
-        unchecked {
-            // Store nonces for each from address
-            uint256[] memory currentNonces = new uint256[](length);
-
-            for (uint256 i = 0; i < length; ++i) {
-                // Add the addresses current nonce to the list of nonces
-                currentNonces[i] = nonces[_fromAddresses[i]]++;
-            }
-
-            // Compute the hash of the domain seperator with the typed delegation data
-            digest = keccak256(
-                abi.encodePacked(
-                    "\x19\x01",
-                    DOMAIN_SEPARATOR(),
-                    keccak256(
-                        abi.encode(
-                            BATCH_DELEGATION_TYPEHASH,
-                            keccak256(abi.encodePacked(_fromAddresses)),
-                            _toAddress,
-                            keccak256(abi.encodePacked(currentNonces)),
-                            _deadline
-                        )
-                    )
-                )
-            );
-
-            // Set delegation for all from addresses
-            for (uint256 i = 0; i < length; ++i) {
-                address cachedFromAddress = _fromAddresses[i];
-
-                // Call the ERC1271 isValidSignature function
-                (bool success, bytes memory result) = cachedFromAddress.staticcall(
-                    abi.encodeWithSelector(IERC1271.isValidSignature.selector, digest, _signature)
-                );
-
-                // Ensure the signature is valid
-                if (success && result.length >= 32 && abi.decode(result, (bytes32)) == bytes32(IERC1271.isValidSignature.selector)) {
-                    // Update the delegate
-                    _delegate(cachedFromAddress, _toAddress);
-                } else {
-                    // Revert invalid signature
-                    revert INVALID_SIGNATURE();
-                }
-            }
-        }
     }
 
     /// @dev Updates delegate addresses

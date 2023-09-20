@@ -3,10 +3,10 @@ pragma solidity 0.8.16;
 
 import { IBaseMetadata } from "../../../metadata/interfaces/IBaseMetadata.sol";
 
-/// @title PartialSoulboundTokenTypesV1
+/// @title PartialMirrorTokenTypesV1
 /// @author Neokry
 /// @notice The Token custom data types
-interface PartialSoulboundTokenTypesV1 {
+interface PartialMirrorTokenTypesV1 {
     /// @notice The settings type
     /// @param auction The DAO auction house
     /// @param totalSupply The number of active tokens

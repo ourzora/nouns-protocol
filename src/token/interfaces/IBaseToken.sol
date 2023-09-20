@@ -22,6 +22,9 @@ interface IBaseToken is IERC721, IERC721Votes {
     /// @notice Mints the specified amount of tokens to the recipient and handles founder vesting
     function mintBatchTo(uint256 amount, address recipient) external returns (uint256[] memory tokenIds);
 
+    /// @notice Mints the specified token from the reserve to the recipent
+    function mintFromReserveTo(address recipient, uint256 tokenId) external;
+
     /// @notice Burns a token owned by the caller
     /// @param tokenId The ERC-721 token id
     function burn(uint256 tokenId) external;

@@ -7,9 +7,10 @@ import { ERC721TokenReceiver } from "../utils/TokenReceiver.sol";
 import { Address } from "../utils/Address.sol";
 
 /// @title ERC721
-/// @author Rohan Kulkarni
+/// @author Rohan Kulkarni & Neokry
 /// @notice Modified from OpenZeppelin Contracts v4.7.3 (token/ERC721/ERC721Upgradeable.sol)
 /// - Uses custom errors declared in IERC721
+/// - Uses _transfer from Openzepplin Contracts v4.9.3
 abstract contract ERC721 is IERC721, Initializable {
     ///                                                          ///
     ///                            STORAGE                       ///
@@ -67,14 +68,14 @@ abstract contract ERC721 is IERC721, Initializable {
 
     /// @notice The account approved to manage a token
     /// @param _tokenId The ERC-721 token id
-    function getApproved(uint256 _tokenId) external view returns (address) {
+    function getApproved(uint256 _tokenId) public view virtual returns (address) {
         return tokenApprovals[_tokenId];
     }
 
     /// @notice If an operator is authorized to manage all of an owner's tokens
     /// @param _owner The owner address
     /// @param _operator The operator address
-    function isApprovedForAll(address _owner, address _operator) external view returns (bool) {
+    function isApprovedForAll(address _owner, address _operator) public view virtual returns (bool) {
         return operatorApprovals[_owner][_operator];
     }
 
@@ -99,7 +100,7 @@ abstract contract ERC721 is IERC721, Initializable {
     /// @notice Authorizes an account to manage a token
     /// @param _to The account address
     /// @param _tokenId The ERC-721 token id
-    function approve(address _to, uint256 _tokenId) external {
+    function approve(address _to, uint256 _tokenId) public virtual {
         address owner = owners[_tokenId];
 
         if (msg.sender != owner && !operatorApprovals[owner][msg.sender]) revert INVALID_APPROVAL();
@@ -112,7 +113,7 @@ abstract contract ERC721 is IERC721, Initializable {
     /// @notice Authorizes an account to manage all tokens
     /// @param _operator The account address
     /// @param _approved If permission is being given or removed
-    function setApprovalForAll(address _operator, bool _approved) external {
+    function setApprovalForAll(address _operator, bool _approved) public virtual {
         operatorApprovals[msg.sender][_operator] = _approved;
 
         emit ApprovalForAll(msg.sender, _operator, _approved);
@@ -126,7 +127,7 @@ abstract contract ERC721 is IERC721, Initializable {
         address _from,
         address _to,
         uint256 _tokenId
-    ) public {
+    ) public virtual {
         if (_from != owners[_tokenId]) revert INVALID_OWNER();
 
         if (_to == address(0)) revert ADDRESS_ZERO();
@@ -158,7 +159,7 @@ abstract contract ERC721 is IERC721, Initializable {
         address _from,
         address _to,
         uint256 _tokenId
-    ) external {
+    ) public virtual {
         transferFrom(_from, _to, _tokenId);
 
         if (
@@ -176,7 +177,7 @@ abstract contract ERC721 is IERC721, Initializable {
         address _to,
         uint256 _tokenId,
         bytes calldata _data
-    ) external {
+    ) public virtual {
         transferFrom(_from, _to, _tokenId);
 
         if (
@@ -204,6 +205,53 @@ abstract contract ERC721 is IERC721, Initializable {
         emit Transfer(address(0), _to, _tokenId);
 
         _afterTokenTransfer(address(0), _to, _tokenId);
+    }
+
+    /**
+     * @dev Transfers `tokenId` from `from` to `to`.
+     *  As opposed to {transferFrom}, this imposes no restrictions on msg.sender.
+     *
+     * Requirements:
+     *
+     * - `to` cannot be the zero address.
+     * - `tokenId` token must be owned by `from`.
+     *
+     * Emits a {Transfer} event.
+     * @param _from The sender address
+     * @param _to The recipient address
+     * @param _tokenId The ERC-721 token id
+     */
+    function _transfer(
+        address _from,
+        address _to,
+        uint256 _tokenId
+    ) internal virtual {
+        if (_from != owners[_tokenId]) revert INVALID_OWNER();
+
+        if (_to == address(0)) revert ADDRESS_ZERO();
+
+        _beforeTokenTransfer(_from, _to, _tokenId);
+
+        // Check that tokenId was not transferred by `_beforeTokenTransfer` hook
+        if (_from != owners[_tokenId]) revert INVALID_OWNER();
+
+        // Clear approvals from the previous owner
+        delete tokenApprovals[_tokenId];
+
+        unchecked {
+            // `_balances[from]` cannot overflow for the same reason as described in `_burn`:
+            // `from`'s balance is the number of token held, which is at least one before the current
+            // transfer.
+            // `_balances[to]` could overflow in the conditions described in `_mint`. That would require
+            // all 2**256 token ids to be minted, which in practice is impossible.
+            balances[_from] -= 1;
+            balances[_to] += 1;
+        }
+        owners[_tokenId] = _to;
+
+        emit Transfer(_from, _to, _tokenId);
+
+        _afterTokenTransfer(_from, _to, _tokenId);
     }
 
     /// @dev Burns a token to a recipient

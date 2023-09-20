@@ -2,22 +2,21 @@
 pragma solidity 0.8.16;
 
 import { IERC721 } from "../lib/interfaces/IERC721.sol";
-import { IERC6551Registry } from "../lib/interfaces/IERC6551Registry.sol";
-import { IPartialSoulboundToken } from "../token/partial-soulbound/IPartialSoulboundToken.sol";
+import { IBaseToken } from "../token/interfaces/IBaseToken.sol";
 import { IManager } from "../manager/IManager.sol";
 import { IOwnable } from "../lib/interfaces/IOwnable.sol";
 import { IMintStrategy } from "./interfaces/IMintStrategy.sol";
 
-/// @title CollectionPlusMinter
-/// @notice A mint strategy that mints and locks reserved tokens to ERC6551 accounts
+/// @title ERC721RedeemMinter
+/// @notice A mint strategy that allows ERC721 token holders to redeem DAO tokens
 /// @author @neokry
-contract CollectionPlusMinter is IMintStrategy {
+contract ERC721RedeemMinter is IMintStrategy {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///
 
     /// @notice Event for mint settings updated
-    event MinterSet(address indexed mediaContract, CollectionPlusSettings merkleSaleSettings);
+    event MinterSet(address indexed tokenContract, RedeemSettings redeemSettings);
 
     ///                                                          ///
     ///                            ERRORS                        ///
@@ -26,14 +25,8 @@ contract CollectionPlusMinter is IMintStrategy {
     /// @dev Caller is not the owner of the specified token contract
     error NOT_TOKEN_OWNER();
 
-    /// @dev Caller is not the owner of the manager contract
-    error NOT_MANAGER_OWNER();
-
     /// @dev Transfer failed
     error TRANSFER_FAILED();
-
-    /// @dev Caller tried to claim a token with a mismatched owner
-    error INVALID_OWNER();
 
     /// @dev Mint has ended
     error MINT_ENDED();
@@ -47,12 +40,15 @@ contract CollectionPlusMinter is IMintStrategy {
     /// @dev Invalid amount of tokens to claim
     error INVALID_TOKEN_COUNT();
 
+    /// @dev Redeem token has not been minted yet
+    error NOT_MINTED();
+
     ///                                                          ///
     ///                            STRUCTS                       ///
     ///                                                          ///
 
-    /// @notice General collection plus settings
-    struct CollectionPlusSettings {
+    /// @notice General redeem plus settings
+    struct RedeemSettings {
         /// @notice Unix timestamp for the mint start
         uint64 mintStart;
         /// @notice Unix timestamp for the mint end
@@ -77,21 +73,15 @@ contract CollectionPlusMinter is IMintStrategy {
     /// @notice Manager contract
     IManager immutable manager;
 
-    /// @notice ERC6551 registry
-    IERC6551Registry immutable erc6551Registry;
-
     /// @notice Address to send BuilderDAO fees
     address immutable builderFundsRecipent;
-
-    /// @notice Address of the ERC6551 implementation
-    address immutable erc6551Impl;
 
     ///                                                          ///
     ///                            STORAGE                       ///
     ///                                                          ///
 
-    /// @notice Stores the collection plus settings for a token
-    mapping(address => CollectionPlusSettings) public allowedCollections;
+    /// @notice Stores the redeem settings for a token
+    mapping(address => RedeemSettings) public redeemSettings;
 
     ///                                                          ///
     ///                            MODIFIERS                     ///
@@ -111,16 +101,9 @@ contract CollectionPlusMinter is IMintStrategy {
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
-    constructor(
-        IManager _manager,
-        IERC6551Registry _erc6551Registry,
-        address _erc6551Impl,
-        address _builderFundsRecipent
-    ) {
+    constructor(IManager _manager, address _builderFundsRecipent) {
         manager = _manager;
-        erc6551Registry = _erc6551Registry;
         builderFundsRecipent = _builderFundsRecipent;
-        erc6551Impl = _erc6551Impl;
     }
 
     ///                                                          ///
@@ -129,74 +112,16 @@ contract CollectionPlusMinter is IMintStrategy {
 
     /// @notice gets the total fees for minting
     function getTotalFeesForMint(address tokenContract, uint256 quantity) public view returns (uint256) {
-        return _getTotalFeesForMint(allowedCollections[tokenContract].pricePerToken, quantity);
-    }
-
-    /// @notice mints a token from reserve using the collection plus strategy and sets delegations
-    /// @param tokenContract The DAO token contract to mint from
-    /// @param redeemFor Address to redeem tokens for
-    /// @param tokenIds List of tokenIds to redeem
-    /// @param initData ERC6551 account init data
-    /// @param signature ERC1271 signature for delegation
-    /// @param deadline Deadline for signature
-    function mintFromReserveAndDelegate(
-        address tokenContract,
-        address redeemFor,
-        uint256[] calldata tokenIds,
-        bytes calldata initData,
-        bytes calldata signature,
-        uint256 deadline
-    ) public payable {
-        // Load settings from storage
-        CollectionPlusSettings memory settings = allowedCollections[tokenContract];
-
-        // Cache token count
-        uint256 tokenCount = tokenIds.length;
-
-        // Validate params
-        _validateParams(settings, tokenCount);
-
-        // Keep track of the ERC6551 accounts for delegation step
-        address[] memory fromAddresses = new address[](tokenCount);
-
-        unchecked {
-            for (uint256 i = 0; i < tokenCount; ++i) {
-                // Create an ERC6551 account for the token. If an account already exists this function will return the existing account.
-                fromAddresses[i] = erc6551Registry.createAccount(erc6551Impl, block.chainid, settings.redeemToken, tokenIds[i], 0, initData);
-
-                // Locks the token to the ERC6551 account to tie DAO voting power to the original NFT token
-                IPartialSoulboundToken(tokenContract).mintFromReserveAndLockTo(fromAddresses[i], tokenIds[i]);
-
-                // We only want to allow batch claiming for one owner at a time
-                if (IERC721(settings.redeemToken).ownerOf(tokenIds[i]) != redeemFor) {
-                    revert INVALID_OWNER();
-                }
-            }
-        }
-
-        // Delegation must be setup after all tokens are transfered due to delegation resetting on transfer
-        IPartialSoulboundToken(tokenContract).batchDelegateBySigERC1271(fromAddresses, redeemFor, deadline, signature);
-
-        // Distribute fees if minting fees for this collection are set (Builder DAO fee does not apply to free mints)
-        if (settings.pricePerToken > 0) {
-            _distributeFees(tokenContract, tokenCount);
-        }
+        return _getTotalFeesForMint(redeemSettings[tokenContract].pricePerToken, quantity);
     }
 
     /// @notice mints a token from reserve using the collection plus strategy
     /// @notice mints a token from reserve using the collection plus strategy and sets delegations
     /// @param tokenContract The DAO token contract to mint from
-    /// @param redeemFor Address to redeem tokens for
     /// @param tokenIds List of tokenIds to redeem
-    /// @param initData ERC6551 account init data
-    function mintFromReserve(
-        address tokenContract,
-        address redeemFor,
-        uint256[] calldata tokenIds,
-        bytes calldata initData
-    ) public payable {
+    function mintFromReserve(address tokenContract, uint256[] calldata tokenIds) public payable {
         // Load settings from storage
-        CollectionPlusSettings memory settings = allowedCollections[tokenContract];
+        RedeemSettings memory settings = redeemSettings[tokenContract];
 
         // Cache token count
         uint256 tokenCount = tokenIds.length;
@@ -206,16 +131,18 @@ contract CollectionPlusMinter is IMintStrategy {
 
         unchecked {
             for (uint256 i = 0; i < tokenCount; ++i) {
-                // Create an ERC6551 account for the token. If an account already exists this function will return the existing account.
-                address account = erc6551Registry.createAccount(erc6551Impl, block.chainid, settings.redeemToken, tokenIds[i], 0, initData);
+                uint256 tokenId = tokenIds[i];
 
-                // Locks the token to the ERC6551 account to tie DAO voting power to the original NFT token
-                IPartialSoulboundToken(tokenContract).mintFromReserveAndLockTo(account, tokenIds[i]);
+                // Check ownership of redeem token
+                address owner = _ownerOfRedeemToken(settings.redeemToken, tokenId);
 
-                // We only want to allow batch claiming for one owner at a time
-                if (IERC721(settings.redeemToken).ownerOf(tokenIds[i]) != redeemFor) {
-                    revert INVALID_OWNER();
+                // Cannot redeem a token that has not been minted
+                if (owner == address(0)) {
+                    revert NOT_MINTED();
                 }
+
+                // Mint to the redeeem token owner
+                IBaseToken(tokenContract).mintFromReserveTo(owner, tokenId);
             }
         }
 
@@ -225,7 +152,7 @@ contract CollectionPlusMinter is IMintStrategy {
         }
     }
 
-    function _validateParams(CollectionPlusSettings memory settings, uint256 tokenCount) internal {
+    function _validateParams(RedeemSettings memory settings, uint256 tokenCount) internal {
         // Check sale end
         if (block.timestamp > settings.mintEnd) {
             revert MINT_ENDED();
@@ -244,6 +171,15 @@ contract CollectionPlusMinter is IMintStrategy {
         // Check value sent
         if (msg.value < _getTotalFeesForMint(settings.pricePerToken, tokenCount)) {
             revert INVALID_VALUE();
+        }
+    }
+
+    function _ownerOfRedeemToken(address redeemToken, uint256 tokenId) internal view returns (address) {
+        // Check redeem token owner or return address(0) if it doesn't exist
+        try IERC721(redeemToken).ownerOf(tokenId) returns (address redeemOwner) {
+            return redeemOwner;
+        } catch {
+            return address(0);
         }
     }
 
@@ -289,7 +225,7 @@ contract CollectionPlusMinter is IMintStrategy {
     /// @param data Encoded settings to set
     function setMintSettings(bytes calldata data) external {
         // Decode settings data
-        CollectionPlusSettings memory settings = abi.decode(data, (CollectionPlusSettings));
+        RedeemSettings memory settings = abi.decode(data, (RedeemSettings));
 
         // Cache sender
         address sender = msg.sender;
@@ -304,7 +240,7 @@ contract CollectionPlusMinter is IMintStrategy {
     /// @notice Sets the minter settings for a token
     /// @param tokenContract Token contract to set settings for
     /// @param settings Settings to set
-    function setMintSettings(address tokenContract, CollectionPlusSettings memory settings) external onlyTokenOwner(tokenContract) {
+    function setMintSettings(address tokenContract, RedeemSettings memory settings) external onlyTokenOwner(tokenContract) {
         // Set new collection settings
         _setMintSettings(tokenContract, settings);
 
@@ -316,14 +252,14 @@ contract CollectionPlusMinter is IMintStrategy {
     /// @param tokenContract Token contract to reset settings for
     function resetMintSettings(address tokenContract) external onlyTokenOwner(tokenContract) {
         // Reset collection settings to null
-        delete allowedCollections[tokenContract];
+        delete redeemSettings[tokenContract];
 
         // Emit event with null settings
-        emit MinterSet(tokenContract, allowedCollections[tokenContract]);
+        emit MinterSet(tokenContract, redeemSettings[tokenContract]);
     }
 
-    function _setMintSettings(address tokenContract, CollectionPlusSettings memory settings) internal {
-        allowedCollections[tokenContract] = settings;
+    function _setMintSettings(address tokenContract, RedeemSettings memory settings) internal {
+        redeemSettings[tokenContract] = settings;
     }
 
     function _isContractOwner(address caller, address tokenContract) internal view returns (bool) {

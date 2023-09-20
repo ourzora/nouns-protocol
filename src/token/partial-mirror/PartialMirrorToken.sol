@@ -5,33 +5,23 @@ import { UUPS } from "../../lib/proxy/UUPS.sol";
 import { ReentrancyGuard } from "../../lib/utils/ReentrancyGuard.sol";
 import { ERC721Votes } from "../../lib/token/ERC721Votes.sol";
 import { ERC721 } from "../../lib/token/ERC721.sol";
+import { IERC721 } from "../../lib/interfaces/IERC721.sol";
 import { Ownable } from "../../lib/utils/Ownable.sol";
-import { PartialSoulboundTokenStorageV1 } from "./storage/PartialSoulboundTokenStorageV1.sol";
+import { PartialMirrorTokenStorageV1 } from "./storage/PartialMirrorTokenStorageV1.sol";
 import { IBaseMetadata } from "../../metadata/interfaces/IBaseMetadata.sol";
 import { IManager } from "../../manager/IManager.sol";
 import { IAuction } from "../../auction/IAuction.sol";
-import { IPartialSoulboundToken } from "./IPartialSoulboundToken.sol";
+import { IPartialMirrorToken } from "./IPartialMirrorToken.sol";
 import { IBaseToken } from "../interfaces/IBaseToken.sol";
 import { VersionedContract } from "../../VersionedContract.sol";
 
-import { BitMaps } from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import { IMintStrategy } from "../../minters/interfaces/IMintStrategy.sol";
 
 /// @title Token
 /// @author Neokry
 /// @custom:repo github.com/ourzora/nouns-protocol
 /// @notice A DAO's ERC-721 governance token modified to support partial soulbinding
-contract PartialSoulboundToken is
-    IPartialSoulboundToken,
-    VersionedContract,
-    UUPS,
-    Ownable,
-    ReentrancyGuard,
-    ERC721Votes,
-    PartialSoulboundTokenStorageV1
-{
-    using BitMaps for BitMaps.BitMap;
-
+contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC721Votes, PartialMirrorTokenStorageV1 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
@@ -99,7 +89,7 @@ contract PartialSoulboundToken is
         __Ownable_init(_initialOwner);
 
         // Decode the token name and symbol
-        IPartialSoulboundToken.TokenParams memory params = abi.decode(_data, (IPartialSoulboundToken.TokenParams));
+        IPartialMirrorToken.TokenParams memory params = abi.decode(_data, (IPartialMirrorToken.TokenParams));
 
         // Store the founders and compute their allocations
         _addFounders(_founders, params.reservedUntilTokenId);
@@ -111,6 +101,7 @@ contract PartialSoulboundToken is
         settings.metadataRenderer = IBaseMetadata(_metadataRenderer);
         settings.auction = _auction;
         reservedUntilTokenId = params.reservedUntilTokenId;
+        mirroredToken = params.mirroredToken;
 
         // Check if an inital minter was specified
         if (params.initalMinter != address(0)) {
@@ -230,24 +221,10 @@ contract PartialSoulboundToken is
     /// @notice Mints tokens from the reserve to the recipient
     function mintFromReserveTo(address recipient, uint256 tokenId) external nonReentrant onlyMinter {
         // Token must be reserved
-        if (tokenId >= reservedUntilTokenId) revert TOKEN_NOT_RESERVED();
+        if (!_isReserved(tokenId)) revert TOKEN_NOT_RESERVED();
 
         // Mint the token without vesting (reserved tokens do not count towards founders vesting)
         _mint(recipient, tokenId);
-    }
-
-    /// @notice Mints a token from the reserve and locks to the recipient
-    function mintFromReserveAndLockTo(address recipient, uint256 tokenId) external nonReentrant onlyMinter {
-        // Token must be reserved
-        if (tokenId >= reservedUntilTokenId) revert TOKEN_NOT_RESERVED();
-
-        // Mint the token without vesting (reserved tokens do not count towards founders vesting)
-        _mint(recipient, tokenId);
-
-        // Permenantly lock the token
-        _lock(tokenId);
-
-        emit Locked(tokenId);
     }
 
     /// @notice Mints the specified amount of tokens to the recipient and handles founder vesting
@@ -318,6 +295,135 @@ contract PartialSoulboundToken is
         }
     }
 
+    function _isReserved(uint256 tokenId) internal view returns (bool) {
+        return tokenId < reservedUntilTokenId;
+    }
+
+    ///                                                          ///
+    ///                             Mirror                       ///
+    ///                                                          ///
+
+    /// @notice Mirrors the ownership of a given tokenId from the mirrored token
+    /// @param _tokenId The ERC-721 token to mirror
+    function mirror(uint256 _tokenId) public {
+        if (!_mirror(_tokenId)) {
+            revert TOKEN_NOT_RESERVED();
+        }
+    }
+
+    /// @notice Mirrors or transfers the given tokenId
+    /// @param _from The sender address
+    /// @param _to The recipient address
+    /// @param _tokenId The ERC-721 token id
+    function transferFrom(
+        address _from,
+        address _to,
+        uint256 _tokenId
+    ) public virtual override(ERC721, IERC721) {
+        if (!_mirror(_tokenId)) {
+            super.transferFrom(_from, _to, _tokenId);
+        }
+    }
+
+    /// @notice Mirrors or safe transfers the given tokenId
+    /// @param _from The sender address
+    /// @param _to The recipient address
+    /// @param _tokenId The ERC-721 token id
+    function safeTransferFrom(
+        address _from,
+        address _to,
+        uint256 _tokenId
+    ) public virtual override(ERC721, IERC721) {
+        if (!_mirror(_tokenId)) {
+            super.safeTransferFrom(_from, _to, _tokenId);
+        }
+    }
+
+    /// @notice Mirrors or safe transfers the given tokenId
+    /// @param _from The sender address
+    /// @param _to The recipient address
+    /// @param _tokenId The ERC-721 token id
+    function safeTransferFrom(
+        address _from,
+        address _to,
+        uint256 _tokenId,
+        bytes calldata _data
+    ) public virtual override(ERC721, IERC721) {
+        if (!_mirror(_tokenId)) {
+            super.safeTransferFrom(_from, _to, _tokenId, _data);
+        }
+    }
+
+    function _mirror(uint256 _tokenId) internal returns (bool) {
+        // Return if the token is not reserved and let the calling function handle this case
+        if (!_isReserved(_tokenId)) {
+            return false;
+        }
+
+        // Get owner of the current token
+        address from = owners[_tokenId];
+
+        // Get owner of the mirrored token
+        address to = _ownerOfMirrored(_tokenId);
+
+        // Owners already match so no need to mirror
+        if (from == to) revert ALREADY_MIRRORED();
+
+        if (from == address(0)) {
+            // Not allowed to mirror tokens that have not been minted yet
+            revert NOT_MINTED();
+        } else if (to == address(0)) {
+            // If the mirrored token has been burned then burn the token
+            _burn(_tokenId);
+        } else {
+            // Transfer the token to the mirrored owner
+            super._transfer(from, to, _tokenId);
+        }
+
+        // Mirroring has succeeded
+        return true;
+    }
+
+    function _ownerOfMirrored(uint256 _tokenId) internal view returns (address) {
+        // Check mirrored token owner or return address(0) if it doesn't exist
+        try IERC721(mirroredToken).ownerOf(_tokenId) returns (address mirrorOwner) {
+            return mirrorOwner;
+        } catch {
+            return address(0);
+        }
+    }
+
+    ///                                                          ///
+    ///                             Approval                     ///
+    ///                                                          ///
+
+    function approve(address _to, uint256 _tokenId) public override(IERC721, ERC721) {
+        // Disable approvals on tokens that can be mirrored
+        if (_isReserved(_tokenId)) {
+            revert NO_APPROVALS();
+        } else {
+            super.approve(_to, _tokenId);
+        }
+    }
+
+    function getApproved(uint256 _tokenId) public view override(ERC721, IERC721) returns (address) {
+        // Disable getting approvals on tokens that can be mirrored
+        if (_isReserved(_tokenId)) {
+            return address(0);
+        } else {
+            return super.getApproved(_tokenId);
+        }
+    }
+
+    function setApprovalForAll(address, bool) public pure override(ERC721, IERC721) {
+        // Disable approvals for all since mirrored tokens cannot be approved
+        revert NO_APPROVALS();
+    }
+
+    function isApprovedForAll(address, address) public pure override(ERC721, IERC721) returns (bool) {
+        return false;
+    }
+
     ///                                                          ///
     ///                             BURN                         ///
     ///                                                          ///
@@ -344,57 +450,17 @@ contract PartialSoulboundToken is
     }
 
     ///                                                          ///
-    ///                           LOCK                           ///
-    ///                                                          ///
-
-    /// @notice An extension of transferFrom that also locks the token to the recipients account
-    /// @param from The current token holder
-    /// @param to The transfer recipent
-    /// @param tokenId The ERC-721 token id
-    function transferFromAndLock(
-        address from,
-        address to,
-        uint256 tokenId
-    ) external nonReentrant {
-        // Only reserved tokends are allowed to be locked
-        if (tokenId >= reservedUntilTokenId) revert TOKEN_NOT_LOCKABLE();
-
-        // Call the parent transferFrom function
-        super.transferFrom(from, to, tokenId);
-
-        // Permenantly lock the token
-        _lock(tokenId);
-
-        emit Locked(tokenId);
-    }
-
-    /// @notice Check if a token is locked
-    /// @param tokenId The ERC-721 token id
-    /// @return Locked status of the token
-    function locked(uint256 tokenId) external view returns (bool) {
-        return _locked(tokenId);
-    }
-
-    function _lock(uint256 tokenId) internal {
-        isTokenLockedBitMap.set(tokenId);
-    }
-
-    function _locked(uint256 tokenId) internal view returns (bool) {
-        return isTokenLockedBitMap.get(tokenId);
-    }
-
-    ///                                                          ///
     ///                           METADATA                       ///
     ///                                                          ///
 
     /// @notice The URI for a token
     /// @param _tokenId The ERC-721 token id
-    function tokenURI(uint256 _tokenId) public view override(IPartialSoulboundToken, ERC721) returns (string memory) {
+    function tokenURI(uint256 _tokenId) public view override(IPartialMirrorToken, ERC721) returns (string memory) {
         return settings.metadataRenderer.tokenURI(_tokenId);
     }
 
     /// @notice The URI for the contract
-    function contractURI() public view override(IPartialSoulboundToken, ERC721) returns (string memory) {
+    function contractURI() public view override(IPartialMirrorToken, ERC721) returns (string memory) {
         return settings.metadataRenderer.contractURI();
     }
 
@@ -530,7 +596,7 @@ contract PartialSoulboundToken is
     }
 
     /// @notice The contract owner
-    function owner() public view override(IPartialSoulboundToken, Ownable) returns (address) {
+    function owner() public view override(IPartialMirrorToken, Ownable) returns (address) {
         return super.owner();
     }
 
@@ -564,19 +630,6 @@ contract PartialSoulboundToken is
         }
 
         settings.metadataRenderer = newRenderer;
-    }
-
-    ///                                                          ///
-    ///                   BEFORE TRANSFER OVERRIDE               ///
-    ///                                                          ///
-
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256 tokenId
-    ) internal virtual override(ERC721) {
-        super._beforeTokenTransfer(from, to, tokenId);
-        if (_locked(tokenId)) revert TOKEN_LOCKED();
     }
 
     ///                                                          ///

@@ -73,11 +73,4 @@ interface IERC721Votes is IERC721, IEIP712 {
         bytes32 r,
         bytes32 s
     ) external;
-
-    function batchDelegateBySigERC1271(
-        address[] calldata _fromAddresses,
-        address _toAddress,
-        uint256 _deadline,
-        bytes memory _signature
-    ) external;
 }

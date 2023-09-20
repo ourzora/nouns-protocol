@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import { PartialSoulboundTokenTypesV1 } from "../types/PartialSoulboundTokenTypesV1.sol";
+import { PartialMirrorTokenTypesV1 } from "../types/PartialMirrorTokenTypesV1.sol";
 import { BitMaps } from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 
-/// @title PartialSoulboundTokenStorageV1
+/// @title PartialMirrorTokenStorageV1
 /// @author Neokry
 /// @notice The Token storage contract
-contract PartialSoulboundTokenStorageV1 is PartialSoulboundTokenTypesV1 {
+contract PartialMirrorTokenStorageV1 is PartialMirrorTokenTypesV1 {
     /// @notice The token settings
     Settings internal settings;
 
@@ -25,7 +25,6 @@ contract PartialSoulboundTokenStorageV1 is PartialSoulboundTokenTypesV1 {
     /// @notice Marks the first n tokens as reserved
     uint256 public reservedUntilTokenId;
 
-    /// @notice The locked status of a token
-    /// @dev ERC-721 token id => locked
-    BitMaps.BitMap internal isTokenLockedBitMap;
+    /// @notice The token to mirror
+    address mirroredToken;
 }

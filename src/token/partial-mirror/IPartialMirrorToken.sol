@@ -3,15 +3,14 @@ pragma solidity 0.8.16;
 
 import { IUUPS } from "../../lib/interfaces/IUUPS.sol";
 import { IERC721Votes } from "../../lib/interfaces/IERC721Votes.sol";
-import { IERC5192 } from "../../lib/interfaces/IERC5192.sol";
 import { IManager } from "../../manager/IManager.sol";
 import { IBaseToken } from "../interfaces/IBaseToken.sol";
-import { PartialSoulboundTokenTypesV1 } from "./types/PartialSoulboundTokenTypesV1.sol";
+import { PartialMirrorTokenTypesV1 } from "./types/PartialMirrorTokenTypesV1.sol";
 
 /// @title IToken
 /// @author Neokry
 /// @notice The external Token events, errors and functions
-interface IPartialSoulboundToken is IUUPS, IERC721Votes, IBaseToken, IERC5192, PartialSoulboundTokenTypesV1 {
+interface IPartialMirrorToken is IUUPS, IERC721Votes, IBaseToken, PartialMirrorTokenTypesV1 {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///
@@ -62,11 +61,11 @@ interface IPartialSoulboundToken is IUUPS, IERC721Votes, IBaseToken, IERC5192, P
     /// @dev Reverts if the token is not reserved
     error TOKEN_NOT_RESERVED();
 
-    /// @dev Reverts if the token is locked
-    error TOKEN_LOCKED();
+    /// @dev Reverts if the token is already mirrored
+    error ALREADY_MIRRORED();
 
-    /// @dev Reverts if the token is lockable
-    error TOKEN_NOT_LOCKABLE();
+    /// @dev Reverts if an approval function for a reserved token has been called
+    error NO_APPROVALS();
 
     ///                                                          ///
     ///                           STRUCTS                        ///
@@ -80,6 +79,8 @@ interface IPartialSoulboundToken is IUUPS, IERC721Votes, IBaseToken, IERC5192, P
         string symbol;
         /// @notice The tokenId that a DAO's auctions will start at
         uint256 reservedUntilTokenId;
+        /// @notice The token contract this token will mirror
+        address mirroredToken;
         /// @notice The minter a DAO enables by default
         address initalMinter;
         /// @notice The initilization data for the inital minter
@@ -115,19 +116,9 @@ interface IPartialSoulboundToken is IUUPS, IERC721Votes, IBaseToken, IERC5192, P
     /// @notice Mints the specified token from the reserve to the recipent
     function mintFromReserveTo(address recipient, uint256 tokenId) external;
 
-    /// @notice Mints a token from the reserve and locks to the recipient
-    function mintFromReserveAndLockTo(address recipient, uint256 tokenId) external;
-
     /// @notice Burns a token owned by the caller
     /// @param tokenId The ERC-721 token id
     function burn(uint256 tokenId) external;
-
-    /// @notice An extension of transferFrom that also locks the token to the recipients account
-    function transferFromAndLock(
-        address from,
-        address to,
-        uint256 tokenId
-    ) external;
 
     /// @notice The URI for a token
     /// @param tokenId The ERC-721 token id

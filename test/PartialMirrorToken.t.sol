@@ -2,22 +2,28 @@
 pragma solidity 0.8.16;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
-import { PartialSoulboundToken } from "../src/token/partial-soulbound/PartialSoulboundToken.sol";
+import { PartialMirrorToken } from "../src/token/partial-mirror/PartialMirrorToken.sol";
+import { IPartialMirrorToken } from "../src/token/partial-mirror/IPartialMirrorToken.sol";
 import { MockMinter } from "./utils/mocks/MockMinter.sol";
+import { MockERC721 } from "./utils/mocks/MockERC721.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
 import { IToken, Token } from "../src/token/default/Token.sol";
 import { TokenTypesV1 } from "../src/token/default/types/TokenTypesV1.sol";
 import { TokenTypesV2 } from "../src/token/default/types/TokenTypesV2.sol";
 
-contract PartialSoulboundTokenTest is NounsBuilderTest, TokenTypesV1 {
+contract PartialMirrorTokenTest is NounsBuilderTest, TokenTypesV1 {
     mapping(address => uint256) public mintedTokens;
 
-    PartialSoulboundToken soulboundToken;
-    address soulboundTokenImpl;
+    PartialMirrorToken mirrorToken;
+    MockERC721 tokenToMirror;
+
+    address mirrorTokenImpl;
 
     function setUp() public virtual override {
         super.setUp();
+
+        tokenToMirror = new MockERC721();
     }
 
     function deployAltMock(uint256 _reservedUntilTokenId) internal virtual {
@@ -31,17 +37,27 @@ contract PartialSoulboundTokenTest is NounsBuilderTest, TokenTypesV1 {
 
         setImplementationAddresses();
 
-        soulboundTokenImpl = address(new PartialSoulboundToken(address(manager)));
+        mirrorTokenImpl = address(new PartialMirrorToken(address(manager)));
 
         vm.startPrank(zoraDAO);
-        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TOKEN(), soulboundTokenImpl);
+        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TOKEN(), mirrorTokenImpl);
         vm.stopPrank();
 
-        implAddresses[manager.IMPLEMENTATION_TYPE_TOKEN()] = soulboundTokenImpl;
+        IPartialMirrorToken.TokenParams memory mirrorParams = IPartialMirrorToken.TokenParams({
+            name: "Mock Token",
+            symbol: "MOCK",
+            reservedUntilTokenId: _reservedUntilTokenId,
+            mirroredToken: address(tokenToMirror),
+            initalMinter: address(0),
+            initalMinterData: new bytes(0)
+        });
+
+        implAddresses[manager.IMPLEMENTATION_TYPE_TOKEN()] = mirrorTokenImpl;
+        implData[manager.IMPLEMENTATION_TYPE_TOKEN()] = abi.encode(mirrorParams);
 
         deploy(foundersArr, implAddresses, implData);
 
-        soulboundToken = PartialSoulboundToken(address(token));
+        mirrorToken = PartialMirrorToken(address(token));
 
         setMockMetadata();
     }
@@ -61,17 +77,27 @@ contract PartialSoulboundTokenTest is NounsBuilderTest, TokenTypesV1 {
 
         setImplementationAddresses();
 
-        soulboundTokenImpl = address(new PartialSoulboundToken(address(manager)));
+        mirrorTokenImpl = address(new PartialMirrorToken(address(manager)));
 
         vm.startPrank(zoraDAO);
-        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TOKEN(), soulboundTokenImpl);
+        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TOKEN(), mirrorTokenImpl);
         vm.stopPrank();
 
-        implAddresses[manager.IMPLEMENTATION_TYPE_TOKEN()] = soulboundTokenImpl;
+        IPartialMirrorToken.TokenParams memory mirrorParams = IPartialMirrorToken.TokenParams({
+            name: "Mock Token",
+            symbol: "MOCK",
+            reservedUntilTokenId: _reservedUntilTokenId,
+            mirroredToken: address(tokenToMirror),
+            initalMinter: _minter,
+            initalMinterData: _minterData
+        });
+
+        implAddresses[manager.IMPLEMENTATION_TYPE_TOKEN()] = mirrorTokenImpl;
+        implData[manager.IMPLEMENTATION_TYPE_TOKEN()] = abi.encode(mirrorParams);
 
         deploy(foundersArr, implAddresses, implData);
 
-        soulboundToken = PartialSoulboundToken(address(token));
+        mirrorToken = PartialMirrorToken(address(token));
 
         setMockMetadata();
     }
@@ -976,99 +1002,232 @@ contract PartialSoulboundTokenTest is NounsBuilderTest, TokenTypesV1 {
         }
     }
 
-    function test_MinterCanTransferAndLock(
-        address _minter,
+    function test_Mirror(
+        address _from,
         address _to,
         uint256 _reservedUntilTokenId,
         uint256 _tokenId
     ) public {
-        vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
-        vm.assume(_to != founder && _to != address(0) && _to != address(auction) && _to != _minter);
+        vm.assume(_from != founder && _from != address(0) && _from != address(auction));
+        vm.assume(_to != founder && _to != address(0) && _to != address(auction) && _from != _to);
         vm.assume(_tokenId < _reservedUntilTokenId);
         deployAltMock(_reservedUntilTokenId);
 
+        tokenToMirror.mint(_from, _tokenId);
+
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
-        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _from, allowed: true });
         minters[0] = p1;
 
         vm.prank(address(founder));
         token.updateMinters(minters);
 
         vm.prank(minters[0].minter);
-        token.mintFromReserveTo(minters[0].minter, _tokenId);
-        assertEq(token.ownerOf(_tokenId), minters[0].minter);
+        mirrorToken.mintFromReserveTo(_from, _tokenId);
 
-        vm.prank(minters[0].minter);
-        soulboundToken.transferFromAndLock(minters[0].minter, _to, _tokenId);
-        assertEq(token.ownerOf(_tokenId), _to);
+        vm.prank(_from);
+        tokenToMirror.transferFrom(_from, _to, _tokenId);
+
+        mirrorToken.mirror(_tokenId);
+
+        assertEq(mirrorToken.ownerOf(_tokenId), _to);
     }
 
-    function test_CanTransferWhenNotLocked(
-        address _minter,
+    function testRevert_OnlyMirrorMinted(
         address _to,
         uint256 _reservedUntilTokenId,
         uint256 _tokenId
     ) public {
-        vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
-        vm.assume(_to != founder && _to != address(0) && _to != address(auction) && _to != _minter);
-        vm.assume(_tokenId < _reservedUntilTokenId);
-        deployAltMock(_reservedUntilTokenId);
-
-        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
-        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
-        minters[0] = p1;
-
-        vm.prank(address(founder));
-        token.updateMinters(minters);
-
-        vm.prank(minters[0].minter);
-        token.mintFromReserveTo(minters[0].minter, _tokenId);
-        assertEq(token.ownerOf(_tokenId), minters[0].minter);
-
-        vm.prank(minters[0].minter);
-        token.transferFrom(minters[0].minter, _to, _tokenId);
-        assertEq(token.ownerOf(_tokenId), _to);
-    }
-
-    function testRevert_CannotTransferOnceLocked(
-        address _minter,
-        address _to,
-        uint256 _reservedUntilTokenId,
-        uint256 _tokenId
-    ) public {
-        vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
-        vm.assume(_to != founder && _to != address(0) && _to != address(auction) && _to != _minter);
-        vm.assume(_tokenId < _reservedUntilTokenId);
-        deployAltMock(_reservedUntilTokenId);
-
-        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
-        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
-        minters[0] = p1;
-
-        vm.prank(address(founder));
-        token.updateMinters(minters);
-
-        vm.prank(minters[0].minter);
-        token.mintFromReserveTo(minters[0].minter, _tokenId);
-        assertEq(token.ownerOf(_tokenId), minters[0].minter);
-
-        vm.prank(minters[0].minter);
-        soulboundToken.transferFromAndLock(minters[0].minter, _to, _tokenId);
-        assertEq(token.ownerOf(_tokenId), _to);
-
-        vm.expectRevert(abi.encodeWithSignature("TOKEN_LOCKED()"));
-        vm.prank(_to);
-        token.transferFrom(_to, minters[0].minter, _tokenId);
-    }
-
-    function testRevert_CannotTransferAndLockNonReservedToken(address _to, uint256 _reservedUntilTokenId) public {
         vm.assume(_to != founder && _to != address(0) && _to != address(auction));
+        vm.assume(_tokenId < _reservedUntilTokenId);
         deployAltMock(_reservedUntilTokenId);
 
-        vm.startPrank(address(auction));
-        uint256 tokenId = token.mint();
-        vm.expectRevert(abi.encodeWithSignature("TOKEN_NOT_LOCKABLE()"));
-        soulboundToken.transferFromAndLock(address(auction), _to, tokenId);
-        vm.stopPrank();
+        tokenToMirror.mint(_to, _tokenId);
+
+        vm.expectRevert(abi.encodeWithSignature("NOT_MINTED()"));
+        mirrorToken.mirror(_tokenId);
+    }
+
+    function testRevert_OnlyMirrorReserve(
+        address _to,
+        uint256 _reservedUntilTokenId,
+        uint256 _tokenId
+    ) public {
+        vm.assume(_to != founder && _to != address(0) && _to != address(auction));
+        vm.assume(_tokenId >= _reservedUntilTokenId);
+        deployAltMock(_reservedUntilTokenId);
+
+        tokenToMirror.mint(_to, _tokenId);
+
+        vm.expectRevert(abi.encodeWithSignature("TOKEN_NOT_RESERVED()"));
+        mirrorToken.mirror(_tokenId);
+    }
+
+    function testRevert_AlreadyMirrored(
+        address _from,
+        address _to,
+        uint256 _reservedUntilTokenId,
+        uint256 _tokenId
+    ) public {
+        vm.assume(_from != founder && _from != address(0) && _from != address(auction));
+        vm.assume(_to != founder && _to != address(0) && _to != address(auction) && _from != _to);
+        vm.assume(_tokenId < _reservedUntilTokenId);
+        deployAltMock(_reservedUntilTokenId);
+
+        tokenToMirror.mint(_from, _tokenId);
+
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _from, allowed: true });
+        minters[0] = p1;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        vm.prank(minters[0].minter);
+        mirrorToken.mintFromReserveTo(_from, _tokenId);
+
+        vm.prank(_from);
+        tokenToMirror.transferFrom(_from, _to, _tokenId);
+
+        mirrorToken.mirror(_tokenId);
+
+        vm.expectRevert(abi.encodeWithSignature("ALREADY_MIRRORED()"));
+        mirrorToken.mirror(_tokenId);
+    }
+
+    function test_MirrorTransfer(
+        address _from,
+        address _to,
+        uint256 _reservedUntilTokenId,
+        uint256 _tokenId
+    ) public {
+        vm.assume(_from != founder && _from != address(0) && _from != address(auction));
+        vm.assume(_to != founder && _to != address(0) && _to != address(auction) && _from != _to);
+        vm.assume(_tokenId < _reservedUntilTokenId);
+        deployAltMock(_reservedUntilTokenId);
+
+        tokenToMirror.mint(_from, _tokenId);
+
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _from, allowed: true });
+        minters[0] = p1;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        vm.prank(minters[0].minter);
+        mirrorToken.mintFromReserveTo(_from, _tokenId);
+
+        vm.prank(_from);
+        tokenToMirror.transferFrom(_from, _to, _tokenId);
+
+        mirrorToken.transferFrom(_from, _to, _tokenId);
+
+        assertEq(mirrorToken.ownerOf(_tokenId), _to);
+    }
+
+    function test_NonMirrorTransfer(
+        address _from,
+        address _to,
+        uint256 _reservedUntilTokenId
+    ) public {
+        vm.assume(_from != founder && _from != address(0) && _from != address(auction));
+        vm.assume(_to != founder && _to != address(0) && _to != address(auction) && _from != _to);
+        deployAltMock(_reservedUntilTokenId);
+
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _from, allowed: true });
+        minters[0] = p1;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        vm.prank(minters[0].minter);
+        uint256 tokenId = mirrorToken.mintTo(_from);
+
+        vm.prank(_from);
+        mirrorToken.transferFrom(_from, _to, tokenId);
+
+        assertEq(mirrorToken.ownerOf(tokenId), _to);
+    }
+
+    function testRevert_MirrorNoApprovals(
+        address _from,
+        address _to,
+        uint256 _reservedUntilTokenId,
+        uint256 _tokenId
+    ) public {
+        vm.assume(_from != founder && _from != address(0) && _from != address(auction));
+        vm.assume(_to != founder && _to != address(0) && _to != address(auction) && _from != _to);
+        vm.assume(_tokenId < _reservedUntilTokenId);
+        deployAltMock(_reservedUntilTokenId);
+
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _from, allowed: true });
+        minters[0] = p1;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        vm.prank(minters[0].minter);
+        mirrorToken.mintFromReserveTo(_from, _tokenId);
+
+        vm.expectRevert(abi.encodeWithSignature("NO_APPROVALS()"));
+        mirrorToken.approve(_to, _tokenId);
+
+        vm.expectRevert(abi.encodeWithSignature("NO_APPROVALS()"));
+        mirrorToken.setApprovalForAll(_to, true);
+
+        assertEq(mirrorToken.isApprovedForAll(_to, _from), false);
+    }
+
+    function test_NonMirrorApproval(
+        address _from,
+        address _to,
+        uint256 _reservedUntilTokenId
+    ) public {
+        vm.assume(_from != founder && _from != address(0) && _from != address(auction));
+        vm.assume(_to != founder && _to != address(0) && _to != address(auction) && _from != _to);
+        deployAltMock(_reservedUntilTokenId);
+
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _from, allowed: true });
+        minters[0] = p1;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        vm.prank(minters[0].minter);
+        uint256 tokenId = mirrorToken.mintTo(_from);
+
+        vm.prank(_from);
+        mirrorToken.approve(_to, tokenId);
+
+        assertEq(mirrorToken.getApproved(tokenId), _to);
+    }
+
+    function test_NonMirrorNoApprovalForAll(
+        address _from,
+        address _to,
+        uint256 _reservedUntilTokenId
+    ) public {
+        vm.assume(_from != founder && _from != address(0) && _from != address(auction));
+        vm.assume(_to != founder && _to != address(0) && _to != address(auction) && _from != _to);
+        deployAltMock(_reservedUntilTokenId);
+
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _from, allowed: true });
+        minters[0] = p1;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        vm.prank(minters[0].minter);
+        uint256 tokenId = mirrorToken.mintTo(_from);
+
+        vm.expectRevert(abi.encodeWithSignature("NO_APPROVALS()"));
+        mirrorToken.setApprovalForAll(_to, true);
+
+        assertEq(mirrorToken.isApprovedForAll(_to, _from), false);
     }
 }
