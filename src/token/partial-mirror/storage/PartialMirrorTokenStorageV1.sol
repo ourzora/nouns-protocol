@@ -2,7 +2,6 @@
 pragma solidity 0.8.16;
 
 import { PartialMirrorTokenTypesV1 } from "../types/PartialMirrorTokenTypesV1.sol";
-import { BitMaps } from "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 
 /// @title PartialMirrorTokenStorageV1
 /// @author Neokry
@@ -26,5 +25,5 @@ contract PartialMirrorTokenStorageV1 is PartialMirrorTokenTypesV1 {
     uint256 public reservedUntilTokenId;
 
     /// @notice The token to mirror
-    address mirroredToken;
+    address public tokenToMirror;
 }

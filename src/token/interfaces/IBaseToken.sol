@@ -4,6 +4,7 @@ pragma solidity 0.8.16;
 import { IERC721 } from "../../lib/interfaces/IERC721.sol";
 import { IERC721Votes } from "../../lib/interfaces/IERC721Votes.sol";
 import { IManager } from "../../manager/IManager.sol";
+import { IBaseMetadata } from "../../metadata/interfaces/IBaseMetadata.sol";
 
 /// @title IBaseToken
 /// @author Neokry
@@ -12,6 +13,19 @@ interface IBaseToken is IERC721, IERC721Votes {
     ///                                                          ///
     ///                           FUNCTIONS                      ///
     ///                                                          ///
+
+    /// @notice Initializes a DAO's ERC-721 token
+    /// @param founders The founding members to receive vesting allocations
+    /// @param data The encoded token and metadata initialization strings
+    /// @param metadataRenderer The token's metadata renderer
+    /// @param auction The token's auction house
+    function initialize(
+        IManager.FounderParams[] calldata founders,
+        bytes calldata data,
+        address metadataRenderer,
+        address auction,
+        address initialOwner
+    ) external;
 
     /// @notice Mints tokens to the caller and handles founder vesting
     function mint() external returns (uint256 tokenId);
@@ -48,9 +62,9 @@ interface IBaseToken is IERC721, IERC721Votes {
     /// @notice The owner of the token and metadata renderer
     function owner() external view returns (address);
 
-    /// @notice Check if an address is a minter
-    /// @param _minter Address to check
-    function isMinter(address _minter) external view returns (bool);
+    /// @notice Set a new metadata renderer
+    /// @param newRenderer new renderer address to use
+    function setMetadataRenderer(IBaseMetadata newRenderer) external;
 
     /// @notice Callback called by auction on first auction started to transfer ownership to treasury from founder
     function onFirstAuctionStarted() external;

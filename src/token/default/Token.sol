@@ -325,12 +325,12 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
 
     /// @notice The URI for a token
     /// @param _tokenId The ERC-721 token id
-    function tokenURI(uint256 _tokenId) public view override(IToken, ERC721) returns (string memory) {
+    function tokenURI(uint256 _tokenId) public view override(IBaseToken, ERC721) returns (string memory) {
         return settings.metadataRenderer.tokenURI(_tokenId);
     }
 
     /// @notice The URI for the contract
-    function contractURI() public view override(IToken, ERC721) returns (string memory) {
+    function contractURI() public view override(IBaseToken, ERC721) returns (string memory) {
         return settings.metadataRenderer.contractURI();
     }
 
@@ -466,7 +466,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     }
 
     /// @notice The contract owner
-    function owner() public view override(IToken, Ownable) returns (address) {
+    function owner() public view override(IBaseToken, Ownable) returns (address) {
         return super.owner();
     }
 

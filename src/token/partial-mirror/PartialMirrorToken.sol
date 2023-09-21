@@ -16,6 +16,7 @@ import { IBaseToken } from "../interfaces/IBaseToken.sol";
 import { VersionedContract } from "../../VersionedContract.sol";
 
 import { IMintStrategy } from "../../minters/interfaces/IMintStrategy.sol";
+import { IMirrorToken } from "../interfaces/IMirrorToken.sol";
 
 /// @title Token
 /// @author Neokry
@@ -101,7 +102,7 @@ contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Own
         settings.metadataRenderer = IBaseMetadata(_metadataRenderer);
         settings.auction = _auction;
         reservedUntilTokenId = params.reservedUntilTokenId;
-        mirroredToken = params.mirroredToken;
+        tokenToMirror = params.tokenToMirror;
 
         // Check if an inital minter was specified
         if (params.initalMinter != address(0)) {
@@ -386,7 +387,7 @@ contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Own
 
     function _ownerOfMirrored(uint256 _tokenId) internal view returns (address) {
         // Check mirrored token owner or return address(0) if it doesn't exist
-        try IERC721(mirroredToken).ownerOf(_tokenId) returns (address mirrorOwner) {
+        try IERC721(tokenToMirror).ownerOf(_tokenId) returns (address mirrorOwner) {
             return mirrorOwner;
         } catch {
             return address(0);
@@ -455,12 +456,12 @@ contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Own
 
     /// @notice The URI for a token
     /// @param _tokenId The ERC-721 token id
-    function tokenURI(uint256 _tokenId) public view override(IPartialMirrorToken, ERC721) returns (string memory) {
+    function tokenURI(uint256 _tokenId) public view override(IBaseToken, ERC721) returns (string memory) {
         return settings.metadataRenderer.tokenURI(_tokenId);
     }
 
     /// @notice The URI for the contract
-    function contractURI() public view override(IPartialMirrorToken, ERC721) returns (string memory) {
+    function contractURI() public view override(IBaseToken, ERC721) returns (string memory) {
         return settings.metadataRenderer.contractURI();
     }
 
@@ -596,7 +597,7 @@ contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Own
     }
 
     /// @notice The contract owner
-    function owner() public view override(IPartialMirrorToken, Ownable) returns (address) {
+    function owner() public view override(IBaseToken, Ownable) returns (address) {
         return super.owner();
     }
 
@@ -630,6 +631,14 @@ contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Own
         }
 
         settings.metadataRenderer = newRenderer;
+    }
+
+    ///                                                          ///
+    ///                         ERC165                           ///
+    ///                                                          ///
+
+    function supportsInterface(bytes4 interfaceId) public pure virtual override returns (bool) {
+        return interfaceId == type(IMirrorToken).interfaceId || super.supportsInterface(interfaceId);
     }
 
     ///                                                          ///

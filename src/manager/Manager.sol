@@ -8,7 +8,7 @@ import { ERC1967Proxy } from "../lib/proxy/ERC1967Proxy.sol";
 import { ManagerStorageV1 } from "./storage/ManagerStorageV1.sol";
 import { ManagerStorageV2 } from "./storage/ManagerStorageV2.sol";
 import { IManager } from "./IManager.sol";
-import { IToken } from "../token/default/IToken.sol";
+import { IBaseToken } from "../token/interfaces/IBaseToken.sol";
 import { IBaseMetadata } from "../metadata/interfaces/IBaseMetadata.sol";
 import { IAuction } from "../auction/IAuction.sol";
 import { ITreasury } from "../governance/treasury/ITreasury.sol";
@@ -109,7 +109,7 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         daoAddressesByToken[token] = DAOAddresses({ metadata: metadata, auction: auction, treasury: treasury, governor: governor });
 
         // Initialize each instance with the provided settings
-        IToken(token).initialize({
+        IBaseToken(token).initialize({
             founders: _founderParams,
             metadataRenderer: metadata,
             auction: auction,
@@ -117,7 +117,7 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
             data: _implData[IMPLEMENTATION_TYPE_TOKEN]
         });
         IBaseMetadata(metadata).initialize({ token: token, data: _implData[IMPLEMENTATION_TYPE_METADATA] });
-        IAuction(auction).initialize({ token: token, founder: founder, treasury: treasury, data: _implData[IMPLEMENTATION_TYPE_AUCTION] });
+        IAuction(auction).initialize({ token: token, initialOwner: founder, treasury: treasury, data: _implData[IMPLEMENTATION_TYPE_AUCTION] });
         ITreasury(treasury).initialize({ governor: governor, data: _implData[IMPLEMENTATION_TYPE_TREASURY] });
         IGovernor(governor).initialize({ treasury: treasury, token: token, data: _implData[IMPLEMENTATION_TYPE_GOVERNOR] });
 
@@ -143,7 +143,7 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
             IBaseMetadata(metadata).initialize(_setupRenderer, _token);
         }
 
-        IToken(_token).setMetadataRenderer(IBaseMetadata(metadata));
+        IBaseToken(_token).setMetadataRenderer(IBaseMetadata(metadata));
 
         emit MetadataRendererUpdated({ sender: msg.sender, renderer: metadata });
     }

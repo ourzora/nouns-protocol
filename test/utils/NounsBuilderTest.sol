@@ -213,16 +213,22 @@ contract NounsBuilderTest is Test {
     }
 
     function setMockAuctionParams() internal virtual {
-        setAuctionParams(0.01 ether, 10 minutes, 0);
+        setAuctionParams(0.01 ether, 10 minutes, address(0), 0);
     }
 
     function setAuctionParams(
         uint256 _reservePrice,
         uint256 _duration,
+        address _founderRewardRecipent,
         uint256 _founderRewardBPS
     ) internal virtual {
         implData.push();
-        auctionParams = IAuction.AuctionParams({ reservePrice: _reservePrice, duration: _duration, founderRewardBPS: _founderRewardBPS });
+        auctionParams = IAuction.AuctionParams({
+            reservePrice: _reservePrice,
+            duration: _duration,
+            founderRewardRecipent: _founderRewardRecipent,
+            founderRewardBPS: _founderRewardBPS
+        });
         implData[manager.IMPLEMENTATION_TYPE_AUCTION()] = abi.encode(auctionParams);
     }
 

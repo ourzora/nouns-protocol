@@ -3,7 +3,7 @@ pragma solidity 0.8.16;
 
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import { IOwnable } from "../lib/interfaces/IOwnable.sol";
-import { IToken } from "../token/default/IToken.sol";
+import { IBaseToken } from "../token/interfaces/IBaseToken.sol";
 import { IManager } from "../manager/IManager.sol";
 import { IMintStrategy } from "./interfaces/IMintStrategy.sol";
 
@@ -151,7 +151,7 @@ contract MerkleReserveMinter is IMintStrategy {
                 }
 
                 // Only allowing reserved tokens to be minted for this strategy
-                IToken(tokenContract).mintFromReserveTo(claim.mintTo, claim.tokenId);
+                IBaseToken(tokenContract).mintFromReserveTo(claim.mintTo, claim.tokenId);
             }
         }
 

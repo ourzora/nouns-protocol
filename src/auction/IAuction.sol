@@ -37,7 +37,7 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @param duration The new auction duration
     event DurationUpdated(uint256 duration);
 
-    /// @notice Emitted when the reserve price is updated
+    /// @notice Emitted when the reserve price is updatedq
     /// @param reservePrice The new reserve price
     event ReservePriceUpdated(uint256 reservePrice);
 
@@ -48,6 +48,14 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @notice Emitted when the time buffer is updated
     /// @param timeBuffer The new time buffer
     event TimeBufferUpdated(uint256 timeBuffer);
+
+    /// @notice Emitted when the founder reward recipient is updated
+    /// @param founderRewardRecipient The new time buffer
+    event FounderRewardRecipentUpdated(address founderRewardRecipient);
+
+    /// @notice Emitted when the founder reward BPS is updated
+    /// @param founderRewardBPS The new time buffer
+    event FounderRewardBPSUpdated(uint256 founderRewardBPS);
 
     ///                                                          ///
     ///                           ERRORS                         ///
@@ -99,6 +107,8 @@ interface IAuction is IUUPS, IOwnable, IPausable {
         uint256 duration;
         /// @notice The reserve price of each auction
         uint256 reservePrice;
+        /// @notice The address to recieve founders rewards
+        address founderRewardRecipent;
         /// @notice The percent of rewards a founder receives in BPS for each auction
         uint256 founderRewardBPS;
     }
@@ -109,12 +119,12 @@ interface IAuction is IUUPS, IOwnable, IPausable {
 
     /// @notice Initializes a DAO's auction house
     /// @param token The ERC-721 token address
-    /// @param founder The founder responsible for starting the first auction
+    /// @param initialOwner The account responsible for starting the first auction
     /// @param treasury The treasury address where ETH will be sent
     /// @param data The encoded auction initialization data
     function initialize(
         address token,
-        address founder,
+        address initialOwner,
         address treasury,
         bytes calldata data
     ) external;

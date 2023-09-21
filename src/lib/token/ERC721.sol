@@ -59,7 +59,7 @@ abstract contract ERC721 is IERC721, Initializable {
 
     /// @notice If the contract implements an interface
     /// @param _interfaceId The interface id
-    function supportsInterface(bytes4 _interfaceId) external pure returns (bool) {
+    function supportsInterface(bytes4 _interfaceId) public pure virtual returns (bool) {
         return
             _interfaceId == 0x01ffc9a7 || // ERC165 Interface ID
             _interfaceId == 0x80ac58cd || // ERC721 Interface ID

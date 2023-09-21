@@ -66,12 +66,12 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
 
     /// @notice Initializes a DAO's auction contract
     /// @param _token The ERC-721 token address
-    /// @param _founder The founder responsible for starting the first auction
+    /// @param _initalOwner The account responsible for starting the first auction
     /// @param _treasury The treasury address where ETH will be sent
     /// @param _data The encoded auction settings
     function initialize(
         address _token,
-        address _founder,
+        address _initalOwner,
         address _treasury,
         bytes calldata _data
     ) external initializer {
@@ -82,7 +82,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         __ReentrancyGuard_init();
 
         // Grant initial ownership to a founder
-        __Ownable_init(_founder);
+        __Ownable_init(_initalOwner);
 
         // Pause the contract until the first auction
         __Pausable_init(true);
@@ -99,8 +99,8 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         settings.timeBuffer = INITIAL_TIME_BUFFER;
         settings.minBidIncrement = INITIAL_MIN_BID_INCREMENT_PERCENT;
 
-        // Store the founder rewards recipient
-        founderRewardsRecipent = _founder;
+        // Store the founder rewards settings
+        founderRewardRecipent = params.founderRewardRecipent;
         founderRewardBPS = params.founderRewardBPS;
     }
 
@@ -239,7 +239,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
                 if (split.totalRewards != 0) {
                     // Deposit rewards
                     rewards.depositRewards{ value: split.totalRewards }(
-                        founderRewardsRecipent,
+                        founderRewardRecipent,
                         split.founderReward,
                         currentBidReferral,
                         split.refferalReward,
@@ -409,6 +409,22 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         settings.minBidIncrement = SafeCast.toUint8(_percentage);
 
         emit MinBidIncrementPercentageUpdated(_percentage);
+    }
+
+    /// @notice Updates the founder reward recipent address
+    /// @param _founder The new founder
+    function setFounderRewardsRecipent(address _founder) external onlyOwner whenPaused {
+        founderRewardRecipent = _founder;
+
+        emit FounderRewardRecipentUpdated(_founder);
+    }
+
+    /// @notice Updates the founder reward percentage in BPS
+    /// @param _founderRewardBPS The new percentage in BPS
+    function setFounderRewardBPS(uint256 _founderRewardBPS) external onlyOwner whenPaused {
+        founderRewardBPS = _founderRewardBPS;
+
+        emit FounderRewardBPSUpdated(_founderRewardBPS);
     }
 
     ///                                                          ///

@@ -6,7 +6,7 @@ contract AuctionStorageV2 {
     address public currentBidReferral;
 
     /// @notice The DAO founder collecting protocol rewards
-    address public founderRewardsRecipent;
+    address public founderRewardRecipent;
 
     /// @notice The rewards to be paid to the DAO founder in BPS
     uint256 public founderRewardBPS;
