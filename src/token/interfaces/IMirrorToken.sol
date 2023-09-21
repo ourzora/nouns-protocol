@@ -5,7 +5,11 @@ pragma solidity 0.8.16;
 /// @author Neokry
 /// @notice A token that allows mirroring another token's ownership
 interface IMirrorToken {
-    /// @notice Mirrors the ownership of a given tokenId from {tokenToMirror}
+    /// @notice Gets the token address being mirrored
+    /// @return The token address being mirrored
+    function getTokenToMirror() external view returns (address);
+
+    /// @notice Mirrors the ownership of a given tokenId
     /// @param _tokenId The ERC-721 token to mirror
     function mirror(uint256 _tokenId) external;
 }

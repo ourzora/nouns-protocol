@@ -5,12 +5,13 @@ import { IUUPS } from "../../lib/interfaces/IUUPS.sol";
 import { IERC721Votes } from "../../lib/interfaces/IERC721Votes.sol";
 import { IManager } from "../../manager/IManager.sol";
 import { IBaseToken } from "../interfaces/IBaseToken.sol";
+import { IMirrorToken } from "../interfaces/IMirrorToken.sol";
 import { PartialMirrorTokenTypesV1 } from "./types/PartialMirrorTokenTypesV1.sol";
 
 /// @title IToken
 /// @author Neokry
 /// @notice The external Token events, errors and functions
-interface IPartialMirrorToken is IUUPS, IERC721Votes, IBaseToken, PartialMirrorTokenTypesV1 {
+interface IPartialMirrorToken is IUUPS, IERC721Votes, IBaseToken, IMirrorToken, PartialMirrorTokenTypesV1 {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///

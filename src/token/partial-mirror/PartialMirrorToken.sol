@@ -303,6 +303,11 @@ contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Own
     ///                                                          ///
     ///                             Mirror                       ///
     ///                                                          ///
+    /// @notice Gets the token address being mirrored
+    /// @return The token address being mirrored
+    function getTokenToMirror() external view override returns (address) {
+        return tokenToMirror;
+    }
 
     /// @notice Mirrors the ownership of a given tokenId from the mirrored token
     /// @param _tokenId The ERC-721 token to mirror
