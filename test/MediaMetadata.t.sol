@@ -41,7 +41,7 @@ contract MediaMetadataTest is NounsBuilderTest, MediaMetadataTypesV1 {
 
     function test_AddNewMediaItems() public {
         MediaItem[] memory items = new MediaItem[](1);
-        items[0] = MediaItem({ imageURI: "img1", animationURI: "ani1" });
+        items[0] = MediaItem({ imageURI: "img1", contentURI: "content1" });
 
         vm.prank(founder);
         mediaMetadata.addMediaItems(items);
@@ -53,8 +53,8 @@ contract MediaMetadataTest is NounsBuilderTest, MediaMetadataTypesV1 {
 
     function test_deleteAndRecreateMediaItems() public {
         MediaItem[] memory items = new MediaItem[](2);
-        items[0] = MediaItem({ imageURI: "img1", animationURI: "ani1" });
-        items[1] = MediaItem({ imageURI: "img2", animationURI: "ani2" });
+        items[0] = MediaItem({ imageURI: "img1", contentURI: "content1" });
+        items[1] = MediaItem({ imageURI: "img2", contentURI: "content2" });
 
         vm.prank(founder);
         mediaMetadata.addMediaItems(items);
@@ -63,8 +63,8 @@ contract MediaMetadataTest is NounsBuilderTest, MediaMetadataTypesV1 {
         bool response = mediaMetadata.onMinted(0);
         assertTrue(response);
 
-        items[0] = MediaItem({ imageURI: "upsertImg1", animationURI: "upsertAni1" });
-        items[1] = MediaItem({ imageURI: "upsertImg2", animationURI: "upsertAni2" });
+        items[0] = MediaItem({ imageURI: "upsertImg1", contentURI: "upsertcontent1" });
+        items[1] = MediaItem({ imageURI: "upsertImg2", contentURI: "upsertcontent2" });
 
         vm.prank(founder);
         mediaMetadata.deleteAndRecreateMediaItems(items);
@@ -76,8 +76,8 @@ contract MediaMetadataTest is NounsBuilderTest, MediaMetadataTypesV1 {
 
     function test_MintPastItemCount() public {
         MediaItem[] memory items = new MediaItem[](2);
-        items[0] = MediaItem({ imageURI: "img1", animationURI: "ani1" });
-        items[1] = MediaItem({ imageURI: "img2", animationURI: "ani2" });
+        items[0] = MediaItem({ imageURI: "img1", contentURI: "content1" });
+        items[1] = MediaItem({ imageURI: "img2", contentURI: "content2" });
 
         vm.prank(founder);
         mediaMetadata.addMediaItems(items);
@@ -89,8 +89,8 @@ contract MediaMetadataTest is NounsBuilderTest, MediaMetadataTypesV1 {
 
     function test_MintPastItemCountAndContinue() public {
         MediaItem[] memory items = new MediaItem[](2);
-        items[0] = MediaItem({ imageURI: "img1", animationURI: "ani1" });
-        items[1] = MediaItem({ imageURI: "img2", animationURI: "ani2" });
+        items[0] = MediaItem({ imageURI: "img1", contentURI: "content1" });
+        items[1] = MediaItem({ imageURI: "img2", contentURI: "content2" });
 
         vm.prank(founder);
         mediaMetadata.addMediaItems(items);
@@ -100,8 +100,8 @@ contract MediaMetadataTest is NounsBuilderTest, MediaMetadataTypesV1 {
         assertFalse(response);
 
         MediaItem[] memory newItems = new MediaItem[](2);
-        newItems[0] = MediaItem({ imageURI: "img3", animationURI: "ani3" });
-        newItems[1] = MediaItem({ imageURI: "img4", animationURI: "ani4" });
+        newItems[0] = MediaItem({ imageURI: "img3", contentURI: "content3" });
+        newItems[1] = MediaItem({ imageURI: "img4", contentURI: "content4" });
 
         vm.prank(founder);
         mediaMetadata.addMediaItems(newItems);
@@ -138,9 +138,9 @@ contract MediaMetadataTest is NounsBuilderTest, MediaMetadataTypesV1 {
 
     function test_TokenURI() public {
         MediaItem[] memory items = new MediaItem[](3);
-        items[0] = MediaItem({ imageURI: "img0", animationURI: "ani0" });
-        items[1] = MediaItem({ imageURI: "img1", animationURI: "ani1" });
-        items[2] = MediaItem({ imageURI: "img2", animationURI: "ani2" });
+        items[0] = MediaItem({ imageURI: "img0", contentURI: "content0" });
+        items[1] = MediaItem({ imageURI: "img1", contentURI: "content1" });
+        items[2] = MediaItem({ imageURI: "img2", contentURI: "content2" });
 
         vm.prank(founder);
         mediaMetadata.addMediaItems(items);
@@ -154,12 +154,12 @@ contract MediaMetadataTest is NounsBuilderTest, MediaMetadataTypesV1 {
             "name": "Mock Token #0",
             "description": "This is a mock token",
             "image": "img0",
-            "animation": "ani0"
+            "animation_url": "content0"
         }
          */
 
         string memory json = Base64URIDecoder.decodeURI("data:application/json;base64,", token.tokenURI(0));
 
-        assertEq(json, '{"name": "Mock Token #0","description": "This is a mock token","image": "img0","animation_url": "ani0"}');
+        assertEq(json, '{"name": "Mock Token #0","description": "This is a mock token","image": "img0","animation_url": "content0"}');
     }
 }

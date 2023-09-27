@@ -8,8 +8,8 @@ interface MediaMetadataTypesV1 {
     struct MediaItem {
         /// @notice The image content URI
         string imageURI;
-        /// @notice The animation content URI
-        string animationURI;
+        /// @notice The content URI
+        string contentURI;
     }
 
     struct Settings {

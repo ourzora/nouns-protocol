@@ -395,6 +395,25 @@ contract PropertyMetadata is IPropertyMetadata, VersionedContract, Initializable
         return MetadataBuilder.generateEncodedJSON(items);
     }
 
+    /// @notice The token data
+    /// @param tokenId The ERC-721 token id
+    function tokenData(uint256 tokenId)
+        external
+        view
+        override
+        returns (
+            string memory name,
+            string memory imageURI,
+            string memory contentURI
+        )
+    {
+        (, string memory queryString) = getAttributes(tokenId);
+
+        name = string.concat(_name(), " #", Strings.toString(tokenId));
+        imageURI = string.concat(settings.rendererBase, queryString);
+        contentURI = "";
+    }
+
     ///                                                          ///
     ///                       METADATA SETTINGS                  ///
     ///                                                          ///

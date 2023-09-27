@@ -133,7 +133,7 @@ contract MediaMetadata is IMediaMetadata, VersionedContract, Initializable, UUPS
 
                 // Store the media item
                 mediaItems[mediaItemId].imageURI = _items[i].imageURI;
-                mediaItems[mediaItemId].animationURI = _items[i].animationURI;
+                mediaItems[mediaItemId].contentURI = _items[i].contentURI;
             }
         }
     }
@@ -188,9 +188,27 @@ contract MediaMetadata is IMediaMetadata, VersionedContract, Initializable, UUPS
         });
         items[1] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyDescription, value: settings.description, quote: true });
         items[2] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyImage, value: mediaItem.imageURI, quote: true });
-        items[3] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyAnimationURL, value: mediaItem.animationURI, quote: true });
+        items[3] = MetadataBuilder.JSONItem({ key: MetadataJSONKeys.keyAnimationURL, value: mediaItem.contentURI, quote: true });
 
         return MetadataBuilder.generateEncodedJSON(items);
+    }
+
+    /// @notice The token data
+    /// @param tokenId The ERC-721 token id
+    function tokenData(uint256 tokenId)
+        external
+        view
+        override
+        returns (
+            string memory name,
+            string memory imageURI,
+            string memory contentURI
+        )
+    {
+        MediaItem storage mediaItem = mediaItems[tokenId];
+        name = string.concat(_name(), " #", Strings.toString(tokenId));
+        imageURI = mediaItem.imageURI;
+        contentURI = mediaItem.contentURI;
     }
 
     ///                                                          ///

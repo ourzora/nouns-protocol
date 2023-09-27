@@ -19,17 +19,8 @@ interface IPropertyMetadata is IBaseMetadata, PropertyMetadataTypesV1, PropertyM
     /// @notice Additional token properties have been set
     event AdditionalTokenPropertiesSet(AdditionalTokenProperty[] _additionalJsonProperties);
 
-    /// @notice Emitted when the contract image is updated
-    event ContractImageUpdated(string prevImage, string newImage);
-
     /// @notice Emitted when the renderer base is updated
     event RendererBaseUpdated(string prevRendererBase, string newRendererBase);
-
-    /// @notice Emitted when the collection description is updated
-    event DescriptionUpdated(string prevDescription, string newDescription);
-
-    /// @notice Emitted when the collection uri is updated
-    event WebsiteURIUpdated(string lastURI, string newURI);
 
     ///                                                          ///
     ///                            ERRORS                        ///
@@ -90,24 +81,10 @@ interface IPropertyMetadata is IBaseMetadata, PropertyMetadataTypesV1, PropertyM
     /// @param tokenId The ERC-721 token id
     function getAttributes(uint256 tokenId) external view returns (string memory resultAttributes, string memory queryString);
 
-    /// @notice The contract image
-    function contractImage() external view returns (string memory);
-
     /// @notice The renderer base
     function rendererBase() external view returns (string memory);
-
-    /// @notice The collection description
-    function description() external view returns (string memory);
-
-    /// @notice Updates the contract image
-    /// @param newContractImage The new contract image
-    function updateContractImage(string memory newContractImage) external;
 
     /// @notice Updates the renderer base
     /// @param newRendererBase The new renderer base
     function updateRendererBase(string memory newRendererBase) external;
-
-    /// @notice Updates the collection description
-    /// @param newDescription The new description
-    function updateDescription(string memory newDescription) external;
 }

@@ -19,15 +19,14 @@ contract DeployContracts is Script {
 
     string configFile;
 
-    function _getKey(string memory key) internal returns (address result) {
-        (result) = abi.decode(vm.parseJson(configFile, key), (address));
+    function _getKey(string memory key) internal view returns (address result) {
+        (result) = abi.decode(vm.parseJson(configFile, string.concat(".", key)), (address));
     }
 
     function run() public {
         uint256 chainID = vm.envUint("CHAIN_ID");
         uint256 key = vm.envUint("PRIVATE_KEY");
         address weth = vm.envAddress("WETH_ADDRESS");
-        address owner = vm.envAddress("MANAGER_OWNER");
 
         configFile = vm.readFile(string.concat("./addresses/", Strings.toString(chainID), ".json"));
 
@@ -39,20 +38,16 @@ contract DeployContracts is Script {
         console2.log("~~~~~~~~~~ DEPLOYER ~~~~~~~~~~~");
         console2.log(deployerAddress);
 
-        console2.log("~~~~~~~~~~ OWNER ~~~~~~~~~~~");
-        console2.log(owner);
-        console2.log("");
-
         vm.startBroadcast(deployerAddress);
 
         // Deploy root manager implementation + proxy
         address managerImpl0 = address(new Manager());
 
-        Manager manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", owner))));
+        Manager manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", deployerAddress))));
 
         ProtocolRewards rewards = new ProtocolRewards(address(manager), _getKey("BuilderDAO"));
 
-        // Deploy token implementation
+        // Deploy standard token implementation
         address tokenImpl = address(new Token(address(manager)));
 
         // Deploy metadata renderer implementation
@@ -69,16 +64,27 @@ contract DeployContracts is Script {
 
         address managerImpl = address(new Manager());
 
-        // vm.prank(owner);
-        // manager.upgradeTo(managerImpl);
+        manager.upgradeTo(managerImpl);
+
+        // Register implementations
+        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TOKEN(), tokenImpl);
+
+        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_METADATA(), metadataRendererImpl);
+
+        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_AUCTION(), auctionImpl);
+
+        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_GOVERNOR(), governorImpl);
+
+        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TREASURY(), treasuryImpl);
 
         vm.stopBroadcast();
 
-        string memory filePath = string(abi.encodePacked("deploys/", chainID.toString(), ".txt"));
+        string memory filePath = string(abi.encodePacked("deploys/", chainID.toString(), ".version2_core.txt"));
 
         vm.writeFile(filePath, "");
         vm.writeLine(filePath, string(abi.encodePacked("Manager: ", addressToString(address(manager)))));
-        vm.writeLine(filePath, string(abi.encodePacked("Token implementation: ", addressToString(tokenImpl))));
+        vm.writeLine(filePath, string(abi.encodePacked("Default Token implementation: ", addressToString(tokenImpl))));
+        vm.writeLine(filePath, string(abi.encodePacked("Protocol Rewards:", addressToString(address(rewards)))));
         vm.writeLine(filePath, string(abi.encodePacked("Metadata Renderer implementation: ", addressToString(metadataRendererImpl))));
         vm.writeLine(filePath, string(abi.encodePacked("Auction implementation: ", addressToString(auctionImpl))));
         vm.writeLine(filePath, string(abi.encodePacked("Treasury implementation: ", addressToString(treasuryImpl))));
@@ -95,8 +101,14 @@ contract DeployContracts is Script {
         console2.logAddress(address(manager));
         console2.log("");
 
-        console2.log("~~~~~~~~~~ TOKEN IMPL ~~~~~~~~~~~");
+        console2.log("~~~~~~~~~~ PROTOCOL REWARDS ~~~~~~~~~~~");
+        console2.logAddress(address(rewards));
+
+        console2.log("~~~~~~~~~~ DEFAULT TOKEN IMPL ~~~~~~~~~~~");
         console2.logAddress(tokenImpl);
+
+        console2.log("~~~~~~~~~~ MIRROR TOKEN IMPL ~~~~~~~~~~~");
+        //console2.logAddress(mirrorTokenImpl);
 
         console2.log("~~~~~~~~~~ METADATA RENDERER IMPL ~~~~~~~~~~~");
         console2.logAddress(metadataRendererImpl);

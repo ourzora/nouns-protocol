@@ -18,6 +18,8 @@ import { IOwnable } from "../lib/interfaces/IOwnable.sol";
 import { VersionedContract } from "../VersionedContract.sol";
 import { IVersionedContract } from "../lib/interfaces/IVersionedContract.sol";
 
+import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+
 /// @title Manager
 /// @author Neokry & Rohan Kulkarni
 /// @custom:repo github.com/ourzora/nouns-protocol
@@ -267,6 +269,13 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
                 treasury: _safeGetVersion(treasury),
                 governor: _safeGetVersion(governor)
             });
+    }
+
+    /// @notice If the contract implements an interface
+    /// @param _target The contract to check
+    /// @param _interfaceId The interface id
+    function supportsInterface(address _target, bytes4 _interfaceId) public view returns (bool) {
+        return ERC165Checker.supportsInterface(_target, _interfaceId);
     }
 
     ///                                                          ///

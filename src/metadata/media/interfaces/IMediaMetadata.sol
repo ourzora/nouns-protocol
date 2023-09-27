@@ -15,15 +15,6 @@ interface IMediaMetadata is IBaseMetadata, MediaMetadataTypesV1 {
     /// @notice Additional token properties have been set
     event AdditionalTokenPropertiesSet(AdditionalTokenProperty[] _additionalJsonProperties);
 
-    /// @notice Emitted when the contract image is updated
-    event ContractImageUpdated(string prevImage, string newImage);
-
-    /// @notice Emitted when the collection description is updated
-    event DescriptionUpdated(string prevDescription, string newDescription);
-
-    /// @notice Emitted when the collection uri is updated
-    event WebsiteURIUpdated(string lastURI, string newURI);
-
     ///                                                          ///
     ///                            ERRORS                        ///
     ///                                                          ///
@@ -46,22 +37,4 @@ interface IMediaMetadata is IBaseMetadata, MediaMetadataTypesV1 {
         /// @notice The project URI
         string projectURI;
     }
-
-    ///                                                          ///
-    ///                           FUNCTIONS                      ///
-    ///                                                          ///
-
-    /// @notice The contract image
-    function contractImage() external view returns (string memory);
-
-    /// @notice The collection description
-    function description() external view returns (string memory);
-
-    /// @notice Updates the contract image
-    /// @param newContractImage The new contract image
-    function updateContractImage(string memory newContractImage) external;
-
-    /// @notice Updates the collection description
-    /// @param newDescription The new description
-    function updateDescription(string memory newDescription) external;
 }
