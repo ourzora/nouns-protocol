@@ -105,6 +105,10 @@ interface IPartialMirrorToken is IUUPS, IERC721Votes, IBaseToken, IMirrorToken, 
         address initialOwner
     ) external;
 
+    /// @notice Mirrors the ownership of a given tokenId from the mirrored token
+    /// @param _tokenId The ERC-721 token to mirror
+    function mirror(uint256 _tokenId) external;
+
     /// @notice The number of founders
     function totalFounders() external view returns (uint256);
 

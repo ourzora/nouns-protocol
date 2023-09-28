@@ -16,7 +16,7 @@ contract MerkleReserveMinter is IMintStrategy {
     ///                                                          ///
 
     /// @notice Event for mint settings updated
-    event MinterSet(address indexed mediaContract, MerkleMinterSettings merkleSaleSettings);
+    event MinterSet(address indexed tokenContract, MerkleMinterSettings merkleSaleSettings);
 
     ///                                                          ///
     ///                            ERRORS                        ///

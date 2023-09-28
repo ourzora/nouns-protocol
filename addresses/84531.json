@@ -11,6 +11,6 @@
   "Treasury": "0xdab522800bd789ddb61e01b52088b6a6d95b50eb",
   "Governor": "0xaca9b2ddd5060ff81b1bf5ccaacd5b20429111cd",
   "BuilderDAO": "0x7498e6e471f31e869f038D8DBffbDFdf650c3F95",
-  "RedeemMinter": "0x82accbf10febc39f0d1ad3fed84137dde6542455",
-  "ReserveMinter": "0x0300ba2fbc45c4191c475731b0876eeef3271b86"
+  "ERC721RedeemMinter": "0x82accbf10febc39f0d1ad3fed84137dde6542455",
+  "MerkleReserveMinter": "0x0300ba2fbc45c4191c475731b0876eeef3271b86"
 }
