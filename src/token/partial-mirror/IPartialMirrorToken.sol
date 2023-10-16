@@ -83,9 +83,9 @@ interface IPartialMirrorToken is IUUPS, IERC721Votes, IBaseToken, IMirrorToken, 
         /// @notice The token contract to be mirrored
         address tokenToMirror;
         /// @notice The minter a DAO enables by default
-        address initalMinter;
-        /// @notice The initilization data for the inital minter
-        bytes initalMinterData;
+        address initialMinter;
+        /// @notice The initilization data for the initial minter
+        bytes initialMinterData;
     }
 
     ///                                                          ///

@@ -66,12 +66,12 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
 
     /// @notice Initializes a DAO's auction contract
     /// @param _token The ERC-721 token address
-    /// @param _initalOwner The account responsible for starting the first auction
+    /// @param _initialOwner The account responsible for starting the first auction
     /// @param _treasury The treasury address where ETH will be sent
     /// @param _data The encoded auction settings
     function initialize(
         address _token,
-        address _initalOwner,
+        address _initialOwner,
         address _treasury,
         bytes calldata _data
     ) external initializer {
@@ -82,7 +82,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         __ReentrancyGuard_init();
 
         // Grant initial ownership to a founder
-        __Ownable_init(_initalOwner);
+        __Ownable_init(_initialOwner);
 
         // Pause the contract until the first auction
         __Pausable_init(true);

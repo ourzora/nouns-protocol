@@ -104,13 +104,13 @@ contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Own
         reservedUntilTokenId = params.reservedUntilTokenId;
         tokenToMirror = params.tokenToMirror;
 
-        // Check if an inital minter was specified
-        if (params.initalMinter != address(0)) {
-            minter[params.initalMinter] = true;
+        // Check if an initial minter was specified
+        if (params.initialMinter != address(0)) {
+            minter[params.initialMinter] = true;
 
             // Set minter settings if specified
-            if (params.initalMinterData.length > 0) {
-                IMintStrategy(params.initalMinter).setMintSettings(params.initalMinterData);
+            if (params.initialMinterData.length > 0) {
+                IMintStrategy(params.initialMinter).setMintSettings(params.initialMinterData);
             }
         }
     }

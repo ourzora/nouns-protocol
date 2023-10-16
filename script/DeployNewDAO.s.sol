@@ -42,8 +42,8 @@ contract SetupDaoScript is Script {
             name: "Test",
             symbol: "TST",
             reservedUntilTokenId: 10,
-            initalMinter: address(0),
-            initalMinterData: hex"00"
+            initialMinter: address(0),
+            initialMinterData: hex"00"
         });
 
         IPropertyMetadata.PropertyMetadataParams memory metadataParams = IPropertyMetadata.PropertyMetadataParams({

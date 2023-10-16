@@ -48,8 +48,8 @@ contract PartialMirrorTokenTest is NounsBuilderTest, TokenTypesV1 {
             symbol: "MOCK",
             reservedUntilTokenId: _reservedUntilTokenId,
             tokenToMirror: address(tokenToMirror),
-            initalMinter: address(0),
-            initalMinterData: new bytes(0)
+            initialMinter: address(0),
+            initialMinterData: new bytes(0)
         });
 
         implAddresses[manager.IMPLEMENTATION_TYPE_TOKEN()] = mirrorTokenImpl;
@@ -88,8 +88,8 @@ contract PartialMirrorTokenTest is NounsBuilderTest, TokenTypesV1 {
             symbol: "MOCK",
             reservedUntilTokenId: _reservedUntilTokenId,
             tokenToMirror: address(tokenToMirror),
-            initalMinter: _minter,
-            initalMinterData: _minterData
+            initialMinter: _minter,
+            initialMinterData: _minterData
         });
 
         implAddresses[manager.IMPLEMENTATION_TYPE_TOKEN()] = mirrorTokenImpl;

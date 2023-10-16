@@ -79,9 +79,9 @@ interface IToken is IUUPS, IERC721Votes, IBaseToken, TokenTypesV1, TokenTypesV2 
         /// @notice The tokenId that a DAO's auctions will start at
         uint256 reservedUntilTokenId;
         /// @notice The minter a DAO enables by default
-        address initalMinter;
-        /// @notice The initilization data for the inital minter
-        bytes initalMinterData;
+        address initialMinter;
+        /// @notice The initilization data for the initial minter
+        bytes initialMinterData;
     }
 
     ///                                                          ///
