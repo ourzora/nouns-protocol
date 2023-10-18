@@ -20,16 +20,6 @@ interface IManager is IUUPS, IOwnable {
     /// @param governor The governor address
     event DAODeployed(address token, address metadata, address auction, address treasury, address governor);
 
-    /// @notice Emitted when an implementation is registered by the Builder DAO
-    /// @param implType The type of implementation
-    /// @param implAddress The implementation address
-    event ImplementationRegistered(uint8 implType, address implAddress);
-
-    /// @notice Emitted when an implementation is unregistered by the Builder DAO
-    /// @param implType The type of implementation
-    /// @param implAddress The implementation address
-    event ImplementationRemoved(uint8 implType, address implAddress);
-
     /// @notice Emitted when an upgrade is registered by the Builder DAO
     /// @param baseImpl The base implementation address
     /// @param upgradeImpl The upgrade implementation address
@@ -88,11 +78,51 @@ interface IManager is IUUPS, IOwnable {
     }
 
     /// @notice The ERC-721 token parameters
-    /// @param impl The address of the implementation
-    /// @param data The encoded implementation parameters
-    struct ImplementationParams {
-        address impl;
-        bytes data;
+    /// @param initStrings The encoded token name, symbol, collection description, collection image uri, renderer base uri
+    /// @param reservedUntilTokenId The tokenId that a DAO's auctions will start at
+    struct TokenParams {
+        bytes initStrings;
+        uint256 reservedUntilTokenId;
+    }
+
+    /// @notice The ERC-721 token parameters
+    /// @param initStrings The encoded token name, symbol, collection description, collection image uri, renderer base uri
+    /// @param reservedUntilTokenId The tokenId that a DAO's auctions will start at
+    /// @param tokenToMirror The token contract to be mirrored
+    struct MirrorTokenParams {
+        bytes initStrings;
+        uint256 reservedUntilTokenId;
+        address tokenToMirror;
+    }
+
+    /// @notice The auction parameters
+    /// @param reservePrice The reserve price of each auction
+    /// @param duration The duration of each auction
+    struct AuctionParams {
+        /// @notice The duration of each auction
+        uint256 duration;
+        /// @notice The reserve price of each auction
+        uint256 reservePrice;
+        /// @notice The address to recieve founders rewards
+        address founderRewardRecipent;
+        /// @notice The percent of rewards a founder receives in BPS for each auction
+        uint256 founderRewardBPS;
+    }
+
+    /// @notice The governance parameters
+    /// @param timelockDelay The time delay to execute a queued transaction
+    /// @param votingDelay The time delay to vote on a created proposal
+    /// @param votingPeriod The time period to vote on a proposal
+    /// @param proposalThresholdBps The basis points of the token supply required to create a proposal
+    /// @param quorumThresholdBps The basis points of the token supply required to reach quorum
+    /// @param vetoer The address authorized to veto proposals (address(0) if none desired)
+    struct GovParams {
+        uint256 timelockDelay;
+        uint256 votingDelay;
+        uint256 votingPeriod;
+        uint256 proposalThresholdBps;
+        uint256 quorumThresholdBps;
+        address vetoer;
     }
 
     ///                                                          ///
@@ -101,12 +131,14 @@ interface IManager is IUUPS, IOwnable {
 
     /// @notice Deploys a DAO with custom token, auction, and governance settings
     /// @param founderParams The DAO founder(s)
-    /// @param implAddresses The implementation addresses
-    /// @param implData The encoded list of implementation data
+    /// @param tokenParams The ERC-721 token settings
+    /// @param auctionParams The auction settings
+    /// @param govParams The governance settings
     function deploy(
         FounderParams[] calldata founderParams,
-        address[] calldata implAddresses,
-        bytes[] calldata implData
+        TokenParams calldata tokenParams,
+        AuctionParams calldata auctionParams,
+        GovParams calldata govParams
     )
         external
         returns (

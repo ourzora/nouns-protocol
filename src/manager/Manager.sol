@@ -6,10 +6,10 @@ import { Ownable } from "../lib/utils/Ownable.sol";
 import { ERC1967Proxy } from "../lib/proxy/ERC1967Proxy.sol";
 
 import { ManagerStorageV1 } from "./storage/ManagerStorageV1.sol";
-import { ManagerStorageV2 } from "./storage/ManagerStorageV2.sol";
 import { IManager } from "./IManager.sol";
-import { IBaseToken } from "../token/interfaces/IBaseToken.sol";
-import { IBaseMetadata } from "../metadata/interfaces/IBaseMetadata.sol";
+import { IToken } from "../token/default/IToken.sol";
+import { IPartialMirrorToken } from "../token/partial-mirror/IPartialMirrorToken.sol";
+import { IBaseMetadata } from "../token/metadata/interfaces/IBaseMetadata.sol";
 import { IAuction } from "../auction/IAuction.sol";
 import { ITreasury } from "../governance/treasury/ITreasury.sol";
 import { IGovernor } from "../governance/governor/IGovernor.sol";
@@ -24,21 +24,48 @@ import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC16
 /// @author Neokry & Rohan Kulkarni
 /// @custom:repo github.com/ourzora/nouns-protocol
 /// @notice The DAO deployer and upgrade manager
-contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1, ManagerStorageV2 {
+contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1 {
     ///                                                          ///
-    ///                          CONSTANTS                       ///
+    ///                          IMMUTABLES                      ///
     ///                                                          ///
 
-    /// @notice The count of implementation types
-    uint8 public constant IMPLEMENTATION_TYPE_COUNT = 5;
+    /// @notice The token implementation address
+    address public immutable tokenImpl;
 
-    // Public constants for implementation types.
-    // Allows for more clarity when adding new types compared to a enum.
-    uint8 public constant IMPLEMENTATION_TYPE_TOKEN = 0;
-    uint8 public constant IMPLEMENTATION_TYPE_METADATA = 1;
-    uint8 public constant IMPLEMENTATION_TYPE_AUCTION = 2;
-    uint8 public constant IMPLEMENTATION_TYPE_TREASURY = 3;
-    uint8 public constant IMPLEMENTATION_TYPE_GOVERNOR = 4;
+    /// @notice The mirror implementation address
+    address public immutable mirrorTokenImpl;
+
+    /// @notice The metadata renderer implementation address
+    address public immutable metadataImpl;
+
+    /// @notice The auction house implementation address
+    address public immutable auctionImpl;
+
+    /// @notice The treasury implementation address
+    address public immutable treasuryImpl;
+
+    /// @notice The governor implementation address
+    address public immutable governorImpl;
+
+    ///                                                          ///
+    ///                          CONSTRUCTOR                     ///
+    ///                                                          ///
+
+    constructor(
+        address _tokenImpl,
+        address _mirrorTokenImpl,
+        address _metadataImpl,
+        address _auctionImpl,
+        address _treasuryImpl,
+        address _governorImpl
+    ) payable initializer {
+        tokenImpl = _tokenImpl;
+        mirrorTokenImpl = _mirrorTokenImpl;
+        metadataImpl = _metadataImpl;
+        auctionImpl = _auctionImpl;
+        treasuryImpl = _treasuryImpl;
+        governorImpl = _governorImpl;
+    }
 
     ///                                                          ///
     ///                          INITIALIZER                     ///
@@ -60,12 +87,14 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
 
     /// @notice Deploys a DAO with custom token, auction, and governance settings
     /// @param _founderParams The DAO founders
-    /// @param _implAddresses The implementation addresses
-    /// @param _implData The encoded list of implementation data
+    /// @param _tokenParams The ERC-721 token settings
+    /// @param _auctionParams The auction settings
+    /// @param _govParams The governance settings
     function deploy(
         FounderParams[] calldata _founderParams,
-        address[] calldata _implAddresses,
-        bytes[] calldata _implData
+        TokenParams calldata _tokenParams,
+        AuctionParams calldata _auctionParams,
+        GovParams calldata _govParams
     )
         external
         returns (
@@ -83,45 +112,128 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         // Ensure at least one founder is provided
         if ((founder = _founderParams[0].wallet) == address(0)) revert FOUNDER_REQUIRED();
 
-        uint256 implAddressesLength = _implAddresses.length;
+        {
+            // Deploy the DAO's ERC-721 governance token
+            token = address(new ERC1967Proxy(tokenImpl, ""));
 
-        // Ensure implementation parameters are correct length
-        if (implAddressesLength != IMPLEMENTATION_TYPE_COUNT || _implData.length != IMPLEMENTATION_TYPE_COUNT) revert INVALID_IMPLEMENTATION_PARAMS();
+            // Use the token address to precompute the DAO's remaining addresses
+            bytes32 salt = bytes32(uint256(uint160(token)) << 96);
 
-        // Ensure all implementations are registered
-        unchecked {
-            for (uint256 i; i < implAddressesLength; ++i) {
-                if (i == IMPLEMENTATION_TYPE_METADATA) continue; // metadata registration is optional
-                if (!isImplementation[uint8(i)][_implAddresses[i]]) revert IMPLEMENTATION_NOT_REGISTERED();
-            }
+            // Deploy the remaining DAO contracts
+            metadata = address(new ERC1967Proxy{ salt: salt }(metadataImpl, ""));
+            auction = address(new ERC1967Proxy{ salt: salt }(auctionImpl, ""));
+            treasury = address(new ERC1967Proxy{ salt: salt }(treasuryImpl, ""));
+            governor = address(new ERC1967Proxy{ salt: salt }(governorImpl, ""));
         }
-
-        // Deploy the DAO's ERC-721 governance token
-        token = address(new ERC1967Proxy(_implAddresses[IMPLEMENTATION_TYPE_TOKEN], ""));
-
-        // Use the token address to precompute the DAO's remaining addresses
-        bytes32 salt = bytes32(uint256(uint160(token)) << 96);
-
-        // Deploy the remaining DAO contracts
-        metadata = address(new ERC1967Proxy{ salt: salt }(_implAddresses[IMPLEMENTATION_TYPE_METADATA], ""));
-        auction = address(new ERC1967Proxy{ salt: salt }(_implAddresses[IMPLEMENTATION_TYPE_AUCTION], ""));
-        treasury = address(new ERC1967Proxy{ salt: salt }(_implAddresses[IMPLEMENTATION_TYPE_TREASURY], ""));
-        governor = address(new ERC1967Proxy{ salt: salt }(_implAddresses[IMPLEMENTATION_TYPE_GOVERNOR], ""));
 
         daoAddressesByToken[token] = DAOAddresses({ metadata: metadata, auction: auction, treasury: treasury, governor: governor });
 
         // Initialize each instance with the provided settings
-        IBaseToken(token).initialize({
+        IToken(token).initialize({
             founders: _founderParams,
+            initStrings: _tokenParams.initStrings,
+            reservedUntilTokenId: _tokenParams.reservedUntilTokenId,
             metadataRenderer: metadata,
             auction: auction,
-            initialOwner: founder,
-            data: _implData[IMPLEMENTATION_TYPE_TOKEN]
+            initialOwner: founder
         });
-        IBaseMetadata(metadata).initialize({ token: token, data: _implData[IMPLEMENTATION_TYPE_METADATA] });
-        IAuction(auction).initialize({ token: token, initialOwner: founder, treasury: treasury, data: _implData[IMPLEMENTATION_TYPE_AUCTION] });
-        ITreasury(treasury).initialize({ governor: governor, data: _implData[IMPLEMENTATION_TYPE_TREASURY] });
-        IGovernor(governor).initialize({ treasury: treasury, token: token, data: _implData[IMPLEMENTATION_TYPE_GOVERNOR] });
+        IBaseMetadata(metadata).initialize({ initStrings: _tokenParams.initStrings, token: token });
+        IAuction(auction).initialize({
+            token: token,
+            founder: founder,
+            treasury: treasury,
+            duration: _auctionParams.duration,
+            reservePrice: _auctionParams.reservePrice,
+            founderRewardRecipent: _auctionParams.founderRewardRecipent,
+            founderRewardBPS: _auctionParams.founderRewardBPS
+        });
+        ITreasury(treasury).initialize({ governor: governor, timelockDelay: _govParams.timelockDelay });
+        IGovernor(governor).initialize({
+            treasury: treasury,
+            token: token,
+            vetoer: _govParams.vetoer,
+            votingDelay: _govParams.votingDelay,
+            votingPeriod: _govParams.votingPeriod,
+            proposalThresholdBps: _govParams.proposalThresholdBps,
+            quorumThresholdBps: _govParams.quorumThresholdBps
+        });
+
+        emit DAODeployed({ token: token, metadata: metadata, auction: auction, treasury: treasury, governor: governor });
+    }
+
+    /// @notice Deploys a DAO with partial mirror token functionality
+    /// @param _founderParams The DAO founders
+    /// @param _mirrorTokenParams The partial mirror token settings
+    /// @param _auctionParams The auction settings
+    /// @param _govParams The governance settings
+    function deployWithMirror(
+        FounderParams[] calldata _founderParams,
+        MirrorTokenParams calldata _mirrorTokenParams,
+        AuctionParams calldata _auctionParams,
+        GovParams calldata _govParams
+    )
+        external
+        returns (
+            address token,
+            address metadata,
+            address auction,
+            address treasury,
+            address governor
+        )
+    {
+        // Used to store the address of the first (or only) founder
+        // This founder is responsible for adding token artwork and launching the first auction -- they're also free to transfer this responsiblity
+        address founder;
+
+        // Ensure at least one founder is provided
+        if ((founder = _founderParams[0].wallet) == address(0)) revert FOUNDER_REQUIRED();
+
+        {
+            // Deploy the DAO's ERC-721 governance token
+            token = address(new ERC1967Proxy(mirrorTokenImpl, ""));
+
+            // Use the token address to precompute the DAO's remaining addresses
+            bytes32 salt = bytes32(uint256(uint160(token)) << 96);
+
+            // Deploy the remaining DAO contracts
+            metadata = address(new ERC1967Proxy{ salt: salt }(metadataImpl, ""));
+            auction = address(new ERC1967Proxy{ salt: salt }(auctionImpl, ""));
+            treasury = address(new ERC1967Proxy{ salt: salt }(treasuryImpl, ""));
+            governor = address(new ERC1967Proxy{ salt: salt }(governorImpl, ""));
+        }
+
+        daoAddressesByToken[token] = DAOAddresses({ metadata: metadata, auction: auction, treasury: treasury, governor: governor });
+
+        // Initialize each instance with the provided settings
+        IPartialMirrorToken(token).initialize({
+            founders: _founderParams,
+            initStrings: _mirrorTokenParams.initStrings,
+            reservedUntilTokenId: _mirrorTokenParams.reservedUntilTokenId,
+            tokenToMirror: _mirrorTokenParams.tokenToMirror,
+            metadataRenderer: metadata,
+            auction: auction,
+            initialOwner: founder
+        });
+        IBaseMetadata(metadata).initialize({ initStrings: _mirrorTokenParams.initStrings, token: token });
+        IAuction(auction).initialize({
+            token: token,
+            founder: founder,
+            treasury: treasury,
+            duration: _auctionParams.duration,
+            reservePrice: _auctionParams.reservePrice,
+            founderRewardRecipent: _auctionParams.founderRewardRecipent,
+            founderRewardBPS: _auctionParams.founderRewardBPS
+        });
+        ITreasury(treasury).initialize({ governor: governor, timelockDelay: _govParams.timelockDelay });
+        IGovernor(governor).initialize({
+            treasury: treasury,
+            token: token,
+            vetoer: _govParams.vetoer,
+            votingDelay: _govParams.votingDelay,
+            votingPeriod: _govParams.votingPeriod,
+            proposalThresholdBps: _govParams.proposalThresholdBps,
+            quorumThresholdBps: _govParams.quorumThresholdBps
+        });
 
         emit DAODeployed({ token: token, metadata: metadata, auction: auction, treasury: treasury, governor: governor });
     }
@@ -145,7 +257,7 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
             IBaseMetadata(metadata).initialize(_setupRenderer, _token);
         }
 
-        IBaseToken(_token).setMetadataRenderer(IBaseMetadata(metadata));
+        IToken(_token).setMetadataRenderer(IBaseMetadata(metadata));
 
         emit MetadataRendererUpdated({ sender: msg.sender, renderer: metadata });
     }
@@ -179,37 +291,6 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
     }
 
     ///                                                          ///
-    ///                          DAO Implementations             ///
-    ///                                                          ///
-
-    /// @notice If an implementation is registered by the Builder DAO as an option for deployment
-    /// @param _implType The implementation type
-    /// @param _implAddress The implementation address
-    function isRegisteredImplementation(uint8 _implType, address _implAddress) external view returns (bool) {
-        return isImplementation[_implType][_implAddress];
-    }
-
-    /// @notice Called by the Builder DAO to offer implementation choices when creating DAOs
-    /// @param _implType The implementation type
-    /// @param _implAddress The implementation address
-    function registerImplementation(uint8 _implType, address _implAddress) external onlyOwner {
-        if (_isInvalidImplementationType(_implType)) revert INVALID_IMPLEMENTATION_TYPE();
-        isImplementation[_implType][_implAddress] = true;
-
-        emit ImplementationRegistered(_implType, _implAddress);
-    }
-
-    /// @notice Called by the Builder DAO to remove an implementation option
-    /// @param _implType The implementation type
-    /// @param _implAddress The implementation address
-    function removeImplementation(uint8 _implType, address _implAddress) external onlyOwner {
-        if (_isInvalidImplementationType(_implType)) revert INVALID_IMPLEMENTATION_TYPE();
-        delete isImplementation[_implType][_implAddress];
-
-        emit ImplementationRemoved(_implType, _implAddress);
-    }
-
-    ///                                                          ///
     ///                          DAO UPGRADES                    ///
     ///                                                          ///
 
@@ -236,12 +317,6 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         delete isUpgrade[_baseImpl][_upgradeImpl];
 
         emit UpgradeRemoved(_baseImpl, _upgradeImpl);
-    }
-
-    /// @notice Check if an implementation type is invalid
-    /// @param _implType The implementation type to check
-    function _isInvalidImplementationType(uint8 _implType) internal pure returns (bool) {
-        return _implType > IMPLEMENTATION_TYPE_COUNT;
     }
 
     /// @notice Safely get the contract version of a target contract.

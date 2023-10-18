@@ -9,7 +9,6 @@ import { PartialMirrorToken } from "../src/token/partial-mirror/PartialMirrorTok
 import { ERC1967Proxy } from "../src/lib/proxy/ERC1967Proxy.sol";
 import { ERC721RedeemMinter } from "../src/minters/ERC721RedeemMinter.sol";
 import { MerkleReserveMinter } from "../src/minters/MerkleReserveMinter.sol";
-import { MediaMetadata } from "../src/metadata/media/MediaMetadata.sol";
 
 contract DeployContracts is Script {
     using Strings for uint256;
@@ -49,11 +48,6 @@ contract DeployContracts is Script {
 
         address merkleMinter = address(new MerkleReserveMinter(manager));
 
-        address mediaMetadata = address(new MediaMetadata(address(manager)));
-
-        // Register implementations
-        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TOKEN(), mirrorTokenImpl);
-
         vm.stopBroadcast();
 
         string memory filePath = string(abi.encodePacked("deploys/", chainID.toString(), ".version2_new.txt"));
@@ -62,7 +56,6 @@ contract DeployContracts is Script {
         vm.writeLine(filePath, string(abi.encodePacked("Mirror Token implementation: ", addressToString(mirrorTokenImpl))));
         vm.writeLine(filePath, string(abi.encodePacked("ERC721 Redeem Minter: ", addressToString(erc721Minter))));
         vm.writeLine(filePath, string(abi.encodePacked("Merkle Reserve Minter: ", addressToString(merkleMinter))));
-        vm.writeLine(filePath, string(abi.encodePacked("Media Metadata Renderer: ", addressToString(mediaMetadata))));
 
         console2.log("~~~~~~~~~~ MIRROR TOKEN IMPL ~~~~~~~~~~~");
         console2.logAddress(mirrorTokenImpl);
@@ -72,9 +65,6 @@ contract DeployContracts is Script {
 
         console2.log("~~~~~~~~~~ MERKLE RESERVE MINTER ~~~~~~~~~~~");
         console2.logAddress(merkleMinter);
-
-        console2.log("~~~~~~~~~~ MEDIA METADATA RENDERER ~~~~~~~~~~~");
-        console2.logAddress(mediaMetadata);
     }
 
     function addressToString(address _addr) private pure returns (string memory) {

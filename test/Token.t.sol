@@ -2,7 +2,6 @@
 pragma solidity 0.8.16;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
-import { MockMinter } from "./utils/mocks/MockMinter.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
 import { IToken, Token } from "../src/token/default/Token.sol";
@@ -36,29 +35,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
 
         setMockGovParams();
 
-        setImplementationAddresses();
-
-        deploy(foundersArr, implAddresses, implData);
-
-        setMockMetadata();
-    }
-
-    function deployAltMockAndSetMinter(
-        uint256 _reservedUntilTokenId,
-        address _minter,
-        bytes memory _minterData
-    ) internal virtual {
-        setMockFounderParams();
-
-        setMockTokenParamsWithReserveAndMinter(_reservedUntilTokenId, _minter, _minterData);
-
-        setMockAuctionParams();
-
-        setMockGovParams();
-
-        setImplementationAddresses();
-
-        deploy(foundersArr, implAddresses, implData);
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
 
         setMockMetadata();
     }
@@ -73,22 +50,6 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.owner(), address(founder));
         assertEq(token.metadataRenderer(), address(metadataRenderer));
         assertEq(token.totalSupply(), 0);
-    }
-
-    function test_MockTokenWithMinter() public {
-        MockMinter minter = new MockMinter();
-        deployAltMockAndSetMinter(20, address(minter), new bytes(0));
-
-        assertEq(token.minter(address(minter)), true);
-        assertEq(minter.data(address(token)), new bytes(0));
-    }
-
-    function test_MockTokenWithMinterAndData() public {
-        MockMinter minter = new MockMinter();
-        deployAltMockAndSetMinter(20, address(minter), hex"112233");
-
-        assertEq(token.minter(address(minter)), true);
-        assertEq(minter.data(address(token)), hex"112233");
     }
 
     /// Test that the percentages for founders all ends up as expected

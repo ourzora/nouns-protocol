@@ -4,14 +4,14 @@ pragma solidity 0.8.16;
 import { IUUPS } from "../../lib/interfaces/IUUPS.sol";
 import { IERC721Votes } from "../../lib/interfaces/IERC721Votes.sol";
 import { IManager } from "../../manager/IManager.sol";
-import { IBaseToken } from "../interfaces/IBaseToken.sol";
 import { TokenTypesV1 } from "./types/TokenTypesV1.sol";
 import { TokenTypesV2 } from "./types/TokenTypesV2.sol";
+import { IBaseMetadata } from "../metadata/interfaces/IBaseMetadata.sol";
 
 /// @title IToken
 /// @author Rohan Kulkarni
 /// @notice The external Token events, errors and functions
-interface IToken is IUUPS, IERC721Votes, IBaseToken, TokenTypesV1, TokenTypesV2 {
+interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///
@@ -67,39 +67,44 @@ interface IToken is IUUPS, IERC721Votes, IBaseToken, TokenTypesV1, TokenTypesV2 
     error TOKEN_NOT_RESERVED();
 
     ///                                                          ///
-    ///                           STRUCTS                        ///
-    ///                                                          ///
-
-    /// @notice The tokens initilization parameters
-    struct TokenParams {
-        /// @notice The token name
-        string name;
-        /// @notice The token symbol
-        string symbol;
-        /// @notice The tokenId that a DAO's auctions will start at
-        uint256 reservedUntilTokenId;
-        /// @notice The minter a DAO enables by default
-        address initialMinter;
-        /// @notice The initilization data for the initial minter
-        bytes initialMinterData;
-    }
-
-    ///                                                          ///
     ///                           FUNCTIONS                      ///
     ///                                                          ///
 
-    /// @notice Initializes a DAO's ERC-721 token
-    /// @param founders The founding members to receive vesting allocations
-    /// @param data The encoded token and metadata initialization strings
+    /// @notice Initializes a DAO's ERC-721 token contract
+    /// @param founders The DAO founders
+    /// @param initStrings The encoded token and metadata initialization strings
+    /// @param reservedUntilTokenId The tokenId that a DAO's auctions will start at
     /// @param metadataRenderer The token's metadata renderer
     /// @param auction The token's auction house
+    /// @param initialOwner The initial owner of the token
     function initialize(
         IManager.FounderParams[] calldata founders,
-        bytes calldata data,
+        bytes calldata initStrings,
+        uint256 reservedUntilTokenId,
         address metadataRenderer,
         address auction,
         address initialOwner
     ) external;
+
+    /// @notice Mints tokens to the caller and handles founder vesting
+    function mint() external returns (uint256 tokenId);
+
+    /// @notice Mints tokens to the recipient and handles founder vesting
+    function mintTo(address recipient) external returns (uint256 tokenId);
+
+    /// @notice Mints the specified amount of tokens to the recipient and handles founder vesting
+    function mintBatchTo(uint256 amount, address recipient) external returns (uint256[] memory tokenIds);
+
+    /// @notice Burns a token owned by the caller
+    /// @param tokenId The ERC-721 token id
+    function burn(uint256 tokenId) external;
+
+    /// @notice The URI for a token
+    /// @param tokenId The ERC-721 token id
+    function tokenURI(uint256 tokenId) external view returns (string memory);
+
+    /// @notice The URI for the contract
+    function contractURI() external view returns (string memory);
 
     /// @notice The number of founders
     function totalFounders() external view returns (uint256);
@@ -118,6 +123,9 @@ interface IToken is IUUPS, IERC721Votes, IBaseToken, TokenTypesV1, TokenTypesV2 
     /// @param newFounders the full list of FounderParam structs
     function updateFounders(IManager.FounderParams[] calldata newFounders) external;
 
+    /// @notice Mints tokens from the reserve to the recipient
+    function mintFromReserveTo(address recipient, uint256 tokenId) external;
+
     /// @notice Update minters
     /// @param _minters Array of structs containing address status as a minter
     function updateMinters(MinterParams[] calldata _minters) external;
@@ -125,4 +133,8 @@ interface IToken is IUUPS, IERC721Votes, IBaseToken, TokenTypesV1, TokenTypesV2 
     /// @notice Check if an address is a minter
     /// @param _minter Address to check
     function isMinter(address _minter) external view returns (bool);
+
+    /// @notice Set a new metadata renderer
+    /// @param newRenderer new renderer address to use
+    function setMetadataRenderer(IBaseMetadata newRenderer) external;
 }

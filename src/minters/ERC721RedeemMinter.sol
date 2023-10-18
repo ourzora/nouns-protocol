@@ -2,15 +2,14 @@
 pragma solidity 0.8.16;
 
 import { IERC721 } from "../lib/interfaces/IERC721.sol";
-import { IBaseToken } from "../token/interfaces/IBaseToken.sol";
+import { IToken } from "../token/default/IToken.sol";
 import { IManager } from "../manager/IManager.sol";
 import { IOwnable } from "../lib/interfaces/IOwnable.sol";
-import { IMintStrategy } from "./interfaces/IMintStrategy.sol";
 
 /// @title ERC721RedeemMinter
 /// @notice A mint strategy that allows ERC721 token holders to redeem DAO tokens
 /// @author @neokry
-contract ERC721RedeemMinter is IMintStrategy {
+contract ERC721RedeemMinter {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///
@@ -142,7 +141,7 @@ contract ERC721RedeemMinter is IMintStrategy {
                 }
 
                 // Mint to the redeeem token owner
-                IBaseToken(tokenContract).mintFromReserveTo(owner, tokenId);
+                IToken(tokenContract).mintFromReserveTo(owner, tokenId);
             }
         }
 
@@ -220,22 +219,6 @@ contract ERC721RedeemMinter is IMintStrategy {
     ///                                                          ///
     ///                            SETTINGS                      ///
     ///                                                          ///
-
-    // @notice Sets the minter settings from the token contract with generic data
-    /// @param data Encoded settings to set
-    function setMintSettings(bytes calldata data) external {
-        // Decode settings data
-        RedeemSettings memory settings = abi.decode(data, (RedeemSettings));
-
-        // Cache sender
-        address sender = msg.sender;
-
-        // Set new collection settings
-        _setMintSettings(sender, settings);
-
-        // Emit event for new settings
-        emit MinterSet(sender, settings);
-    }
 
     /// @notice Sets the minter settings for a token
     /// @param tokenContract Token contract to set settings for

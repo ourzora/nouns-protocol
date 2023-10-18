@@ -6,11 +6,12 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
 import { IToken, Token } from "../src/token/default/Token.sol";
+import { PartialMirrorToken } from "../src/token/partial-mirror/PartialMirrorToken.sol";
 import { IAuction, Auction } from "../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../src/governance/governor/Governor.sol";
 import { ITreasury, Treasury } from "../src/governance/treasury/Treasury.sol";
-import { PropertyMetadata } from "../src/metadata/property/PropertyMetadata.sol";
-import { PropertyMetadataTypesV1 } from "../src/metadata/property/types/PropertyMetadataTypesV1.sol";
+import { MetadataRenderer } from "../src/token/metadata/MetadataRenderer.sol";
+import { MetadataRendererTypesV1 } from "../src/token/metadata/types/MetadataRendererTypesV1.sol";
 import { ERC1967Proxy } from "../src/lib/proxy/ERC1967Proxy.sol";
 import { ProtocolRewards } from "../src/rewards/ProtocolRewards.sol";
 
@@ -41,7 +42,7 @@ contract DeployContracts is Script {
         vm.startBroadcast(deployerAddress);
 
         // Deploy root manager implementation + proxy
-        address managerImpl0 = address(new Manager());
+        address managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0), address(0)));
 
         Manager manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", deployerAddress))));
 
@@ -50,8 +51,10 @@ contract DeployContracts is Script {
         // Deploy standard token implementation
         address tokenImpl = address(new Token(address(manager)));
 
+        address mirrorTokenImpl = address(new PartialMirrorToken(address(manager)));
+
         // Deploy metadata renderer implementation
-        address metadataRendererImpl = address(new PropertyMetadata(address(manager)));
+        address metadataRendererImpl = address(new MetadataRenderer(address(manager)));
 
         // Deploy auction house implementation
         address auctionImpl = address(new Auction(address(manager), address(rewards), weth));
@@ -62,20 +65,9 @@ contract DeployContracts is Script {
         // Deploy governor implementation
         address governorImpl = address(new Governor(address(manager)));
 
-        address managerImpl = address(new Manager());
+        address managerImpl = address(new Manager(tokenImpl, mirrorTokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
 
         manager.upgradeTo(managerImpl);
-
-        // Register implementations
-        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TOKEN(), tokenImpl);
-
-        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_METADATA(), metadataRendererImpl);
-
-        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_AUCTION(), auctionImpl);
-
-        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_GOVERNOR(), governorImpl);
-
-        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TREASURY(), treasuryImpl);
 
         vm.stopBroadcast();
 

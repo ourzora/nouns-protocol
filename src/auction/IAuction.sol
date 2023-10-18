@@ -98,35 +98,23 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     error AUCTION_CREATE_FAILED_TO_LAUNCH();
 
     ///                                                          ///
-    ///                          STRUCTS                         ///
-    ///                                                          ///
-
-    /// @notice The auction initilization parameters
-    struct AuctionParams {
-        /// @notice The duration of each auction
-        uint256 duration;
-        /// @notice The reserve price of each auction
-        uint256 reservePrice;
-        /// @notice The address to recieve founders rewards
-        address founderRewardRecipent;
-        /// @notice The percent of rewards a founder receives in BPS for each auction
-        uint256 founderRewardBPS;
-    }
-
-    ///                                                          ///
     ///                          FUNCTIONS                       ///
     ///                                                          ///
 
     /// @notice Initializes a DAO's auction house
     /// @param token The ERC-721 token address
-    /// @param initialOwner The account responsible for starting the first auction
+    /// @param founder The founder responsible for starting the first auction
     /// @param treasury The treasury address where ETH will be sent
-    /// @param data The encoded auction initialization data
+    /// @param duration The duration of each auction
+    /// @param reservePrice The reserve price of each auction
     function initialize(
         address token,
-        address initialOwner,
+        address founder,
         address treasury,
-        bytes calldata data
+        uint256 duration,
+        uint256 reservePrice,
+        address founderRewardRecipent,
+        uint256 founderRewardBPS
     ) external;
 
     /// @notice Creates a bid for the current token

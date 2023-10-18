@@ -49,8 +49,8 @@ contract Treasury is ITreasury, VersionedContract, UUPS, Ownable, ProposalHasher
 
     /// @notice Initializes an instance of a DAO's treasury
     /// @param _governor The DAO's governor address
-    /// @param _data The encoded treasury parameters
-    function initialize(address _governor, bytes calldata _data) external initializer {
+    /// @param _delay The time delay to execute a queued transaction
+    function initialize(address _governor, uint256 _delay) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) revert ONLY_MANAGER();
 
@@ -60,15 +60,13 @@ contract Treasury is ITreasury, VersionedContract, UUPS, Ownable, ProposalHasher
         // Grant ownership to the governor
         __Ownable_init(_governor);
 
-        TreasuryParams memory params = abi.decode(_data, (TreasuryParams));
-
         // Store the time delay
-        settings.delay = SafeCast.toUint128(params.timelockDelay);
+        settings.delay = SafeCast.toUint128(_delay);
 
         // Set the default grace period
         settings.gracePeriod = INITIAL_GRACE_PERIOD;
 
-        emit DelayUpdated(0, params.timelockDelay);
+        emit DelayUpdated(0, _delay);
     }
 
     ///                                                          ///

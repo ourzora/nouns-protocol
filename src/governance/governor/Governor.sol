@@ -5,10 +5,9 @@ import { UUPS } from "../../lib/proxy/UUPS.sol";
 import { Ownable } from "../../lib/utils/Ownable.sol";
 import { EIP712 } from "../../lib/utils/EIP712.sol";
 import { SafeCast } from "../../lib/utils/SafeCast.sol";
-import { ERC721 } from "../../lib/token/ERC721.sol";
 
 import { GovernorStorageV1 } from "./storage/GovernorStorageV1.sol";
-import { IBaseToken } from "../../token/interfaces/IBaseToken.sol";
+import { Token } from "../../token/default/Token.sol";
 import { Treasury } from "../treasury/Treasury.sol";
 import { IManager } from "../../manager/IManager.sol";
 import { IGovernor } from "./IGovernor.sol";
@@ -76,11 +75,19 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
     /// @notice Initializes a DAO's governor
     /// @param _treasury The DAO's treasury address
     /// @param _token The DAO's governance token address
-    /// @param _data The encoded governor parameters
+    /// @param _vetoer The address eligible to veto proposals
+    /// @param _votingDelay The voting delay
+    /// @param _votingPeriod The voting period
+    /// @param _proposalThresholdBps The proposal threshold basis points
+    /// @param _quorumThresholdBps The quorum threshold basis points
     function initialize(
         address _treasury,
         address _token,
-        bytes calldata _data
+        address _vetoer,
+        uint256 _votingDelay,
+        uint256 _votingPeriod,
+        uint256 _proposalThresholdBps,
+        uint256 _quorumThresholdBps
     ) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) revert ONLY_MANAGER();
@@ -89,38 +96,27 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
         if (_treasury == address(0)) revert ADDRESS_ZERO();
         if (_token == address(0)) revert ADDRESS_ZERO();
 
-        GovParams memory params = abi.decode(_data, (GovParams));
-
         // If a vetoer is specified, store its address
-        if (params.vetoer != address(0)) settings.vetoer = params.vetoer;
+        if (_vetoer != address(0)) settings.vetoer = _vetoer;
 
         // Ensure the specified governance settings are valid
-        if (params.proposalThresholdBps < MIN_PROPOSAL_THRESHOLD_BPS || params.proposalThresholdBps > MAX_PROPOSAL_THRESHOLD_BPS) {
+        if (_proposalThresholdBps < MIN_PROPOSAL_THRESHOLD_BPS || _proposalThresholdBps > MAX_PROPOSAL_THRESHOLD_BPS)
             revert INVALID_PROPOSAL_THRESHOLD_BPS();
-        }
-        if (params.quorumThresholdBps < MIN_QUORUM_THRESHOLD_BPS || params.quorumThresholdBps > MAX_QUORUM_THRESHOLD_BPS) {
-            revert INVALID_QUORUM_THRESHOLD_BPS();
-        }
-        if (params.proposalThresholdBps >= params.quorumThresholdBps) {
-            revert INVALID_PROPOSAL_THRESHOLD_BPS();
-        }
-        if (params.votingDelay < MIN_VOTING_DELAY || params.votingDelay > MAX_VOTING_DELAY) {
-            revert INVALID_VOTING_DELAY();
-        }
-        if (params.votingPeriod < MIN_VOTING_PERIOD || params.votingPeriod > MAX_VOTING_PERIOD) {
-            revert INVALID_VOTING_PERIOD();
-        }
+        if (_quorumThresholdBps < MIN_QUORUM_THRESHOLD_BPS || _quorumThresholdBps > MAX_QUORUM_THRESHOLD_BPS) revert INVALID_QUORUM_THRESHOLD_BPS();
+        if (_proposalThresholdBps >= _quorumThresholdBps) revert INVALID_PROPOSAL_THRESHOLD_BPS();
+        if (_votingDelay < MIN_VOTING_DELAY || _votingDelay > MAX_VOTING_DELAY) revert INVALID_VOTING_DELAY();
+        if (_votingPeriod < MIN_VOTING_PERIOD || _votingPeriod > MAX_VOTING_PERIOD) revert INVALID_VOTING_PERIOD();
 
         // Store the governor settings
         settings.treasury = Treasury(payable(_treasury));
-        settings.token = IBaseToken(_token);
-        settings.votingDelay = SafeCast.toUint48(params.votingDelay);
-        settings.votingPeriod = SafeCast.toUint48(params.votingPeriod);
-        settings.proposalThresholdBps = SafeCast.toUint16(params.proposalThresholdBps);
-        settings.quorumThresholdBps = SafeCast.toUint16(params.quorumThresholdBps);
+        settings.token = Token(_token);
+        settings.votingDelay = SafeCast.toUint48(_votingDelay);
+        settings.votingPeriod = SafeCast.toUint48(_votingPeriod);
+        settings.proposalThresholdBps = SafeCast.toUint16(_proposalThresholdBps);
+        settings.quorumThresholdBps = SafeCast.toUint16(_quorumThresholdBps);
 
         // Initialize EIP-712 support
-        __EIP712_init(string.concat(ERC721(_token).symbol(), " GOV"), "1");
+        __EIP712_init(string.concat(settings.token.symbol(), " GOV"), "1");
 
         // Grant ownership to the treasury
         __Ownable_init(_treasury);

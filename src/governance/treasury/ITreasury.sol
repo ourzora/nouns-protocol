@@ -55,23 +55,13 @@ interface ITreasury is IUUPS, IOwnable {
     error ONLY_MANAGER();
 
     ///                                                          ///
-    ///                          STRUCTS                         ///
-    ///                                                          ///
-
-    /// @notice The trasury initilization parameters
-    struct TreasuryParams {
-        /// @notice timelockDelay The time delay to execute a queued transaction
-        uint256 timelockDelay;
-    }
-
-    ///                                                          ///
     ///                          FUNCTIONS                       ///
     ///                                                          ///
 
     /// @notice Initializes a DAO's treasury
     /// @param governor The governor address
-    /// @param data The encoded treasury initialization data
-    function initialize(address governor, bytes calldata data) external;
+    /// @param timelockDelay The time delay to execute a queued transaction
+    function initialize(address governor, uint256 timelockDelay) external;
 
     /// @notice The timestamp that a proposal is valid to execute
     /// @param proposalId The proposal id

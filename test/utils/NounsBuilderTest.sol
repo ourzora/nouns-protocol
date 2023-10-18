@@ -5,11 +5,13 @@ import { Test } from "forge-std/Test.sol";
 
 import { IManager, Manager } from "../../src/manager/Manager.sol";
 import { IToken, Token } from "../../src/token/default/Token.sol";
-import { IBaseMetadata, IPropertyMetadata, PropertyMetadata } from "../../src/metadata/property/PropertyMetadata.sol";
+import { PartialMirrorToken } from "../../src/token/partial-mirror/PartialMirrorToken.sol";
+import { MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol";
 import { IAuction, Auction } from "../../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../../src/governance/governor/Governor.sol";
 import { ITreasury, Treasury } from "../../src/governance/treasury/Treasury.sol";
-import { PropertyMetadataTypesV1 } from "../../src/metadata/property/types/PropertyMetadataTypesV1.sol";
+import { MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol";
+import { MetadataRendererTypesV1 } from "../../src/token/metadata/types/MetadataRendererTypesV1.sol";
 
 import { ERC1967Proxy } from "../../src/lib/proxy/ERC1967Proxy.sol";
 import { MockERC721 } from "../utils/mocks/MockERC721.sol";
@@ -28,6 +30,7 @@ contract NounsBuilderTest is Test {
     address internal managerImpl0;
     address internal managerImpl;
     address internal tokenImpl;
+    address internal mirrorImpl;
     address internal metadataRendererImpl;
     address internal auctionImpl;
     address internal treasuryImpl;
@@ -35,7 +38,6 @@ contract NounsBuilderTest is Test {
 
     address internal nounsDAO;
     address internal zoraDAO;
-    address internal builderDAO;
     address internal founder;
     address internal founder2;
     address internal weth;
@@ -51,10 +53,9 @@ contract NounsBuilderTest is Test {
 
         nounsDAO = vm.addr(0xA11CE);
         zoraDAO = vm.addr(0xB0B);
-        builderDAO = vm.addr(0xCAB);
 
-        founder = vm.addr(0xDAD);
-        founder2 = vm.addr(0xE1AD);
+        founder = vm.addr(0xCAB);
+        founder2 = vm.addr(0xDAD);
 
         vm.label(zoraDAO, "ZORA_DAO");
         vm.label(nounsDAO, "NOUNS_DAO");
@@ -62,27 +63,21 @@ contract NounsBuilderTest is Test {
         vm.label(founder, "FOUNDER");
         vm.label(founder2, "FOUNDER_2");
 
-        managerImpl0 = address(new Manager());
+        managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0), address(0)));
         manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", zoraDAO))));
-
-        rewards = new ProtocolRewards(address(manager), builderDAO);
+        rewards = new ProtocolRewards(address(manager), zoraDAO);
 
         tokenImpl = address(new Token(address(manager)));
-        metadataRendererImpl = address(new PropertyMetadata(address(manager)));
+        mirrorImpl = address(new PartialMirrorToken(address(manager)));
+        metadataRendererImpl = address(new MetadataRenderer(address(manager)));
         auctionImpl = address(new Auction(address(manager), address(rewards), weth));
         treasuryImpl = address(new Treasury(address(manager)));
         governorImpl = address(new Governor(address(manager)));
 
-        managerImpl = address(new Manager());
+        managerImpl = address(new Manager(tokenImpl, mirrorImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
 
-        vm.startPrank(zoraDAO);
+        vm.prank(zoraDAO);
         manager.upgradeTo(managerImpl);
-        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TOKEN(), tokenImpl);
-        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_METADATA(), metadataRendererImpl);
-        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_AUCTION(), auctionImpl);
-        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TREASURY(), treasuryImpl);
-        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_GOVERNOR(), governorImpl);
-        vm.stopPrank();
     }
 
     ///                                                          ///
@@ -90,14 +85,10 @@ contract NounsBuilderTest is Test {
     ///                                                          ///
 
     IManager.FounderParams[] internal foundersArr;
-    IToken.TokenParams internal tokenParams;
-    IPropertyMetadata.PropertyMetadataParams internal metadataParams;
-    IAuction.AuctionParams internal auctionParams;
-    IGovernor.GovParams internal govParams;
-    ITreasury.TreasuryParams internal treasuryParams;
-
-    address[] internal implAddresses;
-    bytes[] internal implData;
+    IManager.TokenParams internal tokenParams;
+    IManager.MirrorTokenParams internal mirrorTokenParams;
+    IManager.AuctionParams internal auctionParams;
+    IManager.GovParams internal govParams;
 
     function setMockFounderParams() internal virtual {
         address[] memory wallets = new address[](2);
@@ -142,9 +133,7 @@ contract NounsBuilderTest is Test {
             "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
             "https://nouns.build",
             "http://localhost:5000/render",
-            0,
-            address(0),
-            new bytes(0)
+            0
         );
     }
 
@@ -156,18 +145,12 @@ contract NounsBuilderTest is Test {
             "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
             "https://nouns.build",
             "http://localhost:5000/render",
-            _reservedUntilTokenId,
-            address(0),
-            new bytes(0)
+            _reservedUntilTokenId
         );
     }
 
-    function setMockTokenParamsWithReserveAndMinter(
-        uint256 _reservedUntilTokenId,
-        address minter,
-        bytes memory minterData
-    ) internal virtual {
-        setTokenParams(
+    function setMockMirrorTokenParams(uint256 _reservedUntilTokenId, address _tokenToMirror) internal virtual {
+        setMirrorTokenParams(
             "Mock Token",
             "MOCK",
             "This is a mock token",
@@ -175,8 +158,7 @@ contract NounsBuilderTest is Test {
             "https://nouns.build",
             "http://localhost:5000/render",
             _reservedUntilTokenId,
-            minter,
-            minterData
+            _tokenToMirror
         );
     }
 
@@ -187,29 +169,30 @@ contract NounsBuilderTest is Test {
         string memory _contractImage,
         string memory _contractURI,
         string memory _rendererBase,
-        uint256 _reservedUntilTokenId,
-        address _initialMinter,
-        bytes memory _initialMinterData
+        uint256 _reservedUntilTokenId
     ) internal virtual {
-        tokenParams = IToken.TokenParams({
-            name: _name,
-            symbol: _symbol,
+        bytes memory initStrings = abi.encode(_name, _symbol, _description, _contractImage, _contractURI, _rendererBase);
+
+        tokenParams = IManager.TokenParams({ initStrings: initStrings, reservedUntilTokenId: _reservedUntilTokenId });
+    }
+
+    function setMirrorTokenParams(
+        string memory _name,
+        string memory _symbol,
+        string memory _description,
+        string memory _contractImage,
+        string memory _contractURI,
+        string memory _rendererBase,
+        uint256 _reservedUntilTokenId,
+        address _tokenToMirror
+    ) internal virtual {
+        bytes memory initStrings = abi.encode(_name, _symbol, _description, _contractImage, _contractURI, _rendererBase);
+
+        mirrorTokenParams = IManager.MirrorTokenParams({
+            initStrings: initStrings,
             reservedUntilTokenId: _reservedUntilTokenId,
-            initialMinter: _initialMinter,
-            initialMinterData: _initialMinterData
+            tokenToMirror: _tokenToMirror
         });
-        metadataParams = IPropertyMetadata.PropertyMetadataParams({
-            description: _description,
-            contractImage: _contractImage,
-            projectURI: _contractURI,
-            rendererBase: _rendererBase
-        });
-
-        implData.push();
-        implData[manager.IMPLEMENTATION_TYPE_TOKEN()] = abi.encode(tokenParams);
-
-        implData.push();
-        implData[manager.IMPLEMENTATION_TYPE_METADATA()] = abi.encode(metadataParams);
     }
 
     function setMockAuctionParams() internal virtual {
@@ -222,14 +205,12 @@ contract NounsBuilderTest is Test {
         address _founderRewardRecipent,
         uint256 _founderRewardBPS
     ) internal virtual {
-        implData.push();
-        auctionParams = IAuction.AuctionParams({
+        auctionParams = IManager.AuctionParams({
             reservePrice: _reservePrice,
             duration: _duration,
             founderRewardRecipent: _founderRewardRecipent,
             founderRewardBPS: _founderRewardBPS
         });
-        implData[manager.IMPLEMENTATION_TYPE_AUCTION()] = abi.encode(auctionParams);
     }
 
     function setMockGovParams() internal virtual {
@@ -244,50 +225,28 @@ contract NounsBuilderTest is Test {
         uint256 _quorumThresholdBps,
         address _vetoer
     ) internal virtual {
-        implData.push();
-        treasuryParams = ITreasury.TreasuryParams({ timelockDelay: _timelockDelay });
-        implData[manager.IMPLEMENTATION_TYPE_TREASURY()] = abi.encode(treasuryParams);
-
-        implData.push();
-        govParams = IGovernor.GovParams({
+        govParams = IManager.GovParams({
+            timelockDelay: _timelockDelay,
             votingDelay: _votingDelay,
             votingPeriod: _votingPeriod,
             proposalThresholdBps: _proposalThresholdBps,
             quorumThresholdBps: _quorumThresholdBps,
             vetoer: _vetoer
         });
-        implData[manager.IMPLEMENTATION_TYPE_GOVERNOR()] = abi.encode(govParams);
     }
 
     function setMockMetadata() internal {
         string[] memory names = new string[](1);
         names[0] = "testing";
 
-        PropertyMetadataTypesV1.ItemParam[] memory items = new PropertyMetadataTypesV1.ItemParam[](2);
-        items[0] = PropertyMetadataTypesV1.ItemParam({ propertyId: 0, name: "failure1", isNewProperty: true });
-        items[1] = PropertyMetadataTypesV1.ItemParam({ propertyId: 0, name: "failure2", isNewProperty: true });
+        MetadataRendererTypesV1.ItemParam[] memory items = new MetadataRendererTypesV1.ItemParam[](2);
+        items[0] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure1", isNewProperty: true });
+        items[1] = MetadataRendererTypesV1.ItemParam({ propertyId: 0, name: "failure2", isNewProperty: true });
 
-        PropertyMetadataTypesV1.IPFSGroup memory ipfsGroup = PropertyMetadataTypesV1.IPFSGroup({ baseUri: "BASE_URI", extension: "EXTENSION" });
+        MetadataRendererTypesV1.IPFSGroup memory ipfsGroup = MetadataRendererTypesV1.IPFSGroup({ baseUri: "BASE_URI", extension: "EXTENSION" });
 
         vm.prank(metadataRenderer.owner());
         metadataRenderer.addProperties(names, items, ipfsGroup);
-    }
-
-    function setImplementationAddresses() internal {
-        implAddresses.push();
-        implAddresses[manager.IMPLEMENTATION_TYPE_TOKEN()] = tokenImpl;
-
-        implAddresses.push();
-        implAddresses[manager.IMPLEMENTATION_TYPE_METADATA()] = metadataRendererImpl;
-
-        implAddresses.push();
-        implAddresses[manager.IMPLEMENTATION_TYPE_AUCTION()] = auctionImpl;
-
-        implAddresses.push();
-        implAddresses[manager.IMPLEMENTATION_TYPE_TREASURY()] = treasuryImpl;
-
-        implAddresses.push();
-        implAddresses[manager.IMPLEMENTATION_TYPE_GOVERNOR()] = governorImpl;
     }
 
     ///                                                          ///
@@ -295,7 +254,7 @@ contract NounsBuilderTest is Test {
     ///                                                          ///
 
     Token internal token;
-    PropertyMetadata internal metadataRenderer;
+    MetadataRenderer internal metadataRenderer;
     Auction internal auction;
     Treasury internal treasury;
     Governor internal governor;
@@ -309,9 +268,7 @@ contract NounsBuilderTest is Test {
 
         setMockGovParams();
 
-        setImplementationAddresses();
-
-        deploy(foundersArr, implAddresses, implData);
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
 
         setMockMetadata();
     }
@@ -329,9 +286,7 @@ contract NounsBuilderTest is Test {
 
         setMockGovParams();
 
-        setImplementationAddresses();
-
-        deploy(foundersArr, implAddresses, implData);
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
 
         setMockMetadata();
     }
@@ -346,15 +301,13 @@ contract NounsBuilderTest is Test {
     ) internal {
         setMockFounderParams();
 
-        setTokenParams(_name, _symbol, _description, _contractImage, _projectURI, _rendererBase, 0, address(0), new bytes(0));
+        setTokenParams(_name, _symbol, _description, _contractImage, _projectURI, _rendererBase, 0);
 
         setMockAuctionParams();
 
         setMockGovParams();
 
-        setImplementationAddresses();
-
-        deploy(foundersArr, implAddresses, implData);
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
 
         setMockMetadata();
     }
@@ -368,24 +321,50 @@ contract NounsBuilderTest is Test {
 
         setMockGovParams();
 
-        setImplementationAddresses();
-
-        deploy(foundersArr, implAddresses, implData);
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
     }
 
     function deploy(
         IManager.FounderParams[] memory _founderParams,
-        address[] memory _implAddresses,
-        bytes[] memory _implData
+        IManager.TokenParams memory _tokenParams,
+        IManager.AuctionParams memory _auctionParams,
+        IManager.GovParams memory _govParams
     ) internal virtual {
         (address _token, address _metadata, address _auction, address _treasury, address _governor) = manager.deploy(
             _founderParams,
-            _implAddresses,
-            _implData
+            _tokenParams,
+            _auctionParams,
+            _govParams
         );
 
         token = Token(_token);
-        metadataRenderer = PropertyMetadata(_metadata);
+        metadataRenderer = MetadataRenderer(_metadata);
+        auction = Auction(_auction);
+        treasury = Treasury(payable(_treasury));
+        governor = Governor(_governor);
+
+        vm.label(address(token), "TOKEN");
+        vm.label(address(metadataRenderer), "METADATA_RENDERER");
+        vm.label(address(auction), "AUCTION");
+        vm.label(address(treasury), "TREASURY");
+        vm.label(address(governor), "GOVERNOR");
+    }
+
+    function deployWithMirror(
+        IManager.FounderParams[] memory _founderParams,
+        IManager.MirrorTokenParams memory _mirrorTokenParams,
+        IManager.AuctionParams memory _auctionParams,
+        IManager.GovParams memory _govParams
+    ) internal virtual {
+        (address _token, address _metadata, address _auction, address _treasury, address _governor) = manager.deployWithMirror(
+            _founderParams,
+            _mirrorTokenParams,
+            _auctionParams,
+            _govParams
+        );
+
+        token = Token(_token);
+        metadataRenderer = MetadataRenderer(_metadata);
         auction = Auction(_auction);
         treasury = Treasury(payable(_treasury));
         governor = Governor(_governor);

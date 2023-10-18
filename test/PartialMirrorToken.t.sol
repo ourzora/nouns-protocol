@@ -4,7 +4,6 @@ pragma solidity 0.8.16;
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 import { PartialMirrorToken } from "../src/token/partial-mirror/PartialMirrorToken.sol";
 import { IPartialMirrorToken } from "../src/token/partial-mirror/IPartialMirrorToken.sol";
-import { MockMinter } from "./utils/mocks/MockMinter.sol";
 import { MockERC721 } from "./utils/mocks/MockERC721.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
@@ -35,67 +34,9 @@ contract PartialMirrorTokenTest is NounsBuilderTest, TokenTypesV1 {
 
         setMockGovParams();
 
-        setImplementationAddresses();
+        setMockMirrorTokenParams(_reservedUntilTokenId, address(tokenToMirror));
 
-        mirrorTokenImpl = address(new PartialMirrorToken(address(manager)));
-
-        vm.startPrank(zoraDAO);
-        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TOKEN(), mirrorTokenImpl);
-        vm.stopPrank();
-
-        IPartialMirrorToken.TokenParams memory mirrorParams = IPartialMirrorToken.TokenParams({
-            name: "Mock Token",
-            symbol: "MOCK",
-            reservedUntilTokenId: _reservedUntilTokenId,
-            tokenToMirror: address(tokenToMirror),
-            initialMinter: address(0),
-            initialMinterData: new bytes(0)
-        });
-
-        implAddresses[manager.IMPLEMENTATION_TYPE_TOKEN()] = mirrorTokenImpl;
-        implData[manager.IMPLEMENTATION_TYPE_TOKEN()] = abi.encode(mirrorParams);
-
-        deploy(foundersArr, implAddresses, implData);
-
-        mirrorToken = PartialMirrorToken(address(token));
-
-        setMockMetadata();
-    }
-
-    function deployAltMockAndSetMinter(
-        uint256 _reservedUntilTokenId,
-        address _minter,
-        bytes memory _minterData
-    ) internal virtual {
-        setMockFounderParams();
-
-        setMockTokenParamsWithReserveAndMinter(_reservedUntilTokenId, _minter, _minterData);
-
-        setMockAuctionParams();
-
-        setMockGovParams();
-
-        setImplementationAddresses();
-
-        mirrorTokenImpl = address(new PartialMirrorToken(address(manager)));
-
-        vm.startPrank(zoraDAO);
-        manager.registerImplementation(manager.IMPLEMENTATION_TYPE_TOKEN(), mirrorTokenImpl);
-        vm.stopPrank();
-
-        IPartialMirrorToken.TokenParams memory mirrorParams = IPartialMirrorToken.TokenParams({
-            name: "Mock Token",
-            symbol: "MOCK",
-            reservedUntilTokenId: _reservedUntilTokenId,
-            tokenToMirror: address(tokenToMirror),
-            initialMinter: _minter,
-            initialMinterData: _minterData
-        });
-
-        implAddresses[manager.IMPLEMENTATION_TYPE_TOKEN()] = mirrorTokenImpl;
-        implData[manager.IMPLEMENTATION_TYPE_TOKEN()] = abi.encode(mirrorParams);
-
-        deploy(foundersArr, implAddresses, implData);
+        deployWithMirror(foundersArr, mirrorTokenParams, auctionParams, govParams);
 
         mirrorToken = PartialMirrorToken(address(token));
 
@@ -112,14 +53,6 @@ contract PartialMirrorTokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.owner(), address(founder));
         assertEq(token.metadataRenderer(), address(metadataRenderer));
         assertEq(token.totalSupply(), 0);
-    }
-
-    function test_MockTokenWithMinter() public {
-        MockMinter minter = new MockMinter();
-        deployAltMockAndSetMinter(20, address(minter), hex"112233");
-
-        assertEq(token.minter(address(minter)), true);
-        assertEq(minter.data(address(token)), hex"112233");
     }
 
     /// Test that the percentages for founders all ends up as expected

@@ -34,9 +34,7 @@ contract AuctionTest is NounsBuilderTest {
 
         setMockGovParams();
 
-        setImplementationAddresses();
-
-        deploy(foundersArr, implAddresses, implData);
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
 
         setMockMetadata();
     }
@@ -57,7 +55,7 @@ contract AuctionTest is NounsBuilderTest {
         deployMock();
 
         vm.expectRevert(abi.encodeWithSignature("ALREADY_INITIALIZED()"));
-        auction.initialize(address(token), address(this), address(treasury), implData[2]);
+        auction.initialize(address(token), address(this), address(treasury), 1 minutes, 0 ether, address(0), 0);
     }
 
     function test_Unpause() public {

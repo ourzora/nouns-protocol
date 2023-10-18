@@ -28,9 +28,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
 
         setMockGovParams();
 
-        setImplementationAddresses();
-
-        deploy(foundersArr, implAddresses, implData);
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
 
         setMockMetadata();
     }
@@ -38,21 +36,27 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
     function deployAltMockAndSetMinter(
         uint256 _reservedUntilTokenId,
         address _minter,
-        bytes memory _minterData
+        MerkleReserveMinter.MerkleMinterSettings memory _minterData
     ) internal virtual {
         setMockFounderParams();
 
-        setMockTokenParamsWithReserveAndMinter(_reservedUntilTokenId, _minter, _minterData);
+        setMockTokenParamsWithReserve(_reservedUntilTokenId);
 
         setMockAuctionParams();
 
         setMockGovParams();
 
-        setImplementationAddresses();
-
-        deploy(foundersArr, implAddresses, implData);
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
 
         setMockMetadata();
+
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        minters[0] = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
+
+        vm.startPrank(token.owner());
+        token.updateMinters(minters);
+        minter.setMintSettings(address(token), _minterData);
+        vm.stopPrank();
     }
 
     function test_MintFlow() public {
@@ -103,7 +107,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
             merkleRoot: root
         });
 
-        deployAltMockAndSetMinter(20, address(minter), abi.encode(settings));
+        deployAltMockAndSetMinter(20, address(minter), settings);
 
         (uint64 mintStart, uint64 mintEnd, uint64 pricePerToken, bytes32 merkleRoot) = minter.allowedMerkles(address(token));
         assertEq(mintStart, settings.mintStart);

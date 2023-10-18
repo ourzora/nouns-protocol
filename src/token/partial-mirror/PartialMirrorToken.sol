@@ -8,14 +8,12 @@ import { ERC721 } from "../../lib/token/ERC721.sol";
 import { IERC721 } from "../../lib/interfaces/IERC721.sol";
 import { Ownable } from "../../lib/utils/Ownable.sol";
 import { PartialMirrorTokenStorageV1 } from "./storage/PartialMirrorTokenStorageV1.sol";
-import { IBaseMetadata } from "../../metadata/interfaces/IBaseMetadata.sol";
+import { IBaseMetadata } from "../metadata/interfaces/IBaseMetadata.sol";
 import { IManager } from "../../manager/IManager.sol";
 import { IAuction } from "../../auction/IAuction.sol";
 import { IPartialMirrorToken } from "./IPartialMirrorToken.sol";
-import { IBaseToken } from "../interfaces/IBaseToken.sol";
 import { VersionedContract } from "../../VersionedContract.sol";
 
-import { IMintStrategy } from "../../minters/interfaces/IMintStrategy.sol";
 import { IMirrorToken } from "../interfaces/IMirrorToken.sol";
 
 /// @title Token
@@ -67,13 +65,16 @@ contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Own
 
     /// @notice Initializes a DAO's ERC-721 token contract
     /// @param _founders The DAO founders
-    /// @param _data The encoded token initialization parameters
+    /// @param _initStrings The encoded token and metadata initialization strings
+    /// @param _reservedUntilTokenId The tokenId that a DAO's auctions will start at
     /// @param _metadataRenderer The token's metadata renderer
     /// @param _auction The token's auction house
     /// @param _initialOwner The initial owner of the token
     function initialize(
         IManager.FounderParams[] calldata _founders,
-        bytes calldata _data,
+        bytes calldata _initStrings,
+        uint256 _reservedUntilTokenId,
+        address _tokenToMirror,
         address _metadataRenderer,
         address _auction,
         address _initialOwner
@@ -89,30 +90,20 @@ contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Own
         // Setup ownable
         __Ownable_init(_initialOwner);
 
-        // Decode the token name and symbol
-        IPartialMirrorToken.TokenParams memory params = abi.decode(_data, (IPartialMirrorToken.TokenParams));
-
         // Store the founders and compute their allocations
-        _addFounders(_founders, params.reservedUntilTokenId);
+        _addFounders(_founders, _reservedUntilTokenId);
+
+        // Decode the token name and symbol
+        (string memory _name, string memory _symbol, , , , ) = abi.decode(_initStrings, (string, string, string, string, string, string));
 
         // Initialize the ERC-721 token
-        __ERC721_init(params.name, params.symbol);
+        __ERC721_init(_name, _symbol);
 
         // Store the metadata renderer and auction house
         settings.metadataRenderer = IBaseMetadata(_metadataRenderer);
         settings.auction = _auction;
-        reservedUntilTokenId = params.reservedUntilTokenId;
-        tokenToMirror = params.tokenToMirror;
-
-        // Check if an initial minter was specified
-        if (params.initialMinter != address(0)) {
-            minter[params.initialMinter] = true;
-
-            // Set minter settings if specified
-            if (params.initialMinterData.length > 0) {
-                IMintStrategy(params.initialMinter).setMintSettings(params.initialMinterData);
-            }
-        }
+        reservedUntilTokenId = _reservedUntilTokenId;
+        tokenToMirror = _tokenToMirror;
     }
 
     /// @notice Called by the auction upon the first unpause / token mint to transfer ownership from founder to treasury
@@ -461,12 +452,12 @@ contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Own
 
     /// @notice The URI for a token
     /// @param _tokenId The ERC-721 token id
-    function tokenURI(uint256 _tokenId) public view override(IBaseToken, ERC721) returns (string memory) {
+    function tokenURI(uint256 _tokenId) public view override(ERC721) returns (string memory) {
         return settings.metadataRenderer.tokenURI(_tokenId);
     }
 
     /// @notice The URI for the contract
-    function contractURI() public view override(IBaseToken, ERC721) returns (string memory) {
+    function contractURI() public view override(ERC721) returns (string memory) {
         return settings.metadataRenderer.contractURI();
     }
 
@@ -602,7 +593,7 @@ contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Own
     }
 
     /// @notice The contract owner
-    function owner() public view override(IBaseToken, Ownable) returns (address) {
+    function owner() public view override(Ownable) returns (address) {
         return super.owner();
     }
 

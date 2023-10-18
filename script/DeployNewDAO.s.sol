@@ -6,13 +6,14 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { IManager } from "../src/manager/IManager.sol";
 import { IPartialMirrorToken } from "../src/token/partial-mirror/IPartialMirrorToken.sol";
-import { IPropertyMetadata } from "../src/metadata/property/interfaces/IPropertyMetadata.sol";
+import { IBaseMetadata } from "../src/token/metadata/interfaces/IBaseMetadata.sol";
 import { IAuction } from "../src/auction/IAuction.sol";
 import { IGovernor } from "../src/governance/governor/IGovernor.sol";
 import { ITreasury } from "../src/governance/treasury/ITreasury.sol";
 import { MerkleReserveMinter } from "../src/minters/MerkleReserveMinter.sol";
 
 contract SetupDaoScript is Script {
+    /*
     using Strings for uint256;
 
     string configFile;
@@ -102,4 +103,5 @@ contract SetupDaoScript is Script {
 
         vm.stopBroadcast();
     }
+    */
 }

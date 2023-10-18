@@ -3,14 +3,13 @@ pragma solidity 0.8.16;
 
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import { IOwnable } from "../lib/interfaces/IOwnable.sol";
-import { IBaseToken } from "../token/interfaces/IBaseToken.sol";
+import { IToken } from "../token/default/IToken.sol";
 import { IManager } from "../manager/IManager.sol";
-import { IMintStrategy } from "./interfaces/IMintStrategy.sol";
 
 /// @title MerkleReserveMinter
 /// @notice A mint strategy that mints reserved tokens based on a merkle tree
 /// @author @neokry
-contract MerkleReserveMinter is IMintStrategy {
+contract MerkleReserveMinter {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///
@@ -151,7 +150,7 @@ contract MerkleReserveMinter is IMintStrategy {
                 }
 
                 // Only allowing reserved tokens to be minted for this strategy
-                IBaseToken(tokenContract).mintFromReserveTo(claim.mintTo, claim.tokenId);
+                IToken(tokenContract).mintFromReserveTo(claim.mintTo, claim.tokenId);
             }
         }
 
@@ -170,23 +169,6 @@ contract MerkleReserveMinter is IMintStrategy {
 
     ///                                                          ///
     ///                            Settings                      ///
-    ///                                                          ///
-
-    /// @notice Sets the minter settings from the token contract with generic data
-    /// @param data Encoded settings to set
-    function setMintSettings(bytes calldata data) external {
-        // Decode settings data
-        MerkleMinterSettings memory settings = abi.decode(data, (MerkleMinterSettings));
-
-        // Cache sender
-        address sender = msg.sender;
-
-        // Set new collection settings
-        _setMintSettings(sender, settings);
-
-        // Emit event for new settings
-        emit MinterSet(sender, settings);
-    }
 
     /// @notice Sets the minter settings for a token
     /// @param tokenContract Token contract to set settings for

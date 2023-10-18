@@ -17,7 +17,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     address internal voter2;
     uint256 internal voter2PK;
 
-    IGovernor.GovParams internal altGovParams;
+    IManager.GovParams internal altGovParams;
 
     function setUp() public virtual override {
         super.setUp();
@@ -48,9 +48,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         setGovParams(2 days, 1 days, 1 weeks, 25, 1000, founder);
 
-        setImplementationAddresses();
-
-        deploy(foundersArr, implAddresses, implData);
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
 
         setMockMetadata();
     }
@@ -77,9 +75,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         setGovParams(2 days, 1 days, 1 weeks, 100, 1000, founder);
 
-        setImplementationAddresses();
-
-        deploy(foundersArr, implAddresses, implData);
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
 
         setMockMetadata();
     }
@@ -221,21 +217,21 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         deployMock();
 
         assertEq(treasury.owner(), address(governor));
-        assertEq(treasury.delay(), treasuryParams.timelockDelay);
+        assertEq(treasury.delay(), govParams.timelockDelay);
     }
 
     function testRevert_CannotReinitializeGovernor() public {
         deployMock();
 
         vm.expectRevert(abi.encodeWithSignature("ALREADY_INITIALIZED()"));
-        governor.initialize(address(this), address(this), new bytes(0));
+        governor.initialize(address(this), address(this), address(this), 0, 0, 0, 0);
     }
 
     function testRevert_CannotReinitializeTreasury() public {
         deployMock();
 
         vm.expectRevert(abi.encodeWithSignature("ALREADY_INITIALIZED()"));
-        treasury.initialize(address(this), new bytes(0));
+        treasury.initialize(address(this), 0);
     }
 
     function test_CreateProposal() public {

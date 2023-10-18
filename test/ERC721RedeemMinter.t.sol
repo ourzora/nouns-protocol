@@ -17,7 +17,7 @@ contract ERC721RedeemMinterTest is NounsBuilderTest {
     function setUp() public virtual override {
         super.setUp();
 
-        minter = new ERC721RedeemMinter(manager, builderDAO);
+        minter = new ERC721RedeemMinter(manager, zoraDAO);
         redeemToken = new MockERC721();
 
         claimer1 = address(0xC1);
@@ -27,21 +27,27 @@ contract ERC721RedeemMinterTest is NounsBuilderTest {
     function deployAltMockAndSetMinter(
         uint256 _reservedUntilTokenId,
         address _minter,
-        bytes memory _minterData
+        ERC721RedeemMinter.RedeemSettings memory _minterData
     ) internal virtual {
         setMockFounderParams();
 
-        setMockTokenParamsWithReserveAndMinter(_reservedUntilTokenId, _minter, _minterData);
+        setMockTokenParamsWithReserve(_reservedUntilTokenId);
 
         setMockAuctionParams();
 
         setMockGovParams();
 
-        setImplementationAddresses();
-
-        deploy(foundersArr, implAddresses, implData);
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
 
         setMockMetadata();
+
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        minters[0] = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
+
+        vm.startPrank(token.owner());
+        token.updateMinters(minters);
+        minter.setMintSettings(address(token), _minterData);
+        vm.stopPrank();
     }
 
     function test_MintFlow() public {
@@ -52,7 +58,7 @@ contract ERC721RedeemMinterTest is NounsBuilderTest {
             redeemToken: address(redeemToken)
         });
 
-        deployAltMockAndSetMinter(20, address(minter), abi.encode(settings));
+        deployAltMockAndSetMinter(20, address(minter), settings);
 
         (uint64 mintStart, uint64 mintEnd, uint64 pricePerToken, address redeem) = minter.redeemSettings(address(token));
         assertEq(mintStart, settings.mintStart);
@@ -78,7 +84,7 @@ contract ERC721RedeemMinterTest is NounsBuilderTest {
             redeemToken: address(redeemToken)
         });
 
-        deployAltMockAndSetMinter(20, address(minter), abi.encode(settings));
+        deployAltMockAndSetMinter(20, address(minter), settings);
 
         redeemToken.mint(claimer1, 4);
         redeemToken.mint(claimer1, 5);
@@ -104,7 +110,7 @@ contract ERC721RedeemMinterTest is NounsBuilderTest {
             redeemToken: address(redeemToken)
         });
 
-        deployAltMockAndSetMinter(20, address(minter), abi.encode(settings));
+        deployAltMockAndSetMinter(20, address(minter), settings);
 
         uint256[] memory tokenIds = new uint256[](1);
         tokenIds[0] = 4;
@@ -121,7 +127,7 @@ contract ERC721RedeemMinterTest is NounsBuilderTest {
             redeemToken: address(redeemToken)
         });
 
-        deployAltMockAndSetMinter(20, address(minter), abi.encode(settings));
+        deployAltMockAndSetMinter(20, address(minter), settings);
 
         redeemToken.mint(claimer1, 4);
 
@@ -148,7 +154,7 @@ contract ERC721RedeemMinterTest is NounsBuilderTest {
             redeemToken: address(redeemToken)
         });
 
-        deployAltMockAndSetMinter(20, address(minter), abi.encode(settings));
+        deployAltMockAndSetMinter(20, address(minter), settings);
 
         redeemToken.mint(claimer1, 4);
         redeemToken.mint(claimer1, 5);
@@ -181,7 +187,7 @@ contract ERC721RedeemMinterTest is NounsBuilderTest {
             redeemToken: address(redeemToken)
         });
 
-        deployAltMockAndSetMinter(20, address(minter), abi.encode(settings));
+        deployAltMockAndSetMinter(20, address(minter), settings);
 
         redeemToken.mint(claimer1, 4);
         redeemToken.mint(claimer1, 5);
@@ -206,7 +212,7 @@ contract ERC721RedeemMinterTest is NounsBuilderTest {
             redeemToken: address(redeemToken)
         });
 
-        deployAltMockAndSetMinter(20, address(minter), abi.encode(settings));
+        deployAltMockAndSetMinter(20, address(minter), settings);
 
         redeemToken.mint(claimer1, 4);
 
@@ -227,7 +233,7 @@ contract ERC721RedeemMinterTest is NounsBuilderTest {
 
         vm.warp(block.timestamp + 2);
 
-        deployAltMockAndSetMinter(20, address(minter), abi.encode(settings));
+        deployAltMockAndSetMinter(20, address(minter), settings);
 
         redeemToken.mint(claimer1, 4);
 
@@ -246,7 +252,7 @@ contract ERC721RedeemMinterTest is NounsBuilderTest {
             redeemToken: address(redeemToken)
         });
 
-        deployAltMockAndSetMinter(20, address(minter), abi.encode(settings));
+        deployAltMockAndSetMinter(20, address(minter), settings);
 
         vm.prank(founder);
         minter.resetMintSettings(address(token));

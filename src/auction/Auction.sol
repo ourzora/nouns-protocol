@@ -8,11 +8,11 @@ import { Pausable } from "../lib/utils/Pausable.sol";
 import { SafeCast } from "../lib/utils/SafeCast.sol";
 
 import { AuctionStorageV1 } from "./storage/AuctionStorageV1.sol";
-import { IBaseToken } from "../token/interfaces/IBaseToken.sol";
 import { AuctionStorageV2 } from "./storage/AuctionStorageV2.sol";
 import { IManager } from "../manager/IManager.sol";
 import { IAuction } from "./IAuction.sol";
 import { IWETH } from "../lib/interfaces/IWETH.sol";
+import { Token } from "../token/default/Token.sol";
 import { IProtocolRewards } from "../rewards/interfaces/IProtocolRewards.sol";
 
 import { VersionedContract } from "../VersionedContract.sol";
@@ -64,16 +64,22 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     ///                          INITIALIZER                     ///
     ///                                                          ///
 
-    /// @notice Initializes a DAO's auction contract
+    /// @notice Initializes a DAO's auction house
     /// @param _token The ERC-721 token address
-    /// @param _initialOwner The account responsible for starting the first auction
+    /// @param _founder The founder responsible for starting the first auction
     /// @param _treasury The treasury address where ETH will be sent
-    /// @param _data The encoded auction settings
+    /// @param _duration The duration of each auction
+    /// @param _reservePrice The reserve price of each auction
+    /// @param _founderRewardRecipent The address to recieve founders rewards
+    /// @param _founderRewardBPS The percent of rewards a founder receives in BPS for each auction
     function initialize(
         address _token,
-        address _initialOwner,
+        address _founder,
         address _treasury,
-        bytes calldata _data
+        uint256 _duration,
+        uint256 _reservePrice,
+        address _founderRewardRecipent,
+        uint256 _founderRewardBPS
     ) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) revert ONLY_MANAGER();
@@ -82,26 +88,24 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         __ReentrancyGuard_init();
 
         // Grant initial ownership to a founder
-        __Ownable_init(_initialOwner);
+        __Ownable_init(_founder);
 
         // Pause the contract until the first auction
         __Pausable_init(true);
 
         // Store DAO's ERC-721 token
-        token = IBaseToken(_token);
-
-        AuctionParams memory params = abi.decode(_data, (AuctionParams));
+        token = Token(_token);
 
         // Store the auction house settings
-        settings.duration = SafeCast.toUint40(params.duration);
-        settings.reservePrice = params.reservePrice;
+        settings.duration = SafeCast.toUint40(_duration);
+        settings.reservePrice = _reservePrice;
         settings.treasury = _treasury;
         settings.timeBuffer = INITIAL_TIME_BUFFER;
         settings.minBidIncrement = INITIAL_MIN_BID_INCREMENT_PERCENT;
 
         // Store the founder rewards settings
-        founderRewardRecipent = params.founderRewardRecipent;
-        founderRewardBPS = params.founderRewardBPS;
+        founderRewardRecipent = _founderRewardRecipent;
+        founderRewardBPS = _founderRewardBPS;
     }
 
     ///                                                          ///

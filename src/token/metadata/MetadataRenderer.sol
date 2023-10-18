@@ -12,19 +12,25 @@ import { Initializable } from "../../lib/utils/Initializable.sol";
 import { IOwnable } from "../../lib/interfaces/IOwnable.sol";
 import { ERC721 } from "../../lib/token/ERC721.sol";
 
-import { IToken } from "../../token/default/IToken.sol";
-import { PropertyMetadataStorageV1 } from "./storage/PropertyMetadataStorageV1.sol";
-import { PropertyMetadataStorageV2 } from "./storage/PropertyMetadataStorageV2.sol";
-import { IPropertyMetadata } from "./interfaces/IPropertyMetadata.sol";
+import { MetadataRendererStorageV1 } from "./storage/MetadataRendererStorageV1.sol";
+import { MetadataRendererStorageV2 } from "./storage/MetadataRendererStorageV2.sol";
+import { IToken } from "../default/IToken.sol";
+import { IPropertyIPFSMetadataRenderer } from "./interfaces/IPropertyIPFSMetadataRenderer.sol";
 import { IManager } from "../../manager/IManager.sol";
-import { IBaseMetadata } from "../interfaces/IBaseMetadata.sol";
 import { VersionedContract } from "../../VersionedContract.sol";
 
-/// @title Property IPFS Metadata Renderer
+/// @title Metadata Renderer
 /// @author Iain Nash & Rohan Kulkarni
 /// @notice A DAO's artwork generator and renderer
 /// @custom:repo github.com/ourzora/nouns-protocol
-contract PropertyMetadata is IPropertyMetadata, VersionedContract, Initializable, UUPS, PropertyMetadataStorageV1, PropertyMetadataStorageV2 {
+contract MetadataRenderer is
+    IPropertyIPFSMetadataRenderer,
+    VersionedContract,
+    Initializable,
+    UUPS,
+    MetadataRendererStorageV1,
+    MetadataRendererStorageV2
+{
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -59,23 +65,26 @@ contract PropertyMetadata is IPropertyMetadata, VersionedContract, Initializable
     ///                                                          ///
 
     /// @notice Initializes a DAO's token metadata renderer
-    /// @param _data The encoded metadata initialization parameters
+    /// @param _initStrings The encoded token and metadata initialization strings
     /// @param _token The ERC-721 token address
-    function initialize(bytes calldata _data, address _token) external initializer {
+    function initialize(bytes calldata _initStrings, address _token) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) {
             revert ONLY_MANAGER();
         }
 
         // Decode the token initialization strings
-        PropertyMetadataParams memory params = abi.decode(_data, (PropertyMetadataParams));
+        (, , string memory _description, string memory _contractImage, string memory _projectURI, string memory _rendererBase) = abi.decode(
+            _initStrings,
+            (string, string, string, string, string, string)
+        );
 
         // Store the renderer settings
-        settings.projectURI = params.projectURI;
-        settings.description = params.description;
-        settings.contractImage = params.contractImage;
-        settings.rendererBase = params.rendererBase;
-        settings.projectURI = params.projectURI;
+        settings.projectURI = _projectURI;
+        settings.description = _description;
+        settings.contractImage = _contractImage;
+        settings.rendererBase = _rendererBase;
+        settings.projectURI = _projectURI;
         settings.token = _token;
     }
 
@@ -233,19 +242,38 @@ contract PropertyMetadata is IPropertyMetadata, VersionedContract, Initializable
     function onMinted(uint256 _tokenId) external override returns (bool) {
         // Ensure the caller is the token contract
         if (msg.sender != settings.token) revert ONLY_TOKEN();
-        return _generateMetadata(_tokenId);
-    }
 
-    /// @notice Generates attributes for a requested set of tokens
-    /// @param startId The ERC-721 token id
-    /// @param endId The ERC-721 token id
-    function generateMetadataForTokenIds(uint256 startId, uint256 endId) external onlyOwner returns (bool[] memory results) {
-        uint256 tokensLen = endId + 1 - startId;
+        // Compute some randomness for the token id
+        uint256 seed = _generateSeed(_tokenId);
+
+        // Get the pointer to store generated attributes
+        uint16[16] storage tokenAttributes = attributes[_tokenId];
+
+        // Cache the total number of properties available
+        uint256 numProperties = properties.length;
+
+        if (numProperties == 0) {
+            return false;
+        }
+
+        // Store the total as reference in the first slot of the token's array of attributes
+        tokenAttributes[0] = uint16(numProperties);
+
         unchecked {
-            for (uint256 i = startId; i < tokensLen; ++i) {
-                results[i] = _generateMetadata(i);
+            // For each property:
+            for (uint256 i = 0; i < numProperties; ++i) {
+                // Get the number of items to choose from
+                uint256 numItems = properties[i].items.length;
+
+                // Use the token's seed to select an item
+                tokenAttributes[i + 1] = uint16(seed % numItems);
+
+                // Adjust the randomness
+                seed >>= 16;
             }
         }
+
+        return true;
     }
 
     /// @notice The properties and query string for a generated token
@@ -295,40 +323,6 @@ contract PropertyMetadata is IPropertyMetadata, VersionedContract, Initializable
 
             resultAttributes = MetadataBuilder.generateJSON(arrayAttributesItems);
         }
-    }
-
-    function _generateMetadata(uint256 _tokenId) private returns (bool) {
-        // Compute some randomness for the token id
-        uint256 seed = _generateSeed(_tokenId);
-
-        // Get the pointer to store generated attributes
-        uint16[16] storage tokenAttributes = attributes[_tokenId];
-
-        // Cache the total number of properties available
-        uint256 numProperties = properties.length;
-
-        if (numProperties == 0) {
-            return false;
-        }
-
-        // Store the total as reference in the first slot of the token's array of attributes
-        tokenAttributes[0] = uint16(numProperties);
-
-        unchecked {
-            // For each property:
-            for (uint256 i = 0; i < numProperties; ++i) {
-                // Get the number of items to choose from
-                uint256 numItems = properties[i].items.length;
-
-                // Use the token's seed to select an item
-                tokenAttributes[i + 1] = uint16(seed % numItems);
-
-                // Get next 16 random bits
-                seed >>= 16;
-            }
-        }
-
-        return true;
     }
 
     /// @dev Generates a psuedo-random seed for a token id
@@ -393,25 +387,6 @@ contract PropertyMetadata is IPropertyMetadata, VersionedContract, Initializable
         }
 
         return MetadataBuilder.generateEncodedJSON(items);
-    }
-
-    /// @notice The token data
-    /// @param tokenId The ERC-721 token id
-    function tokenData(uint256 tokenId)
-        external
-        view
-        override
-        returns (
-            string memory name,
-            string memory imageURI,
-            string memory contentURI
-        )
-    {
-        (, string memory queryString) = getAttributes(tokenId);
-
-        name = string.concat(_name(), " #", Strings.toString(tokenId));
-        imageURI = string.concat(settings.rendererBase, queryString);
-        contentURI = "";
     }
 
     ///                                                          ///

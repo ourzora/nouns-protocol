@@ -4,14 +4,13 @@ pragma solidity 0.8.16;
 import { IUUPS } from "../../lib/interfaces/IUUPS.sol";
 import { IERC721Votes } from "../../lib/interfaces/IERC721Votes.sol";
 import { IManager } from "../../manager/IManager.sol";
-import { IBaseToken } from "../interfaces/IBaseToken.sol";
 import { IMirrorToken } from "../interfaces/IMirrorToken.sol";
 import { PartialMirrorTokenTypesV1 } from "./types/PartialMirrorTokenTypesV1.sol";
 
 /// @title IToken
 /// @author Neokry
 /// @notice The external Token events, errors and functions
-interface IPartialMirrorToken is IUUPS, IERC721Votes, IBaseToken, IMirrorToken, PartialMirrorTokenTypesV1 {
+interface IPartialMirrorToken is IUUPS, IERC721Votes, IMirrorToken, PartialMirrorTokenTypesV1 {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///
@@ -69,37 +68,21 @@ interface IPartialMirrorToken is IUUPS, IERC721Votes, IBaseToken, IMirrorToken, 
     error NO_APPROVALS();
 
     ///                                                          ///
-    ///                           STRUCTS                        ///
-    ///                                                          ///
-
-    /// @notice The tokens initilization parameters
-    struct TokenParams {
-        /// @notice The token name
-        string name;
-        /// @notice The token symbol
-        string symbol;
-        /// @notice The tokenId that a DAO's auctions will start at
-        uint256 reservedUntilTokenId;
-        /// @notice The token contract to be mirrored
-        address tokenToMirror;
-        /// @notice The minter a DAO enables by default
-        address initialMinter;
-        /// @notice The initilization data for the initial minter
-        bytes initialMinterData;
-    }
-
-    ///                                                          ///
     ///                           FUNCTIONS                      ///
     ///                                                          ///
 
-    /// @notice Initializes a DAO's ERC-721 token
-    /// @param founders The founding members to receive vesting allocations
-    /// @param data The encoded token and metadata initialization strings
+    /// @notice Initializes a DAO's ERC-721 token contract
+    /// @param founders The DAO founders
+    /// @param initStrings The encoded token and metadata initialization strings
+    /// @param reservedUntilTokenId The tokenId that a DAO's auctions will start at
     /// @param metadataRenderer The token's metadata renderer
     /// @param auction The token's auction house
+    /// @param initialOwner The initial owner of the token
     function initialize(
         IManager.FounderParams[] calldata founders,
-        bytes calldata data,
+        bytes calldata initStrings,
+        uint256 reservedUntilTokenId,
+        address tokenToMirror,
         address metadataRenderer,
         address auction,
         address initialOwner

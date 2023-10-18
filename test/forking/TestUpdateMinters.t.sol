@@ -6,7 +6,7 @@ import { Treasury } from "../../src/governance/treasury/Treasury.sol";
 import { Auction } from "../../src/auction/Auction.sol";
 import { IAuction } from "../../src/auction/IAuction.sol";
 import { Token } from "../../src/token/default/Token.sol";
-import { PropertyMetadata } from "../../src/metadata/property/PropertyMetadata.sol";
+import { MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol";
 import { Governor } from "../../src/governance/governor/Governor.sol";
 import { IManager } from "../../src/manager/IManager.sol";
 import { Manager } from "../../src/manager/Manager.sol";
@@ -22,7 +22,7 @@ contract TestUpdateMinters is Test {
     Auction internal immutable auction = Auction(0x658D3A1B6DaBcfbaa8b75cc182Bf33efefDC200d);
     Governor internal immutable governor = Governor(0xe3F8d5488C69d18ABda42FCA10c177d7C19e8B1a);
     Treasury internal immutable treasury = Treasury(payable(0xDC9b96Ea4966d063Dd5c8dbaf08fe59062091B6D));
-    PropertyMetadata internal immutable metadata = PropertyMetadata(0x963ac521C595D3D1BE72C1Eb057f24D4D42CB70b);
+    MetadataRenderer internal immutable metadata = MetadataRenderer(0x963ac521C595D3D1BE72C1Eb057f24D4D42CB70b);
 
     function setUp() public {
         uint256 mainnetFork = vm.createFork(vm.envString("ETH_RPC_MAINNET"), 16585958);
