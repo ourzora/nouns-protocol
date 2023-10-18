@@ -5,11 +5,12 @@ import "forge-std/Script.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { IManager } from "../src/manager/IManager.sol";
-import { IToken } from "../src/token/default/IToken.sol";
+import { IPartialMirrorToken } from "../src/token/partial-mirror/IPartialMirrorToken.sol";
 import { IPropertyMetadata } from "../src/metadata/property/interfaces/IPropertyMetadata.sol";
 import { IAuction } from "../src/auction/IAuction.sol";
 import { IGovernor } from "../src/governance/governor/IGovernor.sol";
 import { ITreasury } from "../src/governance/treasury/ITreasury.sol";
+import { MerkleReserveMinter } from "../src/minters/MerkleReserveMinter.sol";
 
 contract SetupDaoScript is Script {
     using Strings for uint256;
@@ -38,16 +39,24 @@ contract SetupDaoScript is Script {
 
         IManager manager = IManager(_getKey("Manager"));
 
-        IToken.TokenParams memory tokenParams = IToken.TokenParams({
-            name: "Test",
+        MerkleReserveMinter.MerkleMinterSettings memory settings = MerkleReserveMinter.MerkleMinterSettings({
+            mintStart: 0,
+            mintEnd: 1,
+            pricePerToken: 0.01 ether,
+            merkleRoot: hex"00"
+        });
+
+        IPartialMirrorToken.TokenParams memory tokenParams = IPartialMirrorToken.TokenParams({
+            name: "Test Merkle Minter 2",
             symbol: "TST",
             reservedUntilTokenId: 10,
-            initialMinter: address(0),
-            initialMinterData: hex"00"
+            tokenToMirror: address(0xB0B),
+            initialMinter: _getKey("MerkleReserveMinter"),
+            initialMinterData: abi.encode(settings)
         });
 
         IPropertyMetadata.PropertyMetadataParams memory metadataParams = IPropertyMetadata.PropertyMetadataParams({
-            description: "This is a test DAO",
+            description: "This is a test Merkle minter DAO 2",
             contractImage: "https://test.com",
             projectURI: "https://test.com",
             rendererBase: "https://test.com"
@@ -74,8 +83,8 @@ contract SetupDaoScript is Script {
         founders[0] = IManager.FounderParams({ wallet: deployerAddress, ownershipPct: 10, vestExpiry: 30 days });
 
         address[] memory implementations = new address[](5);
-        implementations[0] = _getKey("Token");
-        implementations[1] = _getKey("MetadataRenderer");
+        implementations[0] = _getKey("MirrorToken");
+        implementations[1] = _getKey("PropertyMetadataRenderer");
         implementations[2] = _getKey("Auction");
         implementations[3] = _getKey("Treasury");
         implementations[4] = _getKey("Governor");
