@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import { IUUPS } from "../../../lib/interfaces/IUUPS.sol";
-
+import { IUUPS } from "../../lib/interfaces/IUUPS.sol";
 
 /// @title IBaseMetadata
 /// @author Rohan Kulkarni
@@ -22,10 +21,7 @@ interface IBaseMetadata is IUUPS {
     /// @notice Initializes a DAO's token metadata renderer
     /// @param initStrings The encoded token and metadata initialization strings
     /// @param token The associated ERC-721 token address
-    function initialize(
-        bytes calldata initStrings,
-        address token
-    ) external;
+    function initialize(bytes calldata initStrings, address token) external;
 
     /// @notice Generates attributes for a token upon mint
     /// @param tokenId The ERC-721 token id

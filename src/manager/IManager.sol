@@ -42,15 +42,6 @@ interface IManager is IUUPS, IOwnable {
     /// @dev Reverts if at least one founder is not provided upon deploy
     error FOUNDER_REQUIRED();
 
-    /// @dev Reverts if implementation parameters are incorrect length
-    error INVALID_IMPLEMENTATION_PARAMS();
-
-    /// @dev Reverts if an implementation is not registered
-    error IMPLEMENTATION_NOT_REGISTERED();
-
-    /// @dev Reverts if an implementation type is not valid on registration
-    error INVALID_IMPLEMENTATION_TYPE();
-
     /// @dev Reverts if caller is not the token owner
     error ONLY_TOKEN_OWNER();
 
@@ -99,13 +90,9 @@ interface IManager is IUUPS, IOwnable {
     /// @param reservePrice The reserve price of each auction
     /// @param duration The duration of each auction
     struct AuctionParams {
-        /// @notice The duration of each auction
-        uint256 duration;
-        /// @notice The reserve price of each auction
         uint256 reservePrice;
-        /// @notice The address to recieve founders rewards
+        uint256 duration;
         address founderRewardRecipent;
-        /// @notice The percent of rewards a founder receives in BPS for each auction
         uint256 founderRewardBPS;
     }
 
@@ -128,6 +115,24 @@ interface IManager is IUUPS, IOwnable {
     ///                                                          ///
     ///                           FUNCTIONS                      ///
     ///                                                          ///
+
+    /// @notice The token implementation address
+    function tokenImpl() external view returns (address);
+
+    /// @notice The mirror token implementation address
+    function mirrorTokenImpl() external view returns (address);
+
+    /// @notice The metadata renderer implementation address
+    function metadataImpl() external view returns (address);
+
+    /// @notice The auction house implementation address
+    function auctionImpl() external view returns (address);
+
+    /// @notice The treasury implementation address
+    function treasuryImpl() external view returns (address);
+
+    /// @notice The governor implementation address
+    function governorImpl() external view returns (address);
 
     /// @notice Deploys a DAO with custom token, auction, and governance settings
     /// @param founderParams The DAO founder(s)

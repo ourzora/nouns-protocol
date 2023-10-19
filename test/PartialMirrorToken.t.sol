@@ -1156,7 +1156,7 @@ contract PartialMirrorTokenTest is NounsBuilderTest, TokenTypesV1 {
         token.updateMinters(minters);
 
         vm.prank(minters[0].minter);
-        uint256 tokenId = mirrorToken.mintTo(_from);
+        mirrorToken.mintTo(_from);
 
         vm.expectRevert(abi.encodeWithSignature("NO_APPROVALS()"));
         mirrorToken.setApprovalForAll(_to, true);

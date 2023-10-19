@@ -9,7 +9,7 @@ import { ManagerStorageV1 } from "./storage/ManagerStorageV1.sol";
 import { IManager } from "./IManager.sol";
 import { IToken } from "../token/default/IToken.sol";
 import { IPartialMirrorToken } from "../token/partial-mirror/IPartialMirrorToken.sol";
-import { IBaseMetadata } from "../token/metadata/interfaces/IBaseMetadata.sol";
+import { IBaseMetadata } from "../metadata/interfaces/IBaseMetadata.sol";
 import { IAuction } from "../auction/IAuction.sol";
 import { ITreasury } from "../governance/treasury/ITreasury.sol";
 import { IGovernor } from "../governance/governor/IGovernor.sol";
@@ -343,6 +343,17 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
                 auction: _safeGetVersion(auction),
                 treasury: _safeGetVersion(treasury),
                 governor: _safeGetVersion(governor)
+            });
+    }
+
+    function getLatestVersions() external view returns (DAOVersionInfo memory) {
+        return
+            DAOVersionInfo({
+                token: _safeGetVersion(tokenImpl),
+                metadata: _safeGetVersion(metadataImpl),
+                auction: _safeGetVersion(auctionImpl),
+                treasury: _safeGetVersion(treasuryImpl),
+                governor: _safeGetVersion(governorImpl)
             });
     }
 

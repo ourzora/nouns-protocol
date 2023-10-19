@@ -8,7 +8,12 @@ import { ERC721 } from "../../lib/token/ERC721.sol";
 import { IERC721 } from "../../lib/interfaces/IERC721.sol";
 import { Ownable } from "../../lib/utils/Ownable.sol";
 import { PartialMirrorTokenStorageV1 } from "./storage/PartialMirrorTokenStorageV1.sol";
-import { IBaseMetadata } from "../metadata/interfaces/IBaseMetadata.sol";
+import { IToken } from "../default/IToken.sol";
+import { IBaseToken } from "../interfaces/IBaseToken.sol";
+import { TokenStorageV1 } from "../default/storage/TokenStorageV1.sol";
+import { TokenStorageV2 } from "../default/storage/TokenStorageV2.sol";
+import { TokenStorageV3 } from "../default/storage/TokenStorageV3.sol";
+import { IBaseMetadata } from "../../metadata/interfaces/IBaseMetadata.sol";
 import { IManager } from "../../manager/IManager.sol";
 import { IAuction } from "../../auction/IAuction.sol";
 import { IPartialMirrorToken } from "./IPartialMirrorToken.sol";
@@ -20,7 +25,18 @@ import { IMirrorToken } from "../interfaces/IMirrorToken.sol";
 /// @author Neokry
 /// @custom:repo github.com/ourzora/nouns-protocol
 /// @notice A DAO's ERC-721 governance token modified to support partial soulbinding
-contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC721Votes, PartialMirrorTokenStorageV1 {
+contract PartialMirrorToken is
+    IPartialMirrorToken,
+    VersionedContract,
+    UUPS,
+    Ownable,
+    ReentrancyGuard,
+    ERC721Votes,
+    TokenStorageV1,
+    TokenStorageV2,
+    TokenStorageV3,
+    PartialMirrorTokenStorageV1
+{
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
@@ -108,7 +124,7 @@ contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Own
 
     /// @notice Called by the auction upon the first unpause / token mint to transfer ownership from founder to treasury
     /// @dev Only callable by the auction contract
-    function onFirstAuctionStarted() external override {
+    function onFirstAuctionStarted() external {
         if (msg.sender != settings.auction) {
             revert ONLY_AUCTION();
         }
@@ -294,6 +310,7 @@ contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Own
     ///                                                          ///
     ///                             Mirror                       ///
     ///                                                          ///
+
     /// @notice Gets the token address being mirrored
     /// @return The token address being mirrored
     function getTokenToMirror() external view override returns (address) {
@@ -452,12 +469,12 @@ contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Own
 
     /// @notice The URI for a token
     /// @param _tokenId The ERC-721 token id
-    function tokenURI(uint256 _tokenId) public view override(ERC721) returns (string memory) {
+    function tokenURI(uint256 _tokenId) public view override(ERC721, IBaseToken) returns (string memory) {
         return settings.metadataRenderer.tokenURI(_tokenId);
     }
 
     /// @notice The URI for the contract
-    function contractURI() public view override(ERC721) returns (string memory) {
+    function contractURI() public view override(ERC721, IBaseToken) returns (string memory) {
         return settings.metadataRenderer.contractURI();
     }
 
@@ -593,7 +610,7 @@ contract PartialMirrorToken is IPartialMirrorToken, VersionedContract, UUPS, Own
     }
 
     /// @notice The contract owner
-    function owner() public view override(Ownable) returns (address) {
+    function owner() public view override(IBaseToken, Ownable) returns (address) {
         return super.owner();
     }
 

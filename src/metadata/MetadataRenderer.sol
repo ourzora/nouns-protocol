@@ -7,17 +7,16 @@ import { UriEncode } from "sol-uriencode/src/UriEncode.sol";
 import { MetadataBuilder } from "micro-onchain-metadata-utils/MetadataBuilder.sol";
 import { MetadataJSONKeys } from "micro-onchain-metadata-utils/MetadataJSONKeys.sol";
 
-import { UUPS } from "../../lib/proxy/UUPS.sol";
-import { Initializable } from "../../lib/utils/Initializable.sol";
-import { IOwnable } from "../../lib/interfaces/IOwnable.sol";
-import { ERC721 } from "../../lib/token/ERC721.sol";
+import { UUPS } from "../lib/proxy/UUPS.sol";
+import { Initializable } from "../lib/utils/Initializable.sol";
+import { IOwnable } from "../lib/interfaces/IOwnable.sol";
+import { ERC721 } from "../lib/token/ERC721.sol";
 
 import { MetadataRendererStorageV1 } from "./storage/MetadataRendererStorageV1.sol";
 import { MetadataRendererStorageV2 } from "./storage/MetadataRendererStorageV2.sol";
-import { IToken } from "../default/IToken.sol";
 import { IPropertyIPFSMetadataRenderer } from "./interfaces/IPropertyIPFSMetadataRenderer.sol";
-import { IManager } from "../../manager/IManager.sol";
-import { VersionedContract } from "../../VersionedContract.sol";
+import { IManager } from "../manager/IManager.sol";
+import { VersionedContract } from "../VersionedContract.sol";
 
 /// @title Metadata Renderer
 /// @author Iain Nash & Rohan Kulkarni
