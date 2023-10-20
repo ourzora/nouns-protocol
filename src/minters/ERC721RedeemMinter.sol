@@ -88,7 +88,7 @@ contract ERC721RedeemMinter {
 
     /// @notice Checks if the caller is the token contract or the owner of the token contract
     /// @param tokenContract Token contract to check
-    modifier onlyTokenOwner(address tokenContract) {
+    modifier onlyContractOwner(address tokenContract) {
         // Revert if sender is not the token contract owner
         if (!_isContractOwner(msg.sender, tokenContract)) {
             revert NOT_TOKEN_OWNER();
@@ -223,7 +223,7 @@ contract ERC721RedeemMinter {
     /// @notice Sets the minter settings for a token
     /// @param tokenContract Token contract to set settings for
     /// @param settings Settings to set
-    function setMintSettings(address tokenContract, RedeemSettings memory settings) external onlyTokenOwner(tokenContract) {
+    function setMintSettings(address tokenContract, RedeemSettings memory settings) external onlyContractOwner(tokenContract) {
         // Set new collection settings
         _setMintSettings(tokenContract, settings);
 
@@ -233,7 +233,7 @@ contract ERC721RedeemMinter {
 
     /// @notice Resets the minter settings for a token
     /// @param tokenContract Token contract to reset settings for
-    function resetMintSettings(address tokenContract) external onlyTokenOwner(tokenContract) {
+    function resetMintSettings(address tokenContract) external onlyContractOwner(tokenContract) {
         // Reset collection settings to null
         delete redeemSettings[tokenContract];
 

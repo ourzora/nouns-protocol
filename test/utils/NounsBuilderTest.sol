@@ -6,7 +6,6 @@ import { Test } from "forge-std/Test.sol";
 import { IManager, Manager } from "../../src/manager/Manager.sol";
 import { IToken, Token } from "../../src/token/default/Token.sol";
 import { PartialMirrorToken } from "../../src/token/partial-mirror/PartialMirrorToken.sol";
-import { MetadataRenderer } from "../../src/metadata/MetadataRenderer.sol";
 import { IAuction, Auction } from "../../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../../src/governance/governor/Governor.sol";
 import { ITreasury, Treasury } from "../../src/governance/treasury/Treasury.sol";
