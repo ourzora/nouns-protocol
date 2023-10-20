@@ -64,7 +64,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     ///                          INITIALIZER                     ///
     ///                                                          ///
 
-    /// @notice Initializes a DAO's auction house
+    /// @notice Initializes a DAO's auction contract
     /// @param _token The ERC-721 token address
     /// @param _founder The founder responsible for starting the first auction
     /// @param _treasury The treasury address where ETH will be sent

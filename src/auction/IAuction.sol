@@ -37,7 +37,7 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @param duration The new auction duration
     event DurationUpdated(uint256 duration);
 
-    /// @notice Emitted when the reserve price is updatedq
+    /// @notice Emitted when the reserve price is updated
     /// @param reservePrice The new reserve price
     event ReservePriceUpdated(uint256 reservePrice);
 

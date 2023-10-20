@@ -8,6 +8,10 @@ import { IProtocolRewards } from "./interfaces/IProtocolRewards.sol";
 
 /// @title ProtocolRewards
 /// @notice Manager of deposits & withdrawals for protocol rewards
+/// @notice Modified from zora-protocol (packages/protocol-rewards/src/ProtocolRewards.sol)
+/// - Allows manager owner to set reward percentages
+/// - Allows founders to set rewards on DAO deployment
+/// - Uses EDCSA directly in withdrawWithSig instead of via EIP712 contract
 contract ProtocolRewards is IProtocolRewards, EIP712 {
     ///                                                          ///
     ///                            CONSTANTS                     ///
