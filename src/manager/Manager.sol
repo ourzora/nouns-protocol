@@ -6,6 +6,7 @@ import { Ownable } from "../lib/utils/Ownable.sol";
 import { ERC1967Proxy } from "../lib/proxy/ERC1967Proxy.sol";
 
 import { ManagerStorageV1 } from "./storage/ManagerStorageV1.sol";
+import { ManagerStorageV2 } from "./storage/ManagerStorageV2.sol";
 import { IManager } from "./IManager.sol";
 import { IToken } from "../token/default/IToken.sol";
 import { IPartialMirrorToken } from "../token/partial-mirror/IPartialMirrorToken.sol";
@@ -18,13 +19,11 @@ import { IOwnable } from "../lib/interfaces/IOwnable.sol";
 import { VersionedContract } from "../VersionedContract.sol";
 import { IVersionedContract } from "../lib/interfaces/IVersionedContract.sol";
 
-import { ERC165Checker } from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-
 /// @title Manager
 /// @author Neokry & Rohan Kulkarni
 /// @custom:repo github.com/ourzora/nouns-protocol
 /// @notice The DAO deployer and upgrade manager
-contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1 {
+contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1, ManagerStorageV2 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -161,83 +160,6 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         emit DAODeployed({ token: token, metadata: metadata, auction: auction, treasury: treasury, governor: governor });
     }
 
-    /// @notice Deploys a DAO with partial mirror token functionality
-    /// @param _founderParams The DAO founders
-    /// @param _mirrorTokenParams The partial mirror token settings
-    /// @param _auctionParams The auction settings
-    /// @param _govParams The governance settings
-    function deployWithMirror(
-        FounderParams[] calldata _founderParams,
-        MirrorTokenParams calldata _mirrorTokenParams,
-        AuctionParams calldata _auctionParams,
-        GovParams calldata _govParams
-    )
-        external
-        returns (
-            address token,
-            address metadata,
-            address auction,
-            address treasury,
-            address governor
-        )
-    {
-        // Used to store the address of the first (or only) founder
-        // This founder is responsible for adding token artwork and launching the first auction -- they're also free to transfer this responsiblity
-        address founder;
-
-        // Ensure at least one founder is provided
-        if ((founder = _founderParams[0].wallet) == address(0)) revert FOUNDER_REQUIRED();
-
-        {
-            // Deploy the DAO's ERC-721 governance token
-            token = address(new ERC1967Proxy(mirrorTokenImpl, ""));
-
-            // Use the token address to precompute the DAO's remaining addresses
-            bytes32 salt = bytes32(uint256(uint160(token)) << 96);
-
-            // Deploy the remaining DAO contracts
-            metadata = address(new ERC1967Proxy{ salt: salt }(metadataImpl, ""));
-            auction = address(new ERC1967Proxy{ salt: salt }(auctionImpl, ""));
-            treasury = address(new ERC1967Proxy{ salt: salt }(treasuryImpl, ""));
-            governor = address(new ERC1967Proxy{ salt: salt }(governorImpl, ""));
-        }
-
-        daoAddressesByToken[token] = DAOAddresses({ metadata: metadata, auction: auction, treasury: treasury, governor: governor });
-
-        // Initialize each instance with the provided settings
-        IPartialMirrorToken(token).initialize({
-            founders: _founderParams,
-            initStrings: _mirrorTokenParams.initStrings,
-            reservedUntilTokenId: _mirrorTokenParams.reservedUntilTokenId,
-            tokenToMirror: _mirrorTokenParams.tokenToMirror,
-            metadataRenderer: metadata,
-            auction: auction,
-            initialOwner: founder
-        });
-        IBaseMetadata(metadata).initialize({ initStrings: _mirrorTokenParams.initStrings, token: token });
-        IAuction(auction).initialize({
-            token: token,
-            founder: founder,
-            treasury: treasury,
-            duration: _auctionParams.duration,
-            reservePrice: _auctionParams.reservePrice,
-            founderRewardRecipent: _auctionParams.founderRewardRecipent,
-            founderRewardBPS: _auctionParams.founderRewardBPS
-        });
-        ITreasury(treasury).initialize({ governor: governor, timelockDelay: _govParams.timelockDelay });
-        IGovernor(governor).initialize({
-            treasury: treasury,
-            token: token,
-            vetoer: _govParams.vetoer,
-            votingDelay: _govParams.votingDelay,
-            votingPeriod: _govParams.votingPeriod,
-            proposalThresholdBps: _govParams.proposalThresholdBps,
-            quorumThresholdBps: _govParams.quorumThresholdBps
-        });
-
-        emit DAODeployed({ token: token, metadata: metadata, auction: auction, treasury: treasury, governor: governor });
-    }
-
     /// @notice Set a new metadata renderer
     /// @param _newRendererImpl new renderer address to use
     /// @param _setupRenderer data to setup new renderer with
@@ -319,6 +241,12 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         emit UpgradeRemoved(_baseImpl, _upgradeImpl);
     }
 
+    /// @notice Function to set the reward percentages
+    /// @param _rewards The reward to be paid to the referrer in BPS
+    function setRewardConfig(RewardConfig calldata _rewards) external onlyOwner {
+        rewards = _rewards;
+    }
+
     /// @notice Safely get the contract version of a target contract.
     /// @param target The ERC-721 token address
     /// @dev Assume `target` is a contract
@@ -355,13 +283,6 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
                 treasury: _safeGetVersion(treasuryImpl),
                 governor: _safeGetVersion(governorImpl)
             });
-    }
-
-    /// @notice If the contract implements an interface
-    /// @param _target The contract to check
-    /// @param _interfaceId The interface id
-    function supportsInterface(address _target, bytes4 _interfaceId) public view returns (bool) {
-        return ERC165Checker.supportsInterface(_target, _interfaceId);
     }
 
     ///                                                          ///

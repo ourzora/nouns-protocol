@@ -3,6 +3,7 @@ pragma solidity 0.8.16;
 
 import { IUUPS } from "../lib/interfaces/IUUPS.sol";
 import { IOwnable } from "../lib/interfaces/IOwnable.sol";
+import { ManagerTypesV2 } from "./types/ManagerTypesV2.sol";
 
 /// @title IManager
 /// @author Rohan Kulkarni
@@ -154,26 +155,6 @@ interface IManager is IUUPS, IOwnable {
             address governor
         );
 
-    /// @notice Deploys a DAO with custom token, auction, and governance settings
-    /// @param founderParams The DAO founder(s)
-    /// @param mirrorTokenParams The ERC-721 token settings
-    /// @param auctionParams The auction settings
-    /// @param govParams The governance settings
-    function deployWithMirror(
-        FounderParams[] calldata founderParams,
-        MirrorTokenParams calldata mirrorTokenParams,
-        AuctionParams calldata auctionParams,
-        GovParams calldata govParams
-    )
-        external
-        returns (
-            address token,
-            address metadataRenderer,
-            address auction,
-            address treasury,
-            address governor
-        );
-
     /// @notice A DAO's remaining contract addresses from its token address
     /// @param token The ERC-721 token address
     function getAddresses(address token)
@@ -199,4 +180,8 @@ interface IManager is IUUPS, IOwnable {
     /// @param baseImpl The base implementation address
     /// @param upgradeImpl The upgrade implementation address
     function removeUpgrade(address baseImpl, address upgradeImpl) external;
+
+    /// @notice The current rewards configuration set by BuilderDAO
+    /// @return rewards The rewards configuration
+    function rewards() external view returns (ManagerTypesV2.RewardConfig memory rewards);
 }

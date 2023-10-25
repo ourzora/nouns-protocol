@@ -97,6 +97,24 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @dev Thrown if the auction creation failed
     error AUCTION_CREATE_FAILED_TO_LAUNCH();
 
+    /// @dev Thrown if the rewards total is greater than 100%
+    error INVALID_REWARD_TOTAL();
+
+    ///                                                          ///
+    ///                          STRUCTS                         ///
+    ///                                                          ///
+
+    struct RewardSplits {
+        //// @notice Total rewards amount
+        uint256 totalRewards;
+        /// @param recipients recipients to send the amount to, array aligns with amounts
+        address[] recipients;
+        /// @param amounts amounts to send to each recipient, array aligns with recipients
+        uint256[] amounts;
+        /// @param reasons optional bytes4 hash for indexing
+        bytes4[] reasons;
+    }
+
     ///                                                          ///
     ///                          FUNCTIONS                       ///
     ///                                                          ///

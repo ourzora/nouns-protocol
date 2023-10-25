@@ -10,10 +10,11 @@ import { SafeCast } from "../lib/utils/SafeCast.sol";
 import { AuctionStorageV1 } from "./storage/AuctionStorageV1.sol";
 import { AuctionStorageV2 } from "./storage/AuctionStorageV2.sol";
 import { IManager } from "../manager/IManager.sol";
+import { ManagerTypesV2 } from "../manager/types/ManagerTypesV2.sol";
 import { IAuction } from "./IAuction.sol";
 import { IWETH } from "../lib/interfaces/IWETH.sol";
 import { Token } from "../token/default/Token.sol";
-import { IProtocolRewards } from "../rewards/interfaces/IProtocolRewards.sol";
+import { IProtocolRewards } from "../lib/interfaces/IProtocolRewards.sol";
 
 import { VersionedContract } from "../VersionedContract.sol";
 
@@ -238,17 +239,11 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
             // If the highest bid included ETH: Pay rewards and transfer remaining amount to the DAO treasury
             if (highestBid != 0) {
                 // Calculate rewards
-                IProtocolRewards.RewardSplits memory split = rewards.computeTotalRewards(highestBid, founderRewardBPS);
+                RewardSplits memory split = _computeTotalRewards(highestBid, founderRewardBPS);
 
                 if (split.totalRewards != 0) {
                     // Deposit rewards
-                    rewards.depositRewards{ value: split.totalRewards }(
-                        founderRewardRecipient,
-                        split.founderReward,
-                        currentBidReferral,
-                        split.refferalReward,
-                        split.builderReward
-                    );
+                    rewards.depositBatch{ value: split.totalRewards }(split.recipients, split.amounts, split.reasons, "");
                 }
 
                 // Deposit remaining amount to treasury
@@ -294,6 +289,9 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
             auction.highestBid = 0;
             auction.highestBidder = address(0);
             auction.settled = false;
+
+            // Reset referral from the previous auction
+            currentBidReferral = address(0);
 
             emit AuctionCreated(tokenId, startTime, endTime);
             return true;
@@ -429,6 +427,40 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         founderRewardBPS = _founderRewardBPS;
 
         emit FounderRewardBPSUpdated(_founderRewardBPS);
+    }
+
+    /// @notice Computes the total rewards for a bid
+    /// @param finalBidAmount The final bid amount
+    /// @param founderRewardBPS The reward to be paid to the founder in BPS
+    function _computeTotalRewards(uint256 finalBidAmount, uint256 founderRewardBPS) internal view returns (RewardSplits memory split) {
+        // Cache values from storage
+        ManagerTypesV2.RewardConfig memory rewardsConfig = manager.rewards();
+
+        address referralCached = currentBidReferral;
+        address builderRecipientCached = rewardsConfig.builderRewardRecipient;
+        uint256 referralBPSCached = rewardsConfig.referralRewardBPS;
+        uint256 builderBPSCached = rewardsConfig.builderRewardBPS;
+
+        // Calculate the total rewards percentage
+        uint256 totalBPS = founderRewardBPS + referralBPSCached + builderBPSCached;
+
+        // Verify percentage is not more than 100
+        if (totalBPS >= 10_000) {
+            revert INVALID_REWARD_TOTAL();
+        }
+
+        // Calulate total rewards
+        split.totalRewards = (finalBidAmount * totalBPS) / 10_000;
+
+        // Set the recipients
+        split.recipients[0] = founderRewardRecipient;
+        split.recipients[1] = referralCached != address(0) ? referralCached : builderRecipientCached;
+        split.recipients[2] = builderRecipientCached;
+
+        // Calculate reward splits
+        split.amounts[0] = (finalBidAmount * founderRewardBPS) / 10_000;
+        split.amounts[1] = (finalBidAmount * referralBPSCached) / 10_000;
+        split.amounts[2] = (finalBidAmount * builderBPSCached) / 10_000;
     }
 
     ///                                                          ///
