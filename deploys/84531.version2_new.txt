@@ -1,4 +1,4 @@
-Mirror Token implementation: 0x3e853337314269b0425e3b48f4c14180e19e4022
-ERC721 Redeem Minter: 0x4724f96e7b54ee2397d35bcb9a924f1c1bd321c5
-Merkle Reserve Minter: 0xb3258e9c38c85c939ce7e60acfbfc260eb754413
-Media Metadata Renderer: 0xd5cb21aaa7ddd05627260f78f8169f5b67c129b5
+ERC721 Redeem Minter: 0x6cbd4119cc78df069673b34f42e643bffe3e473a
+Merkle Reserve Minter: 0xf2dcdd37bec020b07faff1014dd7b23db193f104
+Migration Deployer: 0xd49a4ef9d13ea17e6c84aa4ecf4565f9f05cdfd0
+Collection Plus Deployer: 0xa05e7d87e412b9c7d1e7fec77ed797517142e78a

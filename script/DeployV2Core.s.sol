@@ -51,6 +51,7 @@ contract DeployContracts is Script {
         // Deploy standard token implementation
         address tokenImpl = address(new Token(address(manager)));
 
+        // Deploy mirror token implementation
         address mirrorTokenImpl = address(new PartialMirrorToken(address(manager)));
 
         // Deploy metadata renderer implementation
@@ -100,7 +101,7 @@ contract DeployContracts is Script {
         console2.logAddress(tokenImpl);
 
         console2.log("~~~~~~~~~~ MIRROR TOKEN IMPL ~~~~~~~~~~~");
-        //console2.logAddress(mirrorTokenImpl);
+        console2.logAddress(mirrorTokenImpl);
 
         console2.log("~~~~~~~~~~ METADATA RENDERER IMPL ~~~~~~~~~~~");
         console2.logAddress(metadataRendererImpl);

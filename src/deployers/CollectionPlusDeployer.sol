@@ -17,10 +17,10 @@ contract CollectionPlusDeployer {
     ///                                                          ///
 
     /// @notice The contract upgrade manager
-    IManager public immutable manager;
+    address public immutable manager;
 
     /// @notice The minter to deploy the DAO with
-    ERC721RedeemMinter public immutable redeemMinter;
+    address public immutable redeemMinter;
 
     ///                                                          ///
     ///                            STRUCTS                       ///
@@ -40,7 +40,7 @@ contract CollectionPlusDeployer {
     ///                            CONSTRUCTOR                   ///
     ///                                                          ///
 
-    constructor(IManager _manager, ERC721RedeemMinter _redeemMinter) {
+    constructor(address _manager, address _redeemMinter) {
         manager = _manager;
         redeemMinter = _redeemMinter;
     }
@@ -66,7 +66,7 @@ contract CollectionPlusDeployer {
         ERC721RedeemMinter.RedeemSettings calldata _minterParams
     ) external returns (address) {
         // Deploy the DAO with token mirroring enabled
-        (address token, address metadata, address auction, address treasury, ) = manager.deployWithMirror(
+        (address token, address metadata, address auction, address treasury, ) = IManager(manager).deployWithMirror(
             _founderParams,
             _tokenParams,
             _auctionParams,
@@ -81,7 +81,7 @@ contract CollectionPlusDeployer {
         IBaseToken(token).updateMinters(minters);
 
         // Initilize minter with given params
-        redeemMinter.setMintSettings(token, _minterParams);
+        ERC721RedeemMinter(redeemMinter).setMintSettings(token, _minterParams);
 
         // Initilize metadata renderer with given params
         IPropertyIPFSMetadataRenderer(metadata).addProperties(_metadataParams.names, _metadataParams.items, _metadataParams.ipfsGroup);

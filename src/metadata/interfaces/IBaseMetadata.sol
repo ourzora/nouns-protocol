@@ -8,6 +8,19 @@ import { IUUPS } from "../../lib/interfaces/IUUPS.sol";
 /// @notice The external Base Metadata errors and functions
 interface IBaseMetadata is IUUPS {
     ///                                                          ///
+    ///                            EVENTS                        ///
+    ///                                                          ///
+
+    /// @notice Emitted when the contract image is updated
+    event ContractImageUpdated(string prevImage, string newImage);
+
+    /// @notice Emitted when the collection description is updated
+    event DescriptionUpdated(string prevDescription, string newDescription);
+
+    /// @notice Emitted when the collection uri is updated
+    event WebsiteURIUpdated(string lastURI, string newURI);
+
+    ///                                                          ///
     ///                            ERRORS                        ///
     ///                                                          ///
 
@@ -39,4 +52,15 @@ interface IBaseMetadata is IUUPS {
 
     /// @notice Get metadata owner address
     function owner() external view returns (address);
+
+    /// @notice The token data
+    /// @param tokenId The ERC-721 token id
+    function tokenData(uint256 tokenId)
+        external
+        view
+        returns (
+            string memory name,
+            string memory imageURI,
+            string memory contentURI
+        );
 }

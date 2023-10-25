@@ -9,6 +9,8 @@ import { PartialMirrorToken } from "../src/token/partial-mirror/PartialMirrorTok
 import { ERC1967Proxy } from "../src/lib/proxy/ERC1967Proxy.sol";
 import { ERC721RedeemMinter } from "../src/minters/ERC721RedeemMinter.sol";
 import { MerkleReserveMinter } from "../src/minters/MerkleReserveMinter.sol";
+import { MigrationDeployer } from "../src/deployers/MigrationDeployer.sol";
+import { CollectionPlusDeployer } from "../src/deployers/CollectionPlusDeployer.sol";
 
 contract DeployContracts is Script {
     using Strings for uint256;
@@ -28,6 +30,7 @@ contract DeployContracts is Script {
         address deployerAddress = vm.addr(key);
         address managerAddress = _getKey("Manager");
         address builderDAO = _getKey("BuilderDAO");
+        address crossDomainMessenger = _getKey("CrossDomainMessenger");
 
         console2.log("~~~~~~~~~~ CHAIN ID ~~~~~~~~~~~");
         console2.log(chainID);
@@ -42,29 +45,35 @@ contract DeployContracts is Script {
 
         vm.startBroadcast(deployerAddress);
 
-        address mirrorTokenImpl = address(new PartialMirrorToken(address(manager)));
-
         address erc721Minter = address(new ERC721RedeemMinter(manager, builderDAO));
 
         address merkleMinter = address(new MerkleReserveMinter(manager));
+
+        address migrationDeployer = address(new MigrationDeployer(address(manager), merkleMinter, crossDomainMessenger));
+
+        address collectionPlusDeployer = address(new CollectionPlusDeployer(address(manager), erc721Minter));
 
         vm.stopBroadcast();
 
         string memory filePath = string(abi.encodePacked("deploys/", chainID.toString(), ".version2_new.txt"));
 
         vm.writeFile(filePath, "");
-        vm.writeLine(filePath, string(abi.encodePacked("Mirror Token implementation: ", addressToString(mirrorTokenImpl))));
         vm.writeLine(filePath, string(abi.encodePacked("ERC721 Redeem Minter: ", addressToString(erc721Minter))));
         vm.writeLine(filePath, string(abi.encodePacked("Merkle Reserve Minter: ", addressToString(merkleMinter))));
-
-        console2.log("~~~~~~~~~~ MIRROR TOKEN IMPL ~~~~~~~~~~~");
-        console2.logAddress(mirrorTokenImpl);
+        vm.writeLine(filePath, string(abi.encodePacked("Migration Deployer: ", addressToString(migrationDeployer))));
+        vm.writeLine(filePath, string(abi.encodePacked("Collection Plus Deployer: ", addressToString(collectionPlusDeployer))));
 
         console2.log("~~~~~~~~~~ ERC721 REDEEM MINTER ~~~~~~~~~~~");
         console2.logAddress(erc721Minter);
 
         console2.log("~~~~~~~~~~ MERKLE RESERVE MINTER ~~~~~~~~~~~");
         console2.logAddress(merkleMinter);
+
+        console2.log("~~~~~~~~~~ MIGRATION DEPLOYER ~~~~~~~~~~~");
+        console2.logAddress(migrationDeployer);
+
+        console2.log("~~~~~~~~~~ COLLECTION PLUS DEPLOYER ~~~~~~~~~~~");
+        console2.logAddress(collectionPlusDeployer);
     }
 
     function addressToString(address _addr) private pure returns (string memory) {

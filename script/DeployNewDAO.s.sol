@@ -13,7 +13,6 @@ import { ITreasury } from "../src/governance/treasury/ITreasury.sol";
 import { MerkleReserveMinter } from "../src/minters/MerkleReserveMinter.sol";
 
 contract SetupDaoScript is Script {
-    /*
     using Strings for uint256;
 
     string configFile;
@@ -38,70 +37,41 @@ contract SetupDaoScript is Script {
 
         vm.startBroadcast(deployerAddress);
 
-        IManager manager = IManager(_getKey("Manager"));
+        bytes memory initStrings = abi.encode(
+            "Test 999",
+            "TST",
+            "This is the desc",
+            "https://contract-image.png",
+            "https://project-uri.json",
+            "https://renderer.com/render"
+        );
 
-        MerkleReserveMinter.MerkleMinterSettings memory settings = MerkleReserveMinter.MerkleMinterSettings({
-            mintStart: 0,
-            mintEnd: 1,
-            pricePerToken: 0.01 ether,
-            merkleRoot: hex"00"
-        });
+        IManager.TokenParams memory tokenParams = IManager.TokenParams({ initStrings: initStrings, reservedUntilTokenId: 10 });
 
-        IPartialMirrorToken.TokenParams memory tokenParams = IPartialMirrorToken.TokenParams({
-            name: "Test Merkle Minter 2",
-            symbol: "TST",
-            reservedUntilTokenId: 10,
-            tokenToMirror: address(0xB0B),
-            initialMinter: _getKey("MerkleReserveMinter"),
-            initialMinterData: abi.encode(settings)
-        });
-
-        IPropertyMetadata.PropertyMetadataParams memory metadataParams = IPropertyMetadata.PropertyMetadataParams({
-            description: "This is a test Merkle minter DAO 2",
-            contractImage: "https://test.com",
-            projectURI: "https://test.com",
-            rendererBase: "https://test.com"
-        });
-
-        IAuction.AuctionParams memory auctionParams = IAuction.AuctionParams({
+        IManager.AuctionParams memory auctionParams = IManager.AuctionParams({
             duration: 24 hours,
             reservePrice: 0.01 ether,
-            founderRewardRecipent: address(0),
-            founderRewardBPS: 0
+            founderRewardRecipent: address(0xB0B),
+            founderRewardBPS: 20
         });
 
-        IGovernor.GovParams memory govParams = IGovernor.GovParams({
+        IManager.GovParams memory govParams = IManager.GovParams({
             votingDelay: 2 days,
             votingPeriod: 2 days,
             proposalThresholdBps: 50,
             quorumThresholdBps: 1000,
-            vetoer: address(0)
+            vetoer: address(0),
+            timelockDelay: 2 days
         });
-
-        ITreasury.TreasuryParams memory treasuryParams = ITreasury.TreasuryParams({ timelockDelay: 2 days });
 
         IManager.FounderParams[] memory founders = new IManager.FounderParams[](1);
         founders[0] = IManager.FounderParams({ wallet: deployerAddress, ownershipPct: 10, vestExpiry: 30 days });
 
-        address[] memory implementations = new address[](5);
-        implementations[0] = _getKey("MirrorToken");
-        implementations[1] = _getKey("PropertyMetadataRenderer");
-        implementations[2] = _getKey("Auction");
-        implementations[3] = _getKey("Treasury");
-        implementations[4] = _getKey("Governor");
-
-        bytes[] memory params = new bytes[](5);
-        params[0] = abi.encode(tokenParams);
-        params[1] = abi.encode(metadataParams);
-        params[2] = abi.encode(auctionParams);
-        params[3] = abi.encode(treasuryParams);
-        params[4] = abi.encode(govParams);
-
-        manager.deploy(founders, implementations, params);
+        IManager manager = IManager(_getKey("Manager"));
+        manager.deploy(founders, tokenParams, auctionParams, govParams);
 
         //now that we have a DAO process a proposal
 
         vm.stopBroadcast();
     }
-    */
 }

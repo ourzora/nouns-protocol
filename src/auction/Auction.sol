@@ -70,7 +70,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @param _treasury The treasury address where ETH will be sent
     /// @param _duration The duration of each auction
     /// @param _reservePrice The reserve price of each auction
-    /// @param _founderRewardRecipent The address to recieve founders rewards
+    /// @param _founderRewardRecipient The address to recieve founders rewards
     /// @param _founderRewardBPS The percent of rewards a founder receives in BPS for each auction
     function initialize(
         address _token,
@@ -78,7 +78,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         address _treasury,
         uint256 _duration,
         uint256 _reservePrice,
-        address _founderRewardRecipent,
+        address _founderRewardRecipient,
         uint256 _founderRewardBPS
     ) external initializer {
         // Ensure the caller is the contract manager
@@ -104,7 +104,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         settings.minBidIncrement = INITIAL_MIN_BID_INCREMENT_PERCENT;
 
         // Store the founder rewards settings
-        founderRewardRecipent = _founderRewardRecipent;
+        founderRewardRecipient = _founderRewardRecipient;
         founderRewardBPS = _founderRewardBPS;
     }
 
@@ -243,7 +243,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
                 if (split.totalRewards != 0) {
                     // Deposit rewards
                     rewards.depositRewards{ value: split.totalRewards }(
-                        founderRewardRecipent,
+                        founderRewardRecipient,
                         split.founderReward,
                         currentBidReferral,
                         split.refferalReward,
@@ -418,9 +418,9 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @notice Updates the founder reward recipent address
     /// @param _founder The new founder
     function setFounderRewardsRecipent(address _founder) external onlyOwner whenPaused {
-        founderRewardRecipent = _founder;
+        founderRewardRecipient = _founder;
 
-        emit FounderRewardRecipentUpdated(_founder);
+        emit FounderRewardRecipientUpdated(_founder);
     }
 
     /// @notice Updates the founder reward percentage in BPS

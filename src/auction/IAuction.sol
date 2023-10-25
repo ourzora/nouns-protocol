@@ -51,7 +51,7 @@ interface IAuction is IUUPS, IOwnable, IPausable {
 
     /// @notice Emitted when the founder reward recipient is updated
     /// @param founderRewardRecipient The new time buffer
-    event FounderRewardRecipentUpdated(address founderRewardRecipient);
+    event FounderRewardRecipientUpdated(address founderRewardRecipient);
 
     /// @notice Emitted when the founder reward BPS is updated
     /// @param founderRewardBPS The new time buffer

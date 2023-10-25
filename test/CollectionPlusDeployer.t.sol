@@ -21,7 +21,7 @@ contract CollectionPlusDeployerTest is NounsBuilderTest {
         super.setUp();
 
         minter = new ERC721RedeemMinter(manager, zoraDAO);
-        deployer = new CollectionPlusDeployer(manager, minter);
+        deployer = new CollectionPlusDeployer(address(manager), address(minter));
     }
 
     function deploy() internal {

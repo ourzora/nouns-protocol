@@ -24,7 +24,7 @@ contract MigrationDeployerTest is NounsBuilderTest {
 
         minter = new MerkleReserveMinter(manager);
         xDomainMessenger = new MockCrossDomainMessenger(founder);
-        deployer = new MigrationDeployer(manager, minter, xDomainMessenger);
+        deployer = new MigrationDeployer(address(manager), address(minter), address(xDomainMessenger));
     }
 
     function deploy() internal {
@@ -90,7 +90,7 @@ contract MigrationDeployerTest is NounsBuilderTest {
 
         MetadataRendererTypesV1.IPFSGroup memory ipfsGroup = MetadataRendererTypesV1.IPFSGroup({ baseUri: "BASE_URI", extension: "EXTENSION" });
 
-        deployer.addMetadataProperties(names, items, ipfsGroup);
+        deployer.addProperties(names, items, ipfsGroup);
     }
 
     function setMinterParams() internal {

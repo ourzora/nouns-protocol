@@ -628,7 +628,7 @@ contract AuctionTest is NounsBuilderTest {
         // deploy with 5% founder fee
         deployAltMock(founder, 500);
 
-        assertEq(auction.founderRewardRecipent(), founder);
+        assertEq(auction.founderRewardRecipient(), founder);
         assertEq(auction.founderRewardBPS(), 500);
 
         vm.startPrank(founder);
@@ -636,7 +636,7 @@ contract AuctionTest is NounsBuilderTest {
         auction.setFounderRewardBPS(1000);
         vm.stopPrank();
 
-        assertEq(auction.founderRewardRecipent(), founder2);
+        assertEq(auction.founderRewardRecipient(), founder2);
         assertEq(auction.founderRewardBPS(), 1000);
     }
 }

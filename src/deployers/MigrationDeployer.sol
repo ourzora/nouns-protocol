@@ -18,7 +18,7 @@ contract MigrationDeployer {
     ///                                                          ///
 
     /// @notice Deployer has been set
-    event DeployerSet(address deployer);
+    event DeployerSet(address indexed token, address indexed deployer);
 
     ///                                                          ///
     ///                            ERRORS                        ///
@@ -41,13 +41,13 @@ contract MigrationDeployer {
     ///                                                          ///
 
     /// @notice The contract upgrade manager
-    IManager public immutable manager;
+    address public immutable manager;
 
     /// @notice The minter to deploy the DAO with
-    MerkleReserveMinter public immutable merkleMinter;
+    address public immutable merkleMinter;
 
     /// @notice The cross domain messenger for the chain
-    ICrossDomainMessenger public immutable crossDomainMessenger;
+    address public immutable crossDomainMessenger;
 
     ///                                                          ///
     ///                            STORAGE                       ///
@@ -71,9 +71,9 @@ contract MigrationDeployer {
     ///                                                          ///
 
     constructor(
-        IManager _manager,
-        MerkleReserveMinter _merkleMinter,
-        ICrossDomainMessenger _crossDomainMessenger
+        address _manager,
+        address _merkleMinter,
+        address _crossDomainMessenger
     ) {
         manager = _manager;
         merkleMinter = _merkleMinter;
@@ -103,7 +103,7 @@ contract MigrationDeployer {
         }
 
         // Deploy the DAO
-        (address _token, , , , ) = manager.deploy(_founderParams, _tokenParams, _auctionParams, _govParams);
+        (address _token, , , , ) = IManager(manager).deploy(_founderParams, _tokenParams, _auctionParams, _govParams);
 
         // Setup minter settings to use the redeem minter
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -113,10 +113,13 @@ contract MigrationDeployer {
         IBaseToken(_token).updateMinters(minters);
 
         // Initilize minter with given params
-        merkleMinter.setMintSettings(_token, _minterParams);
+        MerkleReserveMinter(merkleMinter).setMintSettings(_token, _minterParams);
 
         // Set the deployer
-        _setTokenDeployer(_token);
+        address deployer = _setTokenDeployer(_token);
+
+        // Emit deployer set event
+        emit DeployerSet(_token, deployer);
 
         return (_token);
     }
@@ -125,7 +128,7 @@ contract MigrationDeployer {
     /// @param _names The names of the properties to add
     /// @param _items The items to add to each property
     /// @param _ipfsGroup The IPFS base URI and extension
-    function addMetadataProperties(
+    function addProperties(
         string[] calldata _names,
         IPropertyIPFSMetadataRenderer.ItemParam[] calldata _items,
         IPropertyIPFSMetadataRenderer.IPFSGroup calldata _ipfsGroup
@@ -171,11 +174,12 @@ contract MigrationDeployer {
     ///                                                          ///
 
     function _xMsgSender() private view returns (address) {
-        return crossDomainMessenger.xDomainMessageSender();
+        return ICrossDomainMessenger(crossDomainMessenger).xDomainMessageSender();
     }
 
-    function _setTokenDeployer(address token) private {
-        crossDomainDeployerToToken[_xMsgSender()] = token;
+    function _setTokenDeployer(address token) private returns (address deployer) {
+        deployer = _xMsgSender();
+        crossDomainDeployerToToken[deployer] = token;
     }
 
     function _resetTokenDeployer() private {
@@ -200,7 +204,7 @@ contract MigrationDeployer {
 
         if (_token == address(0)) revert NO_DAO_DEPLOYED();
 
-        (address _metadata, address _auction, address _treasury, address _governor) = manager.getAddresses(_token);
+        (address _metadata, address _auction, address _treasury, address _governor) = IManager(manager).getAddresses(_token);
         return (_token, _metadata, _auction, _treasury, _governor);
     }
 }
