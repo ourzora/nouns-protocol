@@ -5,7 +5,6 @@ import { Test } from "forge-std/Test.sol";
 
 import { IManager, Manager } from "../../src/manager/Manager.sol";
 import { IToken, Token } from "../../src/token/default/Token.sol";
-import { PartialMirrorToken } from "../../src/token/partial-mirror/PartialMirrorToken.sol";
 import { IAuction, Auction } from "../../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../../src/governance/governor/Governor.sol";
 import { ITreasury, Treasury } from "../../src/governance/treasury/Treasury.sol";
@@ -16,7 +15,7 @@ import { ERC1967Proxy } from "../../src/lib/proxy/ERC1967Proxy.sol";
 import { MockERC721 } from "../utils/mocks/MockERC721.sol";
 import { MockERC1155 } from "../utils/mocks/MockERC1155.sol";
 import { WETH } from ".././utils/mocks/WETH.sol";
-import { ProtocolRewards } from "../../src/rewards/ProtocolRewards.sol";
+import { MockProtocolRewards } from ".././utils/mocks/MockProtocolRewards.sol";
 
 contract NounsBuilderTest is Test {
     ///                                                          ///
@@ -24,12 +23,11 @@ contract NounsBuilderTest is Test {
     ///                                                          ///
 
     Manager internal manager;
-    ProtocolRewards internal rewards;
+    address internal rewards;
 
     address internal managerImpl0;
     address internal managerImpl;
     address internal tokenImpl;
-    address internal mirrorImpl;
     address internal metadataRendererImpl;
     address internal auctionImpl;
     address internal treasuryImpl;
@@ -62,18 +60,17 @@ contract NounsBuilderTest is Test {
         vm.label(founder, "FOUNDER");
         vm.label(founder2, "FOUNDER_2");
 
-        managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0), address(0)));
+        managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0)));
         manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", zoraDAO))));
-        rewards = new ProtocolRewards(address(manager), zoraDAO);
+        rewards = address(new MockProtocolRewards());
 
         tokenImpl = address(new Token(address(manager)));
-        mirrorImpl = address(new PartialMirrorToken(address(manager)));
         metadataRendererImpl = address(new MetadataRenderer(address(manager)));
         auctionImpl = address(new Auction(address(manager), address(rewards), weth));
         treasuryImpl = address(new Treasury(address(manager)));
         governorImpl = address(new Governor(address(manager)));
 
-        managerImpl = address(new Manager(tokenImpl, mirrorImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
+        managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
 
         vm.prank(zoraDAO);
         manager.upgradeTo(managerImpl);
@@ -332,32 +329,6 @@ contract NounsBuilderTest is Test {
         (address _token, address _metadata, address _auction, address _treasury, address _governor) = manager.deploy(
             _founderParams,
             _tokenParams,
-            _auctionParams,
-            _govParams
-        );
-
-        token = Token(_token);
-        metadataRenderer = MetadataRenderer(_metadata);
-        auction = Auction(_auction);
-        treasury = Treasury(payable(_treasury));
-        governor = Governor(_governor);
-
-        vm.label(address(token), "TOKEN");
-        vm.label(address(metadataRenderer), "METADATA_RENDERER");
-        vm.label(address(auction), "AUCTION");
-        vm.label(address(treasury), "TREASURY");
-        vm.label(address(governor), "GOVERNOR");
-    }
-
-    function deployWithMirror(
-        IManager.FounderParams[] memory _founderParams,
-        IManager.MirrorTokenParams memory _mirrorTokenParams,
-        IManager.AuctionParams memory _auctionParams,
-        IManager.GovParams memory _govParams
-    ) internal virtual {
-        (address _token, address _metadata, address _auction, address _treasury, address _governor) = manager.deployWithMirror(
-            _founderParams,
-            _mirrorTokenParams,
             _auctionParams,
             _govParams
         );

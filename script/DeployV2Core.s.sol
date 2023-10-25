@@ -6,14 +6,12 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
 import { IToken, Token } from "../src/token/default/Token.sol";
-import { PartialMirrorToken } from "../src/token/partial-mirror/PartialMirrorToken.sol";
 import { IAuction, Auction } from "../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../src/governance/governor/Governor.sol";
 import { ITreasury, Treasury } from "../src/governance/treasury/Treasury.sol";
 import { MetadataRenderer } from "../src/metadata/MetadataRenderer.sol";
 import { MetadataRendererTypesV1 } from "../src/metadata/types/MetadataRendererTypesV1.sol";
 import { ERC1967Proxy } from "../src/lib/proxy/ERC1967Proxy.sol";
-import { ProtocolRewards } from "../src/rewards/ProtocolRewards.sol";
 
 contract DeployContracts is Script {
     using Strings for uint256;
@@ -42,17 +40,14 @@ contract DeployContracts is Script {
         vm.startBroadcast(deployerAddress);
 
         // Deploy root manager implementation + proxy
-        address managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0), address(0)));
+        address managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0)));
 
         Manager manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", deployerAddress))));
 
-        ProtocolRewards rewards = new ProtocolRewards(address(manager), _getKey("BuilderDAO"));
+        address rewards = _getKey("ProtocolRewards");
 
         // Deploy standard token implementation
         address tokenImpl = address(new Token(address(manager)));
-
-        // Deploy mirror token implementation
-        address mirrorTokenImpl = address(new PartialMirrorToken(address(manager)));
 
         // Deploy metadata renderer implementation
         address metadataRendererImpl = address(new MetadataRenderer(address(manager)));
@@ -66,7 +61,7 @@ contract DeployContracts is Script {
         // Deploy governor implementation
         address governorImpl = address(new Governor(address(manager)));
 
-        address managerImpl = address(new Manager(tokenImpl, mirrorTokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
+        address managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
 
         manager.upgradeTo(managerImpl);
 
@@ -99,9 +94,6 @@ contract DeployContracts is Script {
 
         console2.log("~~~~~~~~~~ DEFAULT TOKEN IMPL ~~~~~~~~~~~");
         console2.logAddress(tokenImpl);
-
-        console2.log("~~~~~~~~~~ MIRROR TOKEN IMPL ~~~~~~~~~~~");
-        console2.logAddress(mirrorTokenImpl);
 
         console2.log("~~~~~~~~~~ METADATA RENDERER IMPL ~~~~~~~~~~~");
         console2.logAddress(metadataRendererImpl);

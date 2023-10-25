@@ -9,7 +9,6 @@ import { ManagerStorageV1 } from "./storage/ManagerStorageV1.sol";
 import { ManagerStorageV2 } from "./storage/ManagerStorageV2.sol";
 import { IManager } from "./IManager.sol";
 import { IToken } from "../token/default/IToken.sol";
-import { IPartialMirrorToken } from "../token/partial-mirror/IPartialMirrorToken.sol";
 import { IBaseMetadata } from "../metadata/interfaces/IBaseMetadata.sol";
 import { IAuction } from "../auction/IAuction.sol";
 import { ITreasury } from "../governance/treasury/ITreasury.sol";
@@ -31,9 +30,6 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
     /// @notice The token implementation address
     address public immutable tokenImpl;
 
-    /// @notice The mirror implementation address
-    address public immutable mirrorTokenImpl;
-
     /// @notice The metadata renderer implementation address
     address public immutable metadataImpl;
 
@@ -52,14 +48,12 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
 
     constructor(
         address _tokenImpl,
-        address _mirrorTokenImpl,
         address _metadataImpl,
         address _auctionImpl,
         address _treasuryImpl,
         address _governorImpl
     ) payable initializer {
         tokenImpl = _tokenImpl;
-        mirrorTokenImpl = _mirrorTokenImpl;
         metadataImpl = _metadataImpl;
         auctionImpl = _auctionImpl;
         treasuryImpl = _treasuryImpl;
@@ -245,6 +239,10 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
     /// @param _rewards The reward to be paid to the referrer in BPS
     function setRewardConfig(RewardConfig calldata _rewards) external onlyOwner {
         rewards = _rewards;
+    }
+
+    function getRewardsConfig() external view returns (RewardConfig memory) {
+        return rewards;
     }
 
     /// @notice Safely get the contract version of a target contract.

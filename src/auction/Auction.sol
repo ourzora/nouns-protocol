@@ -434,7 +434,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @param founderRewardBPS The reward to be paid to the founder in BPS
     function _computeTotalRewards(uint256 finalBidAmount, uint256 founderRewardBPS) internal view returns (RewardSplits memory split) {
         // Cache values from storage
-        ManagerTypesV2.RewardConfig memory rewardsConfig = manager.rewards();
+        ManagerTypesV2.RewardConfig memory rewardsConfig = manager.getRewardsConfig();
 
         address referralCached = currentBidReferral;
         address builderRecipientCached = rewardsConfig.builderRewardRecipient;
@@ -453,14 +453,19 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         split.totalRewards = (finalBidAmount * totalBPS) / 10_000;
 
         // Set the recipients
+        split.recipients = new address[](3);
         split.recipients[0] = founderRewardRecipient;
         split.recipients[1] = referralCached != address(0) ? referralCached : builderRecipientCached;
         split.recipients[2] = builderRecipientCached;
 
         // Calculate reward splits
+        split.amounts = new uint256[](3);
         split.amounts[0] = (finalBidAmount * founderRewardBPS) / 10_000;
         split.amounts[1] = (finalBidAmount * referralBPSCached) / 10_000;
         split.amounts[2] = (finalBidAmount * builderBPSCached) / 10_000;
+
+        // Leave reasons empty
+        split.reasons = new bytes4[](3);
     }
 
     ///                                                          ///

@@ -120,9 +120,6 @@ interface IManager is IUUPS, IOwnable {
     /// @notice The token implementation address
     function tokenImpl() external view returns (address);
 
-    /// @notice The mirror token implementation address
-    function mirrorTokenImpl() external view returns (address);
-
     /// @notice The metadata renderer implementation address
     function metadataImpl() external view returns (address);
 
@@ -183,5 +180,5 @@ interface IManager is IUUPS, IOwnable {
 
     /// @notice The current rewards configuration set by BuilderDAO
     /// @return rewards The rewards configuration
-    function rewards() external view returns (ManagerTypesV2.RewardConfig memory rewards);
+    function getRewardsConfig() external view returns (ManagerTypesV2.RewardConfig memory rewards);
 }

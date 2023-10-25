@@ -8,5 +8,5 @@ import { ManagerTypesV2 } from "../types/ManagerTypesV2.sol";
 /// @notice The Manager storage contract
 contract ManagerStorageV2 is ManagerTypesV2 {
     /// @notice The protocol rewards configuration
-    RewardConfig rewards;
+    RewardConfig public rewards;
 }
