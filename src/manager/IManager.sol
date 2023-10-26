@@ -77,16 +77,6 @@ interface IManager is IUUPS, IOwnable {
         uint256 reservedUntilTokenId;
     }
 
-    /// @notice The ERC-721 token parameters
-    /// @param initStrings The encoded token name, symbol, collection description, collection image uri, renderer base uri
-    /// @param reservedUntilTokenId The tokenId that a DAO's auctions will start at
-    /// @param tokenToMirror The token contract to be mirrored
-    struct MirrorTokenParams {
-        bytes initStrings;
-        uint256 reservedUntilTokenId;
-        address tokenToMirror;
-    }
-
     /// @notice The auction parameters
     /// @param reservePrice The reserve price of each auction
     /// @param duration The duration of each auction

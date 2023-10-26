@@ -8,12 +8,12 @@ import { Pausable } from "../lib/utils/Pausable.sol";
 import { SafeCast } from "../lib/utils/SafeCast.sol";
 
 import { AuctionStorageV1 } from "./storage/AuctionStorageV1.sol";
+import { Token } from "../token/Token.sol";
 import { AuctionStorageV2 } from "./storage/AuctionStorageV2.sol";
 import { IManager } from "../manager/IManager.sol";
 import { ManagerTypesV2 } from "../manager/types/ManagerTypesV2.sol";
 import { IAuction } from "./IAuction.sol";
 import { IWETH } from "../lib/interfaces/IWETH.sol";
-import { Token } from "../token/Token.sol";
 import { IProtocolRewards } from "../lib/interfaces/IProtocolRewards.sol";
 
 import { VersionedContract } from "../VersionedContract.sol";

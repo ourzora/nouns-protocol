@@ -105,6 +105,7 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         // Ensure at least one founder is provided
         if ((founder = _founderParams[0].wallet) == address(0)) revert FOUNDER_REQUIRED();
 
+        // Create new local context to fix for stack too deep error
         {
             // Deploy the DAO's ERC-721 governance token
             token = address(new ERC1967Proxy(tokenImpl, ""));
@@ -117,9 +118,9 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
             auction = address(new ERC1967Proxy{ salt: salt }(auctionImpl, ""));
             treasury = address(new ERC1967Proxy{ salt: salt }(treasuryImpl, ""));
             governor = address(new ERC1967Proxy{ salt: salt }(governorImpl, ""));
-        }
 
-        daoAddressesByToken[token] = DAOAddresses({ metadata: metadata, auction: auction, treasury: treasury, governor: governor });
+            daoAddressesByToken[token] = DAOAddresses({ metadata: metadata, auction: auction, treasury: treasury, governor: governor });
+        }
 
         // Initialize each instance with the provided settings
         IToken(token).initialize({
@@ -153,6 +154,10 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
 
         emit DAODeployed({ token: token, metadata: metadata, auction: auction, treasury: treasury, governor: governor });
     }
+
+    ///                                                          ///
+    ///                          SET METADATA                    ///
+    ///                                                          ///
 
     /// @notice Set a new metadata renderer
     /// @param _newRendererImpl new renderer address to use

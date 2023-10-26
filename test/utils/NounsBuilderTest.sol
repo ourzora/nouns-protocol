@@ -82,7 +82,6 @@ contract NounsBuilderTest is Test {
 
     IManager.FounderParams[] internal foundersArr;
     IManager.TokenParams internal tokenParams;
-    IManager.MirrorTokenParams internal mirrorTokenParams;
     IManager.AuctionParams internal auctionParams;
     IManager.GovParams internal govParams;
 
@@ -145,19 +144,6 @@ contract NounsBuilderTest is Test {
         );
     }
 
-    function setMockMirrorTokenParams(uint256 _reservedUntilTokenId, address _tokenToMirror) internal virtual {
-        setMirrorTokenParams(
-            "Mock Token",
-            "MOCK",
-            "This is a mock token",
-            "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
-            "https://nouns.build",
-            "http://localhost:5000/render",
-            _reservedUntilTokenId,
-            _tokenToMirror
-        );
-    }
-
     function setTokenParams(
         string memory _name,
         string memory _symbol,
@@ -170,25 +156,6 @@ contract NounsBuilderTest is Test {
         bytes memory initStrings = abi.encode(_name, _symbol, _description, _contractImage, _contractURI, _rendererBase);
 
         tokenParams = IManager.TokenParams({ initStrings: initStrings, reservedUntilTokenId: _reservedUntilTokenId });
-    }
-
-    function setMirrorTokenParams(
-        string memory _name,
-        string memory _symbol,
-        string memory _description,
-        string memory _contractImage,
-        string memory _contractURI,
-        string memory _rendererBase,
-        uint256 _reservedUntilTokenId,
-        address _tokenToMirror
-    ) internal virtual {
-        bytes memory initStrings = abi.encode(_name, _symbol, _description, _contractImage, _contractURI, _rendererBase);
-
-        mirrorTokenParams = IManager.MirrorTokenParams({
-            initStrings: initStrings,
-            reservedUntilTokenId: _reservedUntilTokenId,
-            tokenToMirror: _tokenToMirror
-        });
     }
 
     function setMockAuctionParams() internal virtual {

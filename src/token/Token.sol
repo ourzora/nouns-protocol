@@ -62,8 +62,8 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     ///                         INITIALIZER                      ///
     ///                                                          ///
 
-    /// @notice Initializes a DAO's ERC-721 token contract
-    /// @param _founders The DAO founders
+    /// @notice Initializes a DAO's ERC-721 token
+    /// @param _founders The founding members to receive vesting allocations
     /// @param _initStrings The encoded token and metadata initialization strings
     /// @param _reservedUntilTokenId The tokenId that a DAO's auctions will start at
     /// @param _metadataRenderer The token's metadata renderer
@@ -105,7 +105,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
 
     /// @notice Called by the auction upon the first unpause / token mint to transfer ownership from founder to treasury
     /// @dev Only callable by the auction contract
-    function onFirstAuctionStarted() external {
+    function onFirstAuctionStarted() external override {
         if (msg.sender != settings.auction) {
             revert ONLY_AUCTION();
         }
@@ -315,12 +315,12 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
 
     /// @notice The URI for a token
     /// @param _tokenId The ERC-721 token id
-    function tokenURI(uint256 _tokenId) public view override(ERC721, IToken) returns (string memory) {
+    function tokenURI(uint256 _tokenId) public view override(IToken, ERC721) returns (string memory) {
         return settings.metadataRenderer.tokenURI(_tokenId);
     }
 
     /// @notice The URI for the contract
-    function contractURI() public view override(ERC721, IToken) returns (string memory) {
+    function contractURI() public view override(IToken, ERC721) returns (string memory) {
         return settings.metadataRenderer.contractURI();
     }
 
