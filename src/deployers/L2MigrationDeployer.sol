@@ -9,10 +9,10 @@ import { TokenTypesV2 } from "../token/types/TokenTypesV2.sol";
 import { Ownable } from "../lib/utils/Ownable.sol";
 import { ICrossDomainMessenger } from "./interfaces/ICrossDomainMessenger.sol";
 
-/// @title MigrationDeployer
-/// @notice A deployer that allows a DAO to migrate from L1 to L2
+/// @title L2MigrationDeployer
+/// @notice A deployer that allows a caller on L1 to deploy and seed a DAO on an OP Stack L2
 /// @author @neokry
-contract MigrationDeployer {
+contract L2MigrationDeployer {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///

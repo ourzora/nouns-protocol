@@ -86,7 +86,7 @@ interface IManager is IUUPS, IOwnable {
         uint256 reservePrice;
         uint256 duration;
         address founderRewardRecipent;
-        uint256 founderRewardBPS;
+        uint256 founderRewardBps;
     }
 
     /// @notice The governance parameters
@@ -169,8 +169,4 @@ interface IManager is IUUPS, IOwnable {
     /// @param baseImpl The base implementation address
     /// @param upgradeImpl The upgrade implementation address
     function removeUpgrade(address baseImpl, address upgradeImpl) external;
-
-    /// @notice The current rewards configuration set by BuilderDAO
-    /// @return rewards The rewards configuration
-    function getRewardsConfig() external view returns (ManagerTypesV2.RewardConfig memory rewards);
 }

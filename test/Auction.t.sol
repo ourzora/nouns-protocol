@@ -6,6 +6,7 @@ import { MockERC721 } from "./utils/mocks/MockERC721.sol";
 import { MockImpl } from "./utils/mocks/MockImpl.sol";
 import { MockPartialTokenImpl } from "./utils/mocks/MockPartialTokenImpl.sol";
 import { IAuction } from "../src/auction/IAuction.sol";
+import { AuctionTypesV2 } from "../src/auction/types/AuctionTypesV2.sol";
 
 contract AuctionTest is NounsBuilderTest {
     MockImpl internal mockImpl;
@@ -628,15 +629,20 @@ contract AuctionTest is NounsBuilderTest {
         // deploy with 5% founder fee
         deployAltMock(founder, 500);
 
-        assertEq(auction.founderRewardRecipient(), founder);
-        assertEq(auction.founderRewardBPS(), 500);
+        (address recipient, uint256 percentBps) = auction.founderReward();
+
+        assertEq(recipient, founder);
+        assertEq(percentBps, 500);
+
+        AuctionTypesV2.FounderReward memory newRewards = AuctionTypesV2.FounderReward({ recipient: founder2, percentBps: 1000 });
 
         vm.startPrank(founder);
-        auction.setFounderRewardsRecipent(founder2);
-        auction.setFounderRewardBPS(1000);
+        auction.setFounderReward(newRewards);
         vm.stopPrank();
 
-        assertEq(auction.founderRewardRecipient(), founder2);
-        assertEq(auction.founderRewardBPS(), 1000);
+        (address newRecipient, uint256 newPercentBps) = auction.founderReward();
+
+        assertEq(newRecipient, founder2);
+        assertEq(newPercentBps, 1000);
     }
 }

@@ -55,7 +55,7 @@ contract SetupDaoScript is Script {
             duration: 24 hours,
             reservePrice: 0.01 ether,
             founderRewardRecipent: address(0xB0B),
-            founderRewardBPS: 20
+            founderRewardBps: 20
         });
 
         IManager.GovParams memory govParams = IManager.GovParams({

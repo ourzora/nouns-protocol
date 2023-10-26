@@ -7,7 +7,7 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 import { IManager, Manager } from "../src/manager/Manager.sol";
 import { ERC1967Proxy } from "../src/lib/proxy/ERC1967Proxy.sol";
 import { MerkleReserveMinter } from "../src/minters/MerkleReserveMinter.sol";
-import { MigrationDeployer } from "../src/deployers/MigrationDeployer.sol";
+import { L2MigrationDeployer } from "../src/deployers/L2MigrationDeployer.sol";
 
 contract DeployContracts is Script {
     using Strings for uint256;
@@ -43,7 +43,7 @@ contract DeployContracts is Script {
 
         address merkleMinter = address(new MerkleReserveMinter(manager));
 
-        address migrationDeployer = address(new MigrationDeployer(address(manager), merkleMinter, crossDomainMessenger));
+        address migrationDeployer = address(new L2MigrationDeployer(address(manager), merkleMinter, crossDomainMessenger));
 
         vm.stopBroadcast();
 

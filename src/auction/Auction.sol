@@ -10,7 +10,7 @@ import { SafeCast } from "../lib/utils/SafeCast.sol";
 import { AuctionStorageV1 } from "./storage/AuctionStorageV1.sol";
 import { Token } from "../token/Token.sol";
 import { AuctionStorageV2 } from "./storage/AuctionStorageV2.sol";
-import { IManager } from "../manager/IManager.sol";
+import { Manager } from "../manager/Manager.sol";
 import { ManagerTypesV2 } from "../manager/types/ManagerTypesV2.sol";
 import { IAuction } from "./IAuction.sol";
 import { IWETH } from "../lib/interfaces/IWETH.sol";
@@ -40,25 +40,26 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     address private immutable WETH;
 
     /// @notice The contract upgrade manager
-    IManager private immutable manager;
+    Manager private immutable manager;
 
     /// @notice The rewards manager
-    IProtocolRewards private immutable rewards;
+    IProtocolRewards private immutable rewardsManager;
 
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
     /// @param _manager The contract upgrade manager address
+    /// @param _rewardsManager The protocol rewards manager address
     /// @param _weth The address of WETH
     constructor(
         address _manager,
-        address _rewards,
+        address _rewardsManager,
         address _weth
     ) payable initializer {
-        manager = IManager(_manager);
+        manager = Manager(_manager);
+        rewardsManager = IProtocolRewards(_rewardsManager);
         WETH = _weth;
-        rewards = IProtocolRewards(_rewards);
     }
 
     ///                                                          ///
@@ -72,7 +73,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @param _duration The duration of each auction
     /// @param _reservePrice The reserve price of each auction
     /// @param _founderRewardRecipient The address to recieve founders rewards
-    /// @param _founderRewardBPS The percent of rewards a founder receives in BPS for each auction
+    /// @param _founderRewardBps The percent of rewards a founder receives in BPS for each auction
     function initialize(
         address _token,
         address _founder,
@@ -80,7 +81,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         uint256 _duration,
         uint256 _reservePrice,
         address _founderRewardRecipient,
-        uint256 _founderRewardBPS
+        uint256 _founderRewardBps
     ) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) revert ONLY_MANAGER();
@@ -105,8 +106,8 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         settings.minBidIncrement = INITIAL_MIN_BID_INCREMENT_PERCENT;
 
         // Store the founder rewards settings
-        founderRewardRecipient = _founderRewardRecipient;
-        founderRewardBPS = _founderRewardBPS;
+        founderReward.recipient = _founderRewardRecipient;
+        founderReward.percentBps = _founderRewardBps;
     }
 
     ///                                                          ///
@@ -239,11 +240,11 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
             // If the highest bid included ETH: Pay rewards and transfer remaining amount to the DAO treasury
             if (highestBid != 0) {
                 // Calculate rewards
-                RewardSplits memory split = _computeTotalRewards(highestBid, founderRewardBPS);
+                RewardSplits memory split = _computeTotalRewards(currentBidReferral, highestBid, founderReward.percentBps);
 
                 if (split.totalRewards != 0) {
                     // Deposit rewards
-                    rewards.depositBatch{ value: split.totalRewards }(split.recipients, split.amounts, split.reasons, "");
+                    rewardsManager.depositBatch{ value: split.totalRewards }(split.recipients, split.amounts, split.reasons, "");
                 }
 
                 // Deposit remaining amount to treasury
@@ -414,35 +415,31 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     }
 
     /// @notice Updates the founder reward recipent address
-    /// @param _founder The new founder
-    function setFounderRewardsRecipent(address _founder) external onlyOwner whenPaused {
-        founderRewardRecipient = _founder;
+    /// @param reward The new founder reward settings
+    function setFounderReward(FounderReward calldata reward) external onlyOwner whenPaused {
+        founderReward = reward;
 
-        emit FounderRewardRecipientUpdated(_founder);
+        emit FounderRewardUpdated(reward);
     }
 
-    /// @notice Updates the founder reward percentage in BPS
-    /// @param _founderRewardBPS The new percentage in BPS
-    function setFounderRewardBPS(uint256 _founderRewardBPS) external onlyOwner whenPaused {
-        founderRewardBPS = _founderRewardBPS;
-
-        emit FounderRewardBPSUpdated(_founderRewardBPS);
-    }
+    ///                                                          ///
+    ///                       COMPUTE REWARDS UTIL               ///
+    ///                                                          ///
 
     /// @notice Computes the total rewards for a bid
-    /// @param finalBidAmount The final bid amount
-    /// @param founderRewardBPS The reward to be paid to the founder in BPS
-    function _computeTotalRewards(uint256 finalBidAmount, uint256 founderRewardBPS) internal view returns (RewardSplits memory split) {
-        ManagerTypesV2.RewardConfig memory rewardsConfig = manager.getRewardsConfig();
-
-        // Cache values from storage
-        address referralCached = currentBidReferral;
-        address builderRecipientCached = rewardsConfig.builderRewardRecipient;
-        uint256 referralBPSCached = rewardsConfig.referralRewardBPS;
-        uint256 builderBPSCached = rewardsConfig.builderRewardBPS;
+    /// @param _currentBidRefferal The referral for the current bid
+    /// @param _finalBidAmount The final bid amount
+    /// @param _founderRewardBps The reward to be paid to the founder in BPS
+    function _computeTotalRewards(
+        address _currentBidRefferal,
+        uint256 _finalBidAmount,
+        uint256 _founderRewardBps
+    ) internal view returns (RewardSplits memory split) {
+        // Get global reward settings from manager
+        (address builderRecipient, uint256 referralBps, uint256 builderBps) = manager.rewards();
 
         // Calculate the total rewards percentage
-        uint256 totalBPS = founderRewardBPS + referralBPSCached + builderBPSCached;
+        uint256 totalBPS = _founderRewardBps + referralBps + builderBps;
 
         // Verify percentage is not more than 100
         if (totalBPS >= 10_000) {
@@ -450,19 +447,19 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         }
 
         // Calulate total rewards
-        split.totalRewards = (finalBidAmount * totalBPS) / 10_000;
+        split.totalRewards = (_finalBidAmount * totalBPS) / 10_000;
 
         // Set the recipients
         split.recipients = new address[](3);
-        split.recipients[0] = founderRewardRecipient;
-        split.recipients[1] = referralCached != address(0) ? referralCached : builderRecipientCached;
-        split.recipients[2] = builderRecipientCached;
+        split.recipients[0] = founderReward.recipient;
+        split.recipients[1] = _currentBidRefferal != address(0) ? _currentBidRefferal : builderRecipient;
+        split.recipients[2] = builderRecipient;
 
         // Calculate reward splits
         split.amounts = new uint256[](3);
-        split.amounts[0] = (finalBidAmount * founderRewardBPS) / 10_000;
-        split.amounts[1] = (finalBidAmount * referralBPSCached) / 10_000;
-        split.amounts[2] = (finalBidAmount * builderBPSCached) / 10_000;
+        split.amounts[0] = (_finalBidAmount * _founderRewardBps) / 10_000;
+        split.amounts[1] = (_finalBidAmount * referralBps) / 10_000;
+        split.amounts[2] = (_finalBidAmount * builderBps) / 10_000;
 
         // Leave reasons empty
         split.reasons = new bytes4[](3);

@@ -142,7 +142,7 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
             duration: _auctionParams.duration,
             reservePrice: _auctionParams.reservePrice,
             founderRewardRecipent: _auctionParams.founderRewardRecipent,
-            founderRewardBPS: _auctionParams.founderRewardBPS
+            founderRewardBps: _auctionParams.founderRewardBps
         });
         ITreasury(treasury).initialize({ governor: governor, timelockDelay: _govParams.timelockDelay });
         IGovernor(governor).initialize({
@@ -247,10 +247,6 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
     /// @param _rewards The reward to be paid to the referrer in BPS
     function setRewardConfig(RewardConfig calldata _rewards) external onlyOwner {
         rewards = _rewards;
-    }
-
-    function getRewardsConfig() external view returns (RewardConfig memory) {
-        return rewards;
     }
 
     /// @notice Safely get the contract version of a target contract.

@@ -4,6 +4,7 @@ pragma solidity 0.8.16;
 import { IUUPS } from "../lib/interfaces/IUUPS.sol";
 import { IOwnable } from "../lib/interfaces/IOwnable.sol";
 import { IPausable } from "../lib/interfaces/IPausable.sol";
+import { AuctionTypesV2 } from "./types/AuctionTypesV2.sol";
 
 /// @title IAuction
 /// @author Rohan Kulkarni
@@ -50,12 +51,8 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     event TimeBufferUpdated(uint256 timeBuffer);
 
     /// @notice Emitted when the founder reward recipient is updated
-    /// @param founderRewardRecipient The new time buffer
-    event FounderRewardRecipientUpdated(address founderRewardRecipient);
-
-    /// @notice Emitted when the founder reward BPS is updated
-    /// @param founderRewardBPS The new time buffer
-    event FounderRewardBPSUpdated(uint256 founderRewardBPS);
+    /// @param reward The new founder reward
+    event FounderRewardUpdated(AuctionTypesV2.FounderReward reward);
 
     ///                                                          ///
     ///                           ERRORS                         ///
@@ -132,7 +129,7 @@ interface IAuction is IUUPS, IOwnable, IPausable {
         uint256 duration,
         uint256 reservePrice,
         address founderRewardRecipent,
-        uint256 founderRewardBPS
+        uint256 founderRewardBps
     ) external;
 
     /// @notice Creates a bid for the current token
@@ -178,6 +175,10 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @notice Updates the minimum bid increment of each subsequent bid
     /// @param percentage The new percentage
     function setMinimumBidIncrement(uint256 percentage) external;
+
+    /// @notice Updates the founder reward settings
+    /// @param reward The new founder reward settings
+    function setFounderReward(AuctionTypesV2.FounderReward calldata reward) external;
 
     /// @notice Get the address of the treasury
     function treasury() external returns (address);

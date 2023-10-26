@@ -3,7 +3,7 @@ pragma solidity 0.8.16;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 import { MetadataRendererTypesV1 } from "../../src/token/metadata/types/MetadataRendererTypesV1.sol";
-import { MigrationDeployer } from "../../src/deployers/MigrationDeployer.sol";
+import { L2MigrationDeployer } from "../../src/deployers/L2MigrationDeployer.sol";
 import { MerkleReserveMinter } from "../../src/minters/MerkleReserveMinter.sol";
 import { MockCrossDomainMessenger } from "./utils/mocks/MockCrossDomainMessenger.sol";
 
@@ -13,10 +13,10 @@ import { IAuction, Auction } from "../../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../../src/governance/governor/Governor.sol";
 import { ITreasury, Treasury } from "../../src/governance/treasury/Treasury.sol";
 
-contract MigrationDeployerTest is NounsBuilderTest {
+contract L2MigrationDeployerTest is NounsBuilderTest {
     MockCrossDomainMessenger xDomainMessenger;
     MerkleReserveMinter minter;
-    MigrationDeployer deployer;
+    L2MigrationDeployer deployer;
     MerkleReserveMinter.MerkleMinterSettings minterParams;
 
     function setUp() public virtual override {
@@ -24,7 +24,7 @@ contract MigrationDeployerTest is NounsBuilderTest {
 
         minter = new MerkleReserveMinter(manager);
         xDomainMessenger = new MockCrossDomainMessenger(founder);
-        deployer = new MigrationDeployer(address(manager), address(minter), address(xDomainMessenger));
+        deployer = new L2MigrationDeployer(address(manager), address(minter), address(xDomainMessenger));
     }
 
     function deploy() internal {

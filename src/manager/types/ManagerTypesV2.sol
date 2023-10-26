@@ -8,10 +8,10 @@ interface ManagerTypesV2 {
     /// @notice Config for protocol rewards
     struct RewardConfig {
         //// @notice Address to send Builder DAO rewards to
-        address builderRewardRecipient;
+        address builderRecipient;
         //// @notice Percentage of final bid amount in BPS claimable by the bid referral
-        uint256 referralRewardBPS;
+        uint256 referralBps;
         //// @notice Percentage of final bid amount in BPS claimable by BuilderDAO
-        uint256 builderRewardBPS;
+        uint256 builderBps;
     }
 }
