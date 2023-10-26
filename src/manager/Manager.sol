@@ -113,8 +113,11 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
             // Use the token address to precompute the DAO's remaining addresses
             bytes32 salt = bytes32(uint256(uint160(token)) << 96);
 
+            // Check if the deployer is using an alternate metadata renderer. If not default to the standard one
+            address metadataImplToUse = _tokenParams.metadataRenderer != address(0) ? _tokenParams.metadataRenderer : metadataImpl;
+
             // Deploy the remaining DAO contracts
-            metadata = address(new ERC1967Proxy{ salt: salt }(metadataImpl, ""));
+            metadata = address(new ERC1967Proxy{ salt: salt }(metadataImplToUse, ""));
             auction = address(new ERC1967Proxy{ salt: salt }(auctionImpl, ""));
             treasury = address(new ERC1967Proxy{ salt: salt }(treasuryImpl, ""));
             governor = address(new ERC1967Proxy{ salt: salt }(governorImpl, ""));

@@ -128,7 +128,8 @@ contract NounsBuilderTest is Test {
             "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
             "https://nouns.build",
             "http://localhost:5000/render",
-            0
+            0,
+            address(0)
         );
     }
 
@@ -140,7 +141,21 @@ contract NounsBuilderTest is Test {
             "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
             "https://nouns.build",
             "http://localhost:5000/render",
-            _reservedUntilTokenId
+            _reservedUntilTokenId,
+            address(0)
+        );
+    }
+
+    function setMockTokenParamsWithRenderer(address _metadataRenderer) internal virtual {
+        setTokenParams(
+            "Mock Token",
+            "MOCK",
+            "This is a mock token",
+            "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
+            "https://nouns.build",
+            "http://localhost:5000/render",
+            0,
+            _metadataRenderer
         );
     }
 
@@ -151,11 +166,16 @@ contract NounsBuilderTest is Test {
         string memory _contractImage,
         string memory _contractURI,
         string memory _rendererBase,
-        uint256 _reservedUntilTokenId
+        uint256 _reservedUntilTokenId,
+        address _metadataRenderer
     ) internal virtual {
         bytes memory initStrings = abi.encode(_name, _symbol, _description, _contractImage, _contractURI, _rendererBase);
 
-        tokenParams = IManager.TokenParams({ initStrings: initStrings, reservedUntilTokenId: _reservedUntilTokenId });
+        tokenParams = IManager.TokenParams({
+            initStrings: initStrings,
+            metadataRenderer: _metadataRenderer,
+            reservedUntilTokenId: _reservedUntilTokenId
+        });
     }
 
     function setMockAuctionParams() internal virtual {
@@ -264,7 +284,7 @@ contract NounsBuilderTest is Test {
     ) internal {
         setMockFounderParams();
 
-        setTokenParams(_name, _symbol, _description, _contractImage, _projectURI, _rendererBase, 0);
+        setTokenParams(_name, _symbol, _description, _contractImage, _projectURI, _rendererBase, 0, address(0));
 
         setMockAuctionParams();
 

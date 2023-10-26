@@ -45,7 +45,11 @@ contract SetupDaoScript is Script {
             "https://renderer.com/render"
         );
 
-        IManager.TokenParams memory tokenParams = IManager.TokenParams({ initStrings: initStrings, reservedUntilTokenId: 10 });
+        IManager.TokenParams memory tokenParams = IManager.TokenParams({
+            initStrings: initStrings,
+            metadataRenderer: address(0),
+            reservedUntilTokenId: 10
+        });
 
         IManager.AuctionParams memory auctionParams = IManager.AuctionParams({
             duration: 24 hours,

@@ -26,7 +26,6 @@ contract DeployContracts is Script {
 
         address deployerAddress = vm.addr(key);
         address managerAddress = _getKey("Manager");
-        address builderDAO = _getKey("BuilderDAO");
         address crossDomainMessenger = _getKey("CrossDomainMessenger");
 
         console2.log("~~~~~~~~~~ CHAIN ID ~~~~~~~~~~~");

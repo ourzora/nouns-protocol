@@ -71,9 +71,11 @@ interface IManager is IUUPS, IOwnable {
 
     /// @notice The ERC-721 token parameters
     /// @param initStrings The encoded token name, symbol, collection description, collection image uri, renderer base uri
+    /// @param metadataRenderer The metadata renderer implementation to use
     /// @param reservedUntilTokenId The tokenId that a DAO's auctions will start at
     struct TokenParams {
         bytes initStrings;
+        address metadataRenderer;
         uint256 reservedUntilTokenId;
     }
 
