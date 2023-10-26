@@ -19,8 +19,17 @@ interface IPropertyIPFSMetadataRenderer is IBaseMetadata, MetadataRendererTypesV
     /// @notice Additional token properties have been set
     event AdditionalTokenPropertiesSet(AdditionalTokenProperty[] _additionalJsonProperties);
 
+    /// @notice Emitted when the contract image is updated
+    event ContractImageUpdated(string prevImage, string newImage);
+
     /// @notice Emitted when the renderer base is updated
     event RendererBaseUpdated(string prevRendererBase, string newRendererBase);
+
+    /// @notice Emitted when the collection description is updated
+    event DescriptionUpdated(string prevDescription, string newDescription);
+
+    /// @notice Emitted when the collection uri is updated
+    event WebsiteURIUpdated(string lastURI, string newURI);
 
     ///                                                          ///
     ///                            ERRORS                        ///

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import { Token } from "../../../token/default/Token.sol";
+import { Token } from "../../../token/Token.sol";
 import { Treasury } from "../../treasury/Treasury.sol";
 
 /// @title GovernorTypesV1

@@ -5,7 +5,7 @@ import { Test } from "forge-std/Test.sol";
 import { Treasury } from "../../src/governance/treasury/Treasury.sol";
 import { Auction } from "../../src/auction/Auction.sol";
 import { IAuction } from "../../src/auction/IAuction.sol";
-import { Token } from "../../src/token/default/Token.sol";
+import { Token } from "../../src/token/Token.sol";
 import { Governor } from "../../src/governance/governor/Governor.sol";
 import { IManager } from "../../src/manager/IManager.sol";
 import { Manager } from "../../src/manager/Manager.sol";

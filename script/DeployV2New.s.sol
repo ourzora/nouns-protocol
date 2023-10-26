@@ -6,7 +6,6 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
 import { ERC1967Proxy } from "../src/lib/proxy/ERC1967Proxy.sol";
-import { ERC721RedeemMinter } from "../src/minters/ERC721RedeemMinter.sol";
 import { MerkleReserveMinter } from "../src/minters/MerkleReserveMinter.sol";
 import { MigrationDeployer } from "../src/deployers/MigrationDeployer.sol";
 
@@ -43,8 +42,6 @@ contract DeployContracts is Script {
 
         vm.startBroadcast(deployerAddress);
 
-        address erc721Minter = address(new ERC721RedeemMinter(manager, builderDAO));
-
         address merkleMinter = address(new MerkleReserveMinter(manager));
 
         address migrationDeployer = address(new MigrationDeployer(address(manager), merkleMinter, crossDomainMessenger));
@@ -54,12 +51,8 @@ contract DeployContracts is Script {
         string memory filePath = string(abi.encodePacked("deploys/", chainID.toString(), ".version2_new.txt"));
 
         vm.writeFile(filePath, "");
-        vm.writeLine(filePath, string(abi.encodePacked("ERC721 Redeem Minter: ", addressToString(erc721Minter))));
         vm.writeLine(filePath, string(abi.encodePacked("Merkle Reserve Minter: ", addressToString(merkleMinter))));
         vm.writeLine(filePath, string(abi.encodePacked("Migration Deployer: ", addressToString(migrationDeployer))));
-
-        console2.log("~~~~~~~~~~ ERC721 REDEEM MINTER ~~~~~~~~~~~");
-        console2.logAddress(erc721Minter);
 
         console2.log("~~~~~~~~~~ MERKLE RESERVE MINTER ~~~~~~~~~~~");
         console2.logAddress(merkleMinter);

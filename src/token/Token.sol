@@ -1,20 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import { UUPS } from "../../lib/proxy/UUPS.sol";
-import { ReentrancyGuard } from "../../lib/utils/ReentrancyGuard.sol";
-import { ERC721Votes } from "../../lib/token/ERC721Votes.sol";
-import { ERC721 } from "../../lib/token/ERC721.sol";
-import { Ownable } from "../../lib/utils/Ownable.sol";
+import { UUPS } from "../lib/proxy/UUPS.sol";
+import { ReentrancyGuard } from "../lib/utils/ReentrancyGuard.sol";
+import { ERC721Votes } from "../lib/token/ERC721Votes.sol";
+import { ERC721 } from "../lib/token/ERC721.sol";
+import { Ownable } from "../lib/utils/Ownable.sol";
 import { TokenStorageV1 } from "./storage/TokenStorageV1.sol";
 import { TokenStorageV2 } from "./storage/TokenStorageV2.sol";
 import { TokenStorageV3 } from "./storage/TokenStorageV3.sol";
-import { IManager } from "../../manager/IManager.sol";
-import { IAuction } from "../../auction/IAuction.sol";
+import { IBaseMetadata } from "./metadata/interfaces/IBaseMetadata.sol";
+import { IManager } from "../manager/IManager.sol";
+import { IAuction } from "../auction/IAuction.sol";
 import { IToken } from "./IToken.sol";
-import { IBaseToken } from "../interfaces/IBaseToken.sol";
-import { VersionedContract } from "../../VersionedContract.sol";
-import { IBaseMetadata } from "../../metadata/interfaces/IBaseMetadata.sol";
+import { VersionedContract } from "../VersionedContract.sol";
 
 /// @title Token
 /// @author Rohan Kulkarni & Neokry
@@ -316,12 +315,12 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
 
     /// @notice The URI for a token
     /// @param _tokenId The ERC-721 token id
-    function tokenURI(uint256 _tokenId) public view override(ERC721, IBaseToken) returns (string memory) {
+    function tokenURI(uint256 _tokenId) public view override(ERC721, IToken) returns (string memory) {
         return settings.metadataRenderer.tokenURI(_tokenId);
     }
 
     /// @notice The URI for the contract
-    function contractURI() public view override(ERC721, IBaseToken) returns (string memory) {
+    function contractURI() public view override(ERC721, IToken) returns (string memory) {
         return settings.metadataRenderer.contractURI();
     }
 
@@ -457,7 +456,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     }
 
     /// @notice The contract owner
-    function owner() public view override(IBaseToken, Ownable) returns (address) {
+    function owner() public view override(IToken, Ownable) returns (address) {
         return super.owner();
     }
 

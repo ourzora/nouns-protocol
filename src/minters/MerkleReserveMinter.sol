@@ -3,7 +3,7 @@ pragma solidity 0.8.16;
 
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import { IOwnable } from "../lib/interfaces/IOwnable.sol";
-import { IToken } from "../token/default/IToken.sol";
+import { IToken } from "../token/IToken.sol";
 import { IManager } from "../manager/IManager.sol";
 
 /// @title MerkleReserveMinter

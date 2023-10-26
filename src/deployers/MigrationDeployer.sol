@@ -2,10 +2,10 @@
 pragma solidity 0.8.16;
 
 import { IManager } from "../manager/IManager.sol";
-import { IBaseToken } from "../token/interfaces/IBaseToken.sol";
-import { IPropertyIPFSMetadataRenderer } from "../metadata/interfaces/IPropertyIPFSMetadataRenderer.sol";
+import { IToken } from "../token/IToken.sol";
+import { IPropertyIPFSMetadataRenderer } from "../token/metadata/interfaces/IPropertyIPFSMetadataRenderer.sol";
 import { MerkleReserveMinter } from "../minters/MerkleReserveMinter.sol";
-import { TokenTypesV2 } from "../token/default/types/TokenTypesV2.sol";
+import { TokenTypesV2 } from "../token/types/TokenTypesV2.sol";
 import { Ownable } from "../lib/utils/Ownable.sol";
 import { ICrossDomainMessenger } from "./interfaces/ICrossDomainMessenger.sol";
 
@@ -110,7 +110,7 @@ contract MigrationDeployer {
         minters[0] = TokenTypesV2.MinterParams({ minter: address(merkleMinter), allowed: true });
 
         // Add new minter
-        IBaseToken(_token).updateMinters(minters);
+        IToken(_token).updateMinters(minters);
 
         // Initilize minter with given params
         MerkleReserveMinter(merkleMinter).setMintSettings(_token, _minterParams);

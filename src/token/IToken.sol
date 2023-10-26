@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.16;
 
-import { IUUPS } from "../../lib/interfaces/IUUPS.sol";
-import { IERC721Votes } from "../../lib/interfaces/IERC721Votes.sol";
-import { IManager } from "../../manager/IManager.sol";
-import { TokenTypesV1 } from "../default/types/TokenTypesV1.sol";
-import { TokenTypesV2 } from "../default/types/TokenTypesV2.sol";
-import { IBaseMetadata } from "../../metadata/interfaces/IBaseMetadata.sol";
+import { IUUPS } from "../lib/interfaces/IUUPS.sol";
+import { IERC721Votes } from "../lib/interfaces/IERC721Votes.sol";
+import { IManager } from "../manager/IManager.sol";
+import { TokenTypesV1 } from "./types/TokenTypesV1.sol";
+import { TokenTypesV2 } from "./types/TokenTypesV2.sol";
+import { IBaseMetadata } from "./metadata/interfaces/IBaseMetadata.sol";
 
-/// @title IBaseToken
+/// @title IToken
 /// @author Rohan Kulkarni
 /// @notice The external Token events, errors and functions
-interface IBaseToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
+interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
     ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///
@@ -69,6 +69,22 @@ interface IBaseToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
     ///                                                          ///
     ///                           FUNCTIONS                      ///
     ///                                                          ///
+
+    /// @notice Initializes a DAO's ERC-721 token contract
+    /// @param founders The DAO founders
+    /// @param initStrings The encoded token and metadata initialization strings
+    /// @param reservedUntilTokenId The tokenId that a DAO's auctions will start at
+    /// @param metadataRenderer The token's metadata renderer
+    /// @param auction The token's auction house
+    /// @param initialOwner The initial owner of the token
+    function initialize(
+        IManager.FounderParams[] calldata founders,
+        bytes calldata initStrings,
+        uint256 reservedUntilTokenId,
+        address metadataRenderer,
+        address auction,
+        address initialOwner
+    ) external;
 
     /// @notice Mints tokens to the caller and handles founder vesting
     function mint() external returns (uint256 tokenId);
@@ -134,6 +150,9 @@ interface IBaseToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
     /// @notice Check if an address is a minter
     /// @param _minter Address to check
     function isMinter(address _minter) external view returns (bool);
+
+    /// @notice Callback called by auction on first auction started to transfer ownership to treasury from founder
+    function onFirstAuctionStarted() external;
 
     /// @notice Set a new metadata renderer
     /// @param newRenderer new renderer address to use

@@ -5,13 +5,13 @@ import { Test } from "forge-std/Test.sol";
 import { Treasury } from "../../src/governance/treasury/Treasury.sol";
 import { Auction } from "../../src/auction/Auction.sol";
 import { IAuction } from "../../src/auction/IAuction.sol";
-import { Token } from "../../src/token/default/Token.sol";
-import { MetadataRenderer } from "../../src/metadata/MetadataRenderer.sol";
+import { Token } from "../../src/token/Token.sol";
+import { MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol";
 import { Governor } from "../../src/governance/governor/Governor.sol";
 import { IManager } from "../../src/manager/IManager.sol";
 import { Manager } from "../../src/manager/Manager.sol";
 import { UUPS } from "../../src/lib/proxy/UUPS.sol";
-import { TokenTypesV2 } from "../../src/token/default/types/TokenTypesV2.sol";
+import { TokenTypesV2 } from "../../src/token/types/TokenTypesV2.sol";
 import { GovernorTypesV1 } from "../../src/governance/governor/types/GovernorTypesV1.sol";
 
 contract TestUpdateMinters is Test {

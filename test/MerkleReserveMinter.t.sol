@@ -3,7 +3,7 @@ pragma solidity 0.8.16;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 import { MerkleReserveMinter } from "../src/minters/MerkleReserveMinter.sol";
-import { TokenTypesV2 } from "../src/token/default/types/TokenTypesV2.sol";
+import { TokenTypesV2 } from "../src/token/types/TokenTypesV2.sol";
 
 contract MerkleReserveMinterTest is NounsBuilderTest {
     MerkleReserveMinter public minter;

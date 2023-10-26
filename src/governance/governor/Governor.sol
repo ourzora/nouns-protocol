@@ -7,7 +7,7 @@ import { EIP712 } from "../../lib/utils/EIP712.sol";
 import { SafeCast } from "../../lib/utils/SafeCast.sol";
 
 import { GovernorStorageV1 } from "./storage/GovernorStorageV1.sol";
-import { Token } from "../../token/default/Token.sol";
+import { Token } from "../../token/Token.sol";
 import { Treasury } from "../treasury/Treasury.sol";
 import { IManager } from "../../manager/IManager.sol";
 import { IGovernor } from "./IGovernor.sol";

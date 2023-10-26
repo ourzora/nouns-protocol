@@ -7,17 +7,17 @@ import { UriEncode } from "sol-uriencode/src/UriEncode.sol";
 import { MetadataBuilder } from "micro-onchain-metadata-utils/MetadataBuilder.sol";
 import { MetadataJSONKeys } from "micro-onchain-metadata-utils/MetadataJSONKeys.sol";
 
-import { UUPS } from "../lib/proxy/UUPS.sol";
-import { Initializable } from "../lib/utils/Initializable.sol";
-import { IOwnable } from "../lib/interfaces/IOwnable.sol";
-import { ERC721 } from "../lib/token/ERC721.sol";
+import { UUPS } from "../../lib/proxy/UUPS.sol";
+import { Initializable } from "../../lib/utils/Initializable.sol";
+import { IOwnable } from "../../lib/interfaces/IOwnable.sol";
+import { ERC721 } from "../../lib/token/ERC721.sol";
 
 import { MetadataRendererStorageV1 } from "./storage/MetadataRendererStorageV1.sol";
 import { MetadataRendererStorageV2 } from "./storage/MetadataRendererStorageV2.sol";
+import { IToken } from "../../token/IToken.sol";
 import { IPropertyIPFSMetadataRenderer } from "./interfaces/IPropertyIPFSMetadataRenderer.sol";
-import { IManager } from "../manager/IManager.sol";
-import { VersionedContract } from "../VersionedContract.sol";
-import { IBaseMetadata } from "./interfaces/IBaseMetadata.sol";
+import { IManager } from "../../manager/IManager.sol";
+import { VersionedContract } from "../../VersionedContract.sol";
 
 /// @title Metadata Renderer
 /// @author Iain Nash & Rohan Kulkarni
@@ -423,25 +423,6 @@ contract MetadataRenderer is
         return IOwnable(settings.token).owner();
     }
 
-    /// @notice The token data
-    /// @param tokenId The ERC-721 token id
-    function tokenData(uint256 tokenId)
-        external
-        view
-        override
-        returns (
-            string memory name,
-            string memory imageURI,
-            string memory contentURI
-        )
-    {
-        (, string memory queryString) = getAttributes(tokenId);
-
-        name = string.concat(_name(), " #", Strings.toString(tokenId));
-        imageURI = string.concat(settings.rendererBase, queryString);
-        contentURI = "";
-    }
-
     ///                                                          ///
     ///                       UPDATE SETTINGS                    ///
     ///                                                          ///
@@ -474,15 +455,6 @@ contract MetadataRenderer is
         emit WebsiteURIUpdated(settings.projectURI, _newProjectURI);
 
         settings.projectURI = _newProjectURI;
-    }
-
-    /// @notice If the contract implements an interface
-    /// @param _interfaceId The interface id
-    function supportsInterface(bytes4 _interfaceId) public pure virtual returns (bool) {
-        return
-            _interfaceId == 0x01ffc9a7 || // ERC165 Interface ID
-            _interfaceId == type(IBaseMetadata).interfaceId || // IBaseMetadata Interface ID
-            _interfaceId == type(IPropertyIPFSMetadataRenderer).interfaceId; // ERC721Metadata Interface ID
     }
 
     ///                                                          ///

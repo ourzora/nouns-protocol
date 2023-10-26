@@ -5,7 +5,7 @@ import "forge-std/Script.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { IManager } from "../src/manager/IManager.sol";
-import { IBaseMetadata } from "../src/metadata/interfaces/IBaseMetadata.sol";
+import { IBaseMetadata } from "../src/token/metadata/interfaces/IBaseMetadata.sol";
 import { IAuction } from "../src/auction/IAuction.sol";
 import { IGovernor } from "../src/governance/governor/IGovernor.sol";
 import { ITreasury } from "../src/governance/treasury/ITreasury.sol";

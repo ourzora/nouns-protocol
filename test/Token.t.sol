@@ -4,9 +4,9 @@ pragma solidity 0.8.16;
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
-import { IToken, Token } from "../src/token/default/Token.sol";
-import { TokenTypesV1 } from "../src/token/default/types/TokenTypesV1.sol";
-import { TokenTypesV2 } from "../src/token/default/types/TokenTypesV2.sol";
+import { IToken, Token } from "../src/token/Token.sol";
+import { TokenTypesV1 } from "../src/token/types/TokenTypesV1.sol";
+import { TokenTypesV2 } from "../src/token/types/TokenTypesV2.sol";
 
 contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     mapping(address => uint256) public mintedTokens;

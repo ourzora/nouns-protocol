@@ -13,7 +13,7 @@ import { IManager } from "../manager/IManager.sol";
 import { ManagerTypesV2 } from "../manager/types/ManagerTypesV2.sol";
 import { IAuction } from "./IAuction.sol";
 import { IWETH } from "../lib/interfaces/IWETH.sol";
-import { Token } from "../token/default/Token.sol";
+import { Token } from "../token/Token.sol";
 import { IProtocolRewards } from "../lib/interfaces/IProtocolRewards.sol";
 
 import { VersionedContract } from "../VersionedContract.sol";
@@ -433,9 +433,9 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @param finalBidAmount The final bid amount
     /// @param founderRewardBPS The reward to be paid to the founder in BPS
     function _computeTotalRewards(uint256 finalBidAmount, uint256 founderRewardBPS) internal view returns (RewardSplits memory split) {
-        // Cache values from storage
         ManagerTypesV2.RewardConfig memory rewardsConfig = manager.getRewardsConfig();
 
+        // Cache values from storage
         address referralCached = currentBidReferral;
         address builderRecipientCached = rewardsConfig.builderRewardRecipient;
         uint256 referralBPSCached = rewardsConfig.referralRewardBPS;

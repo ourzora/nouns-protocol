@@ -2,8 +2,8 @@
 pragma solidity 0.8.16;
 
 import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
-import { MetadataRendererTypesV1 } from "../src/metadata/types/MetadataRendererTypesV1.sol";
-import { MetadataRendererTypesV2 } from "../src/metadata/types/MetadataRendererTypesV2.sol";
+import { MetadataRendererTypesV1 } from "../src/token/metadata/types/MetadataRendererTypesV1.sol";
+import { MetadataRendererTypesV2 } from "../src/token/metadata/types/MetadataRendererTypesV2.sol";
 
 import { Base64URIDecoder } from "./utils/Base64URIDecoder.sol";
 import "forge-std/console2.sol";

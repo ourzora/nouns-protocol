@@ -4,12 +4,12 @@ pragma solidity 0.8.16;
 import { Test } from "forge-std/Test.sol";
 
 import { IManager, Manager } from "../../src/manager/Manager.sol";
-import { IToken, Token } from "../../src/token/default/Token.sol";
+import { IToken, Token } from "../../src/token/Token.sol";
 import { IAuction, Auction } from "../../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../../src/governance/governor/Governor.sol";
 import { ITreasury, Treasury } from "../../src/governance/treasury/Treasury.sol";
-import { MetadataRenderer } from "../../src/metadata/MetadataRenderer.sol";
-import { MetadataRendererTypesV1 } from "../../src/metadata/types/MetadataRendererTypesV1.sol";
+import { MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol";
+import { MetadataRendererTypesV1 } from "../../src/token/metadata/types/MetadataRendererTypesV1.sol";
 
 import { ERC1967Proxy } from "../../src/lib/proxy/ERC1967Proxy.sol";
 import { MockERC721 } from "../utils/mocks/MockERC721.sol";
