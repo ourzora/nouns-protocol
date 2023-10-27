@@ -161,6 +161,7 @@ contract L2MigrationDeployer {
     function depositToTreasury() external payable onlyCrossDomainMessenger {
         (, , , address treasury, ) = _getDAOAddressesFromSender();
 
+        // Transfer ether to treasury
         (bool success, ) = treasury.call{ value: msg.value }("");
 
         // Revert if transfer fails
@@ -174,19 +175,25 @@ contract L2MigrationDeployer {
     ///                                                          ///
 
     function _xMsgSender() private view returns (address) {
+        // Return the xDomain message sender from the Optimism cross domain messenger
         return ICrossDomainMessenger(crossDomainMessenger).xDomainMessageSender();
     }
 
     function _setTokenDeployer(address token) private returns (address deployer) {
         deployer = _xMsgSender();
+
+        // Set the deployer state so the xDomain caller can easily access in future calls
+        // Also prevents accidental re-deployment
         crossDomainDeployerToToken[deployer] = token;
     }
 
     function _resetTokenDeployer() private {
+        // Reset the deployer state so the xDomain caller can redeploy
         delete crossDomainDeployerToToken[_xMsgSender()];
     }
 
     function _getTokenFromSender() private view returns (address) {
+        // Return the token address if it has been deployed by the xDomain caller
         return crossDomainDeployerToToken[_xMsgSender()];
     }
 
@@ -202,8 +209,10 @@ contract L2MigrationDeployer {
     {
         address _token = _getTokenFromSender();
 
+        // Revert if no token has been deployed
         if (_token == address(0)) revert NO_DAO_DEPLOYED();
 
+        // Get the DAO addresses
         (address _metadata, address _auction, address _treasury, address _governor) = IManager(manager).getAddresses(_token);
         return (_token, _metadata, _auction, _treasury, _governor);
     }
