@@ -42,7 +42,7 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
 
         addMetadataProperties();
 
-        deployer.finalize();
+        deployer.renounceOwnership();
 
         vm.stopPrank();
 
@@ -90,7 +90,8 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
 
         MetadataRendererTypesV1.IPFSGroup memory ipfsGroup = MetadataRendererTypesV1.IPFSGroup({ baseUri: "BASE_URI", extension: "EXTENSION" });
 
-        deployer.addProperties(names, items, ipfsGroup);
+        bytes memory data = abi.encodeWithSignature("addProperties(string[],(uint256,string,bool)[],(string,string))", names, items, ipfsGroup);
+        deployer.callMetadataRenderer(data);
     }
 
     function setMinterParams() internal {
@@ -182,7 +183,7 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
         addMetadataProperties();
 
         vm.expectRevert(abi.encodeWithSignature("NOT_CROSS_DOMAIN_MESSENGER()"));
-        deployer.finalize();
+        deployer.renounceOwnership();
 
         vm.expectRevert(abi.encodeWithSignature("NOT_CROSS_DOMAIN_MESSENGER()"));
         deployer.resetDeployment();
@@ -195,7 +196,7 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
         addMetadataProperties();
 
         vm.expectRevert(abi.encodeWithSignature("NO_DAO_DEPLOYED()"));
-        deployer.finalize();
+        deployer.renounceOwnership();
 
         vm.stopPrank();
     }

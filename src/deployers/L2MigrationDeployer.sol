@@ -36,6 +36,9 @@ contract L2MigrationDeployer {
     /// @dev Transfer failed
     error TRANSFER_FAILED();
 
+    /// @dev Metadata call failed
+    error METADATA_CALL_FAILED();
+
     ///                                                          ///
     ///                            IMMUTABLES                    ///
     ///                                                          ///
@@ -124,38 +127,28 @@ contract L2MigrationDeployer {
         return (_token);
     }
 
-    ///@notice Adds metadata properties to the migrated DAO
-    /// @param _names The names of the properties to add
-    /// @param _items The items to add to each property
-    /// @param _ipfsGroup The IPFS base URI and extension
-    function addProperties(
-        string[] calldata _names,
-        IPropertyIPFSMetadataRenderer.ItemParam[] calldata _items,
-        IPropertyIPFSMetadataRenderer.IPFSGroup calldata _ipfsGroup
-    ) external onlyCrossDomainMessenger {
-        (, address metadata, , , ) = _getDAOAddressesFromSender();
-        IPropertyIPFSMetadataRenderer(metadata).addProperties(_names, _items, _ipfsGroup);
-    }
-
-    ///@notice Called once all metadata properties are added to set ownership of migrated DAO contracts to treasury
-    function finalize() external onlyCrossDomainMessenger {
-        (address token, , address auction, address treasury, ) = _getDAOAddressesFromSender();
-
-        // Transfer ownership of token contract
-        Ownable(token).transferOwnership(treasury);
-
-        // Transfer ownership of auction contract
-        Ownable(auction).transferOwnership(treasury);
-    }
-
     ///@notice Resets the stored deployment if L1 DAO wants to redeploy
     function resetDeployment() external onlyCrossDomainMessenger {
         _resetTokenDeployer();
     }
 
     ///                                                          ///
-    ///                            DEPOSIT                       ///
+    ///                            HELPER FUNCTIONS              ///
     ///                                                          ///
+
+    ///@notice Helper method to pass a call along to the deployed metadata renderer
+    /// @param _data The names of the properties to add
+    function callMetadataRenderer(bytes memory _data) external onlyCrossDomainMessenger {
+        (, address metadata, , , ) = _getDAOAddressesFromSender();
+
+        // Call the metadata renderer
+        (bool success, ) = metadata.call(_data);
+
+        // Revert if metadata call fails
+        if (!success) {
+            revert METADATA_CALL_FAILED();
+        }
+    }
 
     ///@notice Helper method to deposit ether from L1 DAO treasury to L2 DAO treasury
     function depositToTreasury() external payable onlyCrossDomainMessenger {
@@ -168,6 +161,17 @@ contract L2MigrationDeployer {
         if (!success) {
             revert TRANSFER_FAILED();
         }
+    }
+
+    ///@notice Transfers ownership of migrated DAO contracts to treasury
+    function renounceOwnership() external onlyCrossDomainMessenger {
+        (address token, , address auction, address treasury, ) = _getDAOAddressesFromSender();
+
+        // Transfer ownership of token contract
+        Ownable(token).transferOwnership(treasury);
+
+        // Transfer ownership of auction contract
+        Ownable(auction).transferOwnership(treasury);
     }
 
     ///                                                          ///

@@ -27,6 +27,16 @@ import { VersionedContract } from "../VersionedContract.sol";
 /// - Zora V3 ReserveAuctionCoreEth module commit 795aeca - licensed under the GPL-3.0 license.
 contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionStorageV1, AuctionStorageV2 {
     ///                                                          ///
+    ///                          CONSTANTS                       ///
+    ///                                                          ///
+
+    /// @notice The basis points for 100%
+    uint256 private constant BPS_PER_100_PERCENT = 10_000;
+
+    /// @notice The maximum rewards percentage
+    uint256 private constant MAX_FOUNDER_REWARDS_BPS = 3_000;
+
+    ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
@@ -85,6 +95,9 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     ) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) revert ONLY_MANAGER();
+
+        // Ensure the founder reward is not more than max
+        if (_founderRewardBps > MAX_FOUNDER_REWARDS_BPS) revert INVALID_REWARDS_CONFIG();
 
         // Initialize the reentrancy guard
         __ReentrancyGuard_init();
@@ -417,6 +430,10 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @notice Updates the founder reward recipent address
     /// @param reward The new founder reward settings
     function setFounderReward(FounderReward calldata reward) external onlyOwner whenPaused {
+        // Ensure the reward is not more than max
+        if (reward.percentBps > MAX_FOUNDER_REWARDS_BPS) revert INVALID_REWARDS_CONFIG();
+
+        // Update the founder reward settings
         founderReward = reward;
 
         emit FounderRewardUpdated(reward);
@@ -442,12 +459,12 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         uint256 totalBPS = _founderRewardBps + referralBps + builderBps;
 
         // Verify percentage is not more than 100
-        if (totalBPS >= 10_000) {
+        if (totalBPS >= BPS_PER_100_PERCENT) {
             revert INVALID_REWARD_TOTAL();
         }
 
         // Calulate total rewards
-        split.totalRewards = (_finalBidAmount * totalBPS) / 10_000;
+        split.totalRewards = (_finalBidAmount * totalBPS) / BPS_PER_100_PERCENT;
 
         // Set the recipients
         split.recipients = new address[](3);
@@ -457,9 +474,9 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
 
         // Calculate reward splits
         split.amounts = new uint256[](3);
-        split.amounts[0] = (_finalBidAmount * _founderRewardBps) / 10_000;
-        split.amounts[1] = (_finalBidAmount * referralBps) / 10_000;
-        split.amounts[2] = (_finalBidAmount * builderBps) / 10_000;
+        split.amounts[0] = (_finalBidAmount * _founderRewardBps) / BPS_PER_100_PERCENT;
+        split.amounts[1] = (_finalBidAmount * referralBps) / BPS_PER_100_PERCENT;
+        split.amounts[2] = (_finalBidAmount * builderBps) / BPS_PER_100_PERCENT;
 
         // Leave reasons empty
         split.reasons = new bytes4[](3);

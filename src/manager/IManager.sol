@@ -46,6 +46,9 @@ interface IManager is IUUPS, IOwnable {
     /// @dev Reverts if caller is not the token owner
     error ONLY_TOKEN_OWNER();
 
+    /// @dev Reverts if caller is not the token owner
+    error INVALID_REWARDS_CONFIG();
+
     ///                                                          ///
     ///                            STRUCTS                       ///
     ///                                                          ///

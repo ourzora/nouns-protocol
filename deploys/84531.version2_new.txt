@@ -1,4 +1,2 @@
-ERC721 Redeem Minter: 0x6cbd4119cc78df069673b34f42e643bffe3e473a
-Merkle Reserve Minter: 0xf2dcdd37bec020b07faff1014dd7b23db193f104
-Migration Deployer: 0xd49a4ef9d13ea17e6c84aa4ecf4565f9f05cdfd0
-Collection Plus Deployer: 0xa05e7d87e412b9c7d1e7fec77ed797517142e78a
+Merkle Reserve Minter: 0x1991abb6d9613ae4e339a1a747a894201d5e4dae
+Migration Deployer: 0xfad4bd5777fb472609f97fcde9fb001f5c0dd506

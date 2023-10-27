@@ -24,6 +24,13 @@ import { IVersionedContract } from "../lib/interfaces/IVersionedContract.sol";
 /// @notice The DAO deployer and upgrade manager
 contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1, ManagerStorageV2 {
     ///                                                          ///
+    ///                          CONSTANTS                       ///
+    ///                                                          ///
+
+    /// @notice The maximum combined BPS for referral and builder rewards
+    uint256 private constant MAX_REWARDS_BPS = 2_000;
+
+    ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
 
@@ -243,9 +250,15 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         emit UpgradeRemoved(_baseImpl, _upgradeImpl);
     }
 
-    /// @notice Function to set the reward percentages
+    /// @notice Set the global reward configuration
     /// @param _rewards The reward to be paid to the referrer in BPS
     function setRewardConfig(RewardConfig calldata _rewards) external onlyOwner {
+        // Ensure the rewards are valid
+        if (_rewards.referralBps + _rewards.builderBps > MAX_REWARDS_BPS) {
+            revert INVALID_REWARDS_CONFIG();
+        }
+
+        // Set the rewards
         rewards = _rewards;
     }
 
