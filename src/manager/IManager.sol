@@ -86,7 +86,7 @@ interface IManager is IUUPS, IOwnable {
         uint256 reservePrice;
         uint256 duration;
         address founderRewardRecipent;
-        uint256 founderRewardBps;
+        uint16 founderRewardBps;
     }
 
     /// @notice The governance parameters

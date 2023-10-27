@@ -59,8 +59,6 @@ contract MerkleReserveMinter {
         uint64 pricePerToken;
         /// @notice Merkle root for
         bytes32 merkleRoot;
-        /// @notice The block the snaphot was generated at
-        uint256 snapshotBlock;
     }
 
     /// @notice Parameters for merkle minting

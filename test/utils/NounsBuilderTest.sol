@@ -186,7 +186,7 @@ contract NounsBuilderTest is Test {
         uint256 _reservePrice,
         uint256 _duration,
         address _founderRewardRecipent,
-        uint256 _founderRewardBps
+        uint16 _founderRewardBps
     ) internal virtual {
         auctionParams = IManager.AuctionParams({
             reservePrice: _reservePrice,

@@ -26,7 +26,7 @@ contract AuctionTest is NounsBuilderTest {
         mockImpl = new MockImpl();
     }
 
-    function deployAltMock(address founderRewardRecipent, uint256 founderRewardPercent) internal virtual {
+    function deployAltMock(address founderRewardRecipent, uint16 founderRewardPercent) internal virtual {
         setMockFounderParams();
 
         setMockTokenParams();

@@ -10,6 +10,6 @@ contract AuctionTypesV2 {
     /// @param percentBps The rewards to be paid to the DAO founder in BPS
     struct FounderReward {
         address recipient;
-        uint256 percentBps;
+        uint16 percentBps;
     }
 }

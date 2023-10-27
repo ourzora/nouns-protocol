@@ -98,8 +98,7 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
             mintStart: 200,
             mintEnd: uint64(block.timestamp + 1000),
             pricePerToken: 0.1 ether,
-            merkleRoot: hex"00",
-            snapshotBlock: 100
+            merkleRoot: hex"00"
         });
     }
 
@@ -112,13 +111,12 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
 
         assertTrue(token.isMinter(address(minter)));
 
-        (uint64 mintStart, uint64 mintEnd, uint64 pricePerToken, bytes32 merkleRoot, uint256 snapshotBlock) = minter.allowedMerkles(address(token));
+        (uint64 mintStart, uint64 mintEnd, uint64 pricePerToken, bytes32 merkleRoot) = minter.allowedMerkles(address(token));
 
         assertEq(minterParams.mintStart, mintStart);
         assertEq(minterParams.mintEnd, mintEnd);
         assertEq(minterParams.pricePerToken, pricePerToken);
         assertEq(minterParams.merkleRoot, merkleRoot);
-        assertEq(minterParams.snapshotBlock, snapshotBlock);
     }
 
     function test_MetadataIsSet() external {

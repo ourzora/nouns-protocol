@@ -10,8 +10,8 @@ interface ManagerTypesV2 {
         //// @notice Address to send Builder DAO rewards to
         address builderRecipient;
         //// @notice Percentage of final bid amount in BPS claimable by the bid referral
-        uint256 referralBps;
+        uint16 referralBps;
         //// @notice Percentage of final bid amount in BPS claimable by BuilderDAO
-        uint256 builderBps;
+        uint16 builderBps;
     }
 }

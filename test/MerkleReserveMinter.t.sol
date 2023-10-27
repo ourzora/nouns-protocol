@@ -68,14 +68,13 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
             mintStart: 0,
             mintEnd: uint64(block.timestamp + 1000),
             pricePerToken: 0 ether,
-            merkleRoot: root,
-            snapshotBlock: 1
+            merkleRoot: root
         });
 
         vm.prank(address(founder));
         minter.setMintSettings(address(token), settings);
 
-        (uint64 mintStart, uint64 mintEnd, uint64 pricePerToken, bytes32 merkleRoot, ) = minter.allowedMerkles(address(token));
+        (uint64 mintStart, uint64 mintEnd, uint64 pricePerToken, bytes32 merkleRoot) = minter.allowedMerkles(address(token));
         assertEq(mintStart, settings.mintStart);
         assertEq(mintEnd, settings.mintEnd);
         assertEq(pricePerToken, settings.pricePerToken);
@@ -105,13 +104,12 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
             mintStart: 0,
             mintEnd: uint64(block.timestamp + 1000),
             pricePerToken: 0 ether,
-            merkleRoot: root,
-            snapshotBlock: 1
+            merkleRoot: root
         });
 
         deployAltMockAndSetMinter(20, address(minter), settings);
 
-        (uint64 mintStart, uint64 mintEnd, uint64 pricePerToken, bytes32 merkleRoot, ) = minter.allowedMerkles(address(token));
+        (uint64 mintStart, uint64 mintEnd, uint64 pricePerToken, bytes32 merkleRoot) = minter.allowedMerkles(address(token));
         assertEq(mintStart, settings.mintStart);
         assertEq(mintEnd, settings.mintEnd);
         assertEq(pricePerToken, settings.pricePerToken);
@@ -137,8 +135,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
             mintStart: 0,
             mintEnd: uint64(block.timestamp + 1000),
             pricePerToken: 0.5 ether,
-            merkleRoot: root,
-            snapshotBlock: 1
+            merkleRoot: root
         });
 
         vm.prank(address(founder));
@@ -175,8 +172,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
             mintStart: 0,
             mintEnd: uint64(block.timestamp + 1000),
             pricePerToken: 0.5 ether,
-            merkleRoot: root,
-            snapshotBlock: 1
+            merkleRoot: root
         });
 
         vm.prank(address(founder));
@@ -218,8 +214,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
             mintStart: 0,
             mintEnd: uint64(block.timestamp + 1000),
             pricePerToken: 0.5 ether,
-            merkleRoot: root,
-            snapshotBlock: 1
+            merkleRoot: root
         });
 
         vm.prank(address(founder));
@@ -256,8 +251,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
             mintStart: uint64(block.timestamp + 999),
             mintEnd: uint64(block.timestamp + 1000),
             pricePerToken: 0 ether,
-            merkleRoot: root,
-            snapshotBlock: 1
+            merkleRoot: root
         });
 
         vm.prank(address(founder));
@@ -288,8 +282,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
             mintStart: uint64(0),
             mintEnd: uint64(1),
             pricePerToken: 0 ether,
-            merkleRoot: root,
-            snapshotBlock: 1
+            merkleRoot: root
         });
 
         vm.prank(address(founder));
@@ -321,8 +314,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
             mintStart: uint64(0),
             mintEnd: uint64(block.timestamp + 1000),
             pricePerToken: 0 ether,
-            merkleRoot: root,
-            snapshotBlock: 1
+            merkleRoot: root
         });
 
         vm.prank(address(founder));
@@ -353,8 +345,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
             mintStart: 0,
             mintEnd: uint64(block.timestamp + 1000),
             pricePerToken: 0 ether,
-            merkleRoot: root,
-            snapshotBlock: 1
+            merkleRoot: root
         });
 
         vm.prank(address(founder));
@@ -363,7 +354,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         vm.prank(address(founder));
         minter.resetMintSettings(address(token));
 
-        (uint64 mintStart, uint64 mintEnd, uint64 pricePerToken, bytes32 merkleRoot, ) = minter.allowedMerkles(address(token));
+        (uint64 mintStart, uint64 mintEnd, uint64 pricePerToken, bytes32 merkleRoot) = minter.allowedMerkles(address(token));
         assertEq(mintStart, 0);
         assertEq(mintEnd, 0);
         assertEq(pricePerToken, 0);

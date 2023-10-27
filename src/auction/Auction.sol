@@ -81,7 +81,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         uint256 _duration,
         uint256 _reservePrice,
         address _founderRewardRecipient,
-        uint256 _founderRewardBps
+        uint16 _founderRewardBps
     ) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) revert ONLY_MANAGER();

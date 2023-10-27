@@ -129,7 +129,7 @@ interface IAuction is IUUPS, IOwnable, IPausable {
         uint256 duration,
         uint256 reservePrice,
         address founderRewardRecipent,
-        uint256 founderRewardBps
+        uint16 founderRewardBps
     ) external;
 
     /// @notice Creates a bid for the current token
