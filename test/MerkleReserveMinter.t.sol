@@ -14,7 +14,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
     function setUp() public virtual override {
         super.setUp();
 
-        minter = new MerkleReserveMinter(manager);
+        minter = new MerkleReserveMinter(manager, zoraDAO);
         claimer1 = address(0xC1);
         claimer2 = address(0xC2);
     }
@@ -156,12 +156,14 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         MerkleReserveMinter.MerkleClaim[] memory claims = new MerkleReserveMinter.MerkleClaim[](1);
         claims[0] = MerkleReserveMinter.MerkleClaim({ mintTo: claimer1, tokenId: 5, merkleProof: proof });
 
-        vm.deal(claimer1, 0.5 ether);
+        uint256 fees = minter.getTotalFeesForMint(address(token), claims.length);
+
+        vm.deal(claimer1, fees);
         vm.prank(claimer1);
-        minter.mintFromReserve{ value: 0.5 ether }(address(token), claims);
+        minter.mintFromReserve{ value: fees }(address(token), claims);
 
         assertEq(token.ownerOf(5), claimer1);
-        assertEq(address(treasury).balance, 0.5 ether);
+        assertEq(address(treasury).balance, fees - minter.BUILDER_DAO_FEE());
     }
 
     function test_MintFlowWithValueMultipleTokens() public {
@@ -196,13 +198,15 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         claims[0] = MerkleReserveMinter.MerkleClaim({ mintTo: claimer1, tokenId: 5, merkleProof: proof1 });
         claims[1] = MerkleReserveMinter.MerkleClaim({ mintTo: claimer2, tokenId: 6, merkleProof: proof2 });
 
-        vm.deal(claimer1, 1 ether);
+        uint256 fees = minter.getTotalFeesForMint(address(token), claims.length);
+
+        vm.deal(claimer1, fees);
         vm.prank(claimer1);
-        minter.mintFromReserve{ value: 1 ether }(address(token), claims);
+        minter.mintFromReserve{ value: fees }(address(token), claims);
 
         assertEq(token.ownerOf(5), claimer1);
         assertEq(token.ownerOf(6), claimer2);
-        assertEq(address(treasury).balance, 1 ether);
+        assertEq(address(treasury).balance, fees - minter.BUILDER_DAO_FEE() * claims.length);
     }
 
     function testRevert_InvalidValue() public {

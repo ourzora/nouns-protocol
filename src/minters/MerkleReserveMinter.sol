@@ -74,11 +74,21 @@ contract MerkleReserveMinter {
     }
 
     ///                                                          ///
+    ///                            CONSTANTS                     ///
+    ///                                                          ///
+
+    /// @notice Per token mint fee sent to BuilderDAO
+    uint256 public constant BUILDER_DAO_FEE = 0.000777 ether;
+
+    ///                                                          ///
     ///                            IMMUTABLES                    ///
     ///                                                          ///
 
     /// @notice Manager contract
     IManager immutable manager;
+
+    /// @notice Address to send BuilderDAO fees
+    address immutable builderFundsRecipent;
 
     ///                                                          ///
     ///                            STORAGE                       ///
@@ -105,8 +115,9 @@ contract MerkleReserveMinter {
     ///                            CONSTRUCTOR                   ///
     ///                                                          ///
 
-    constructor(IManager _manager) {
+    constructor(IManager _manager, address _builderFundsRecipent) {
         manager = _manager;
+        builderFundsRecipent = _builderFundsRecipent;
     }
 
     ///                                                          ///
@@ -135,8 +146,8 @@ contract MerkleReserveMinter {
             revert MINT_NOT_STARTED();
         }
 
-        // Check sent value
-        if (claimCount * settings.pricePerToken != msg.value) {
+        // Check value sent
+        if (msg.value < _getTotalFeesForMint(settings.pricePerToken, claimCount)) {
             revert INVALID_VALUE();
         }
 
@@ -156,14 +167,46 @@ contract MerkleReserveMinter {
             }
         }
 
-        // Transfer funds to treasury
+        // Distribute fees if minting fees for this collection are set (Builder DAO fee does not apply to free mints)
         if (settings.pricePerToken > 0) {
-            (, , address treasury, ) = manager.getAddresses(tokenContract);
+            _distributeFees(tokenContract, claimCount);
+        }
+    }
 
-            (bool success, ) = treasury.call{ value: msg.value }("");
+    ///                                                          ///
+    ///                            FEES                          ///
+    ///                                                          ///
 
-            // Revert if transfer fails
-            if (!success) {
+    /// @notice gets the total fees for minting
+    function getTotalFeesForMint(address tokenContract, uint256 quantity) public view returns (uint256) {
+        return _getTotalFeesForMint(allowedMerkles[tokenContract].pricePerToken, quantity);
+    }
+
+    function _getTotalFeesForMint(uint256 pricePerToken, uint256 quantity) internal pure returns (uint256) {
+        // If pricePerToken is 0 the mint has no Builder DAO fee
+        return pricePerToken > 0 ? quantity * (pricePerToken + BUILDER_DAO_FEE) : 0;
+    }
+
+    function _distributeFees(address tokenContract, uint256 quantity) internal {
+        uint256 builderFee = quantity * BUILDER_DAO_FEE;
+        uint256 value = msg.value;
+
+        (, , address treasury, ) = manager.getAddresses(tokenContract);
+
+        // Pay out fees to the Builder DAO
+        (bool builderSuccess, ) = builderFundsRecipent.call{ value: builderFee }("");
+
+        // Revert if Builder DAO recipent cannot accept funds
+        if (!builderSuccess) {
+            revert TRANSFER_FAILED();
+        }
+
+        // Pay out remaining funds to the treasury
+        if (value > builderFee) {
+            (bool treasurySuccess, ) = treasury.call{ value: value - builderFee }("");
+
+            // Revert if treasury cannot accept funds
+            if (!builderSuccess || !treasurySuccess) {
                 revert TRANSFER_FAILED();
             }
         }

@@ -46,7 +46,7 @@ contract DeployContracts is Script {
 
         address rewards = _getKey("ProtocolRewards");
 
-        // Deploy standard token implementation
+        // Deploy token implementation
         address tokenImpl = address(new Token(address(manager)));
 
         // Deploy metadata renderer implementation
@@ -71,8 +71,7 @@ contract DeployContracts is Script {
 
         vm.writeFile(filePath, "");
         vm.writeLine(filePath, string(abi.encodePacked("Manager: ", addressToString(address(manager)))));
-        vm.writeLine(filePath, string(abi.encodePacked("Default Token implementation: ", addressToString(tokenImpl))));
-        vm.writeLine(filePath, string(abi.encodePacked("Protocol Rewards:", addressToString(address(rewards)))));
+        vm.writeLine(filePath, string(abi.encodePacked("Token implementation: ", addressToString(tokenImpl))));
         vm.writeLine(filePath, string(abi.encodePacked("Metadata Renderer implementation: ", addressToString(metadataRendererImpl))));
         vm.writeLine(filePath, string(abi.encodePacked("Auction implementation: ", addressToString(auctionImpl))));
         vm.writeLine(filePath, string(abi.encodePacked("Treasury implementation: ", addressToString(treasuryImpl))));
@@ -89,10 +88,7 @@ contract DeployContracts is Script {
         console2.logAddress(address(manager));
         console2.log("");
 
-        console2.log("~~~~~~~~~~ PROTOCOL REWARDS ~~~~~~~~~~~");
-        console2.logAddress(address(rewards));
-
-        console2.log("~~~~~~~~~~ DEFAULT TOKEN IMPL ~~~~~~~~~~~");
+        console2.log("~~~~~~~~~~ TOKEN IMPL ~~~~~~~~~~~");
         console2.logAddress(tokenImpl);
 
         console2.log("~~~~~~~~~~ METADATA RENDERER IMPL ~~~~~~~~~~~");
