@@ -2,7 +2,8 @@
 pragma solidity 0.8.16;
 
 /// @title IProtocolRewards
-/// @notice The interface for deposits & withdrawals for Protocol Rewards
+/// @notice Modified from ourzora/zora-protocol/protocol-rewards v1.2.1 (ProtocolRewards.soll)
+/// - Uses pragma 0.8.16 instead of 0.8.17
 interface IProtocolRewards {
     /// @notice Rewards Deposit Event
     /// @param creator Creator for NFT rewards
