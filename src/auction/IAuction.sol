@@ -95,7 +95,10 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     error AUCTION_CREATE_FAILED_TO_LAUNCH();
 
     /// @dev Reverts if caller is not the token owner
-    error INVALID_REWARDS_CONFIG();
+    error INVALID_REWARDS_BPS();
+
+    /// @dev Reverts if caller is not the token owner
+    error INVALID_REWARDS_RECIPIENT();
 
     /// @dev Thrown if the rewards total is greater than 100%
     error INVALID_REWARD_TOTAL();

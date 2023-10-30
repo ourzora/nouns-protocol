@@ -60,17 +60,17 @@ contract NounsBuilderTest is Test {
         vm.label(founder, "FOUNDER");
         vm.label(founder2, "FOUNDER_2");
 
-        managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0)));
+        managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0), address(0)));
         manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", zoraDAO))));
         rewards = address(new MockProtocolRewards());
 
         tokenImpl = address(new Token(address(manager)));
         metadataRendererImpl = address(new MetadataRenderer(address(manager)));
-        auctionImpl = address(new Auction(address(manager), address(rewards), weth));
+        auctionImpl = address(new Auction(address(manager), address(rewards), weth, 0, 0));
         treasuryImpl = address(new Treasury(address(manager)));
         governorImpl = address(new Governor(address(manager)));
 
-        managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
+        managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl, zoraDAO));
 
         vm.prank(zoraDAO);
         manager.upgradeTo(managerImpl);

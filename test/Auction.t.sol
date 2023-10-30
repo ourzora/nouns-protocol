@@ -5,14 +5,21 @@ import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 import { MockERC721 } from "./utils/mocks/MockERC721.sol";
 import { MockImpl } from "./utils/mocks/MockImpl.sol";
 import { MockPartialTokenImpl } from "./utils/mocks/MockPartialTokenImpl.sol";
+import { MockProtocolRewards } from "./utils/mocks/MockProtocolRewards.sol";
+import { Auction } from "../src/auction/Auction.sol";
 import { IAuction } from "../src/auction/IAuction.sol";
 import { AuctionTypesV2 } from "../src/auction/types/AuctionTypesV2.sol";
 
 contract AuctionTest is NounsBuilderTest {
     MockImpl internal mockImpl;
+    Auction internal rewardImpl;
 
     address internal bidder1;
     address internal bidder2;
+    address internal referral;
+
+    uint16 internal builderRewardBPS = 300;
+    uint16 internal referralRewardBPS = 400;
 
     function setUp() public virtual override {
         super.setUp();
@@ -20,10 +27,13 @@ contract AuctionTest is NounsBuilderTest {
         bidder1 = vm.addr(0xB1);
         bidder2 = vm.addr(0xB2);
 
+        referral = vm.addr(0x41);
+
         vm.deal(bidder1, 100 ether);
         vm.deal(bidder2, 100 ether);
 
         mockImpl = new MockImpl();
+        rewardImpl = new Auction(address(manager), address(rewards), weth, builderRewardBPS, referralRewardBPS);
     }
 
     function deployAltMock(address founderRewardRecipent, uint16 founderRewardPercent) internal virtual {
@@ -636,13 +646,119 @@ contract AuctionTest is NounsBuilderTest {
 
         AuctionTypesV2.FounderReward memory newRewards = AuctionTypesV2.FounderReward({ recipient: founder2, percentBps: 1000 });
 
-        vm.startPrank(founder);
+        vm.prank(founder);
         auction.setFounderReward(newRewards);
-        vm.stopPrank();
 
         (address newRecipient, uint256 newPercentBps) = auction.founderReward();
 
         assertEq(newRecipient, founder2);
         assertEq(newPercentBps, 1000);
+    }
+
+    function testRevert_DeployInvalidBPS() public {
+        setMockFounderParams();
+
+        setMockTokenParams();
+
+        setAuctionParams(0.01 ether, 10 minutes, founder, 4_000);
+
+        setMockGovParams();
+
+        vm.expectRevert(abi.encodeWithSignature("INVALID_REWARDS_BPS()"));
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
+    }
+
+    function testRevert_DeployInvalidRecipient() public {
+        setMockFounderParams();
+
+        setMockTokenParams();
+
+        setAuctionParams(0.01 ether, 10 minutes, address(0), 1_000);
+
+        setMockGovParams();
+
+        vm.expectRevert(abi.encodeWithSignature("INVALID_REWARDS_RECIPIENT()"));
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
+    }
+
+    function testRevert_UpdateFounderRewardInvalidConfig() public {
+        // deploy with 5% founder fee
+        deployAltMock(founder, 500);
+
+        (address recipient, uint256 percentBps) = auction.founderReward();
+
+        assertEq(recipient, founder);
+        assertEq(percentBps, 500);
+
+        AuctionTypesV2.FounderReward memory newRewards = AuctionTypesV2.FounderReward({ recipient: founder2, percentBps: 4_000 });
+
+        vm.prank(founder);
+        vm.expectRevert(abi.encodeWithSignature("INVALID_REWARDS_BPS()"));
+        auction.setFounderReward(newRewards);
+    }
+
+    function test_BuilderAndReferralReward() external {
+        // Setup
+        deployMock();
+
+        vm.prank(manager.owner());
+        manager.registerUpgrade(auctionImpl, address(rewardImpl));
+
+        vm.prank(auction.owner());
+        auction.upgradeTo(address(rewardImpl));
+
+        vm.prank(founder);
+        auction.unpause();
+
+        // Check reward values
+
+        vm.prank(bidder1);
+        auction.createBidWithReferral{ value: 1 ether }(2, referral);
+
+        vm.warp(10 minutes + 1 seconds);
+
+        auction.settleCurrentAndCreateNewAuction();
+
+        assertEq(token.ownerOf(2), bidder1);
+        assertEq(token.getVotes(bidder1), 1);
+
+        assertEq(address(treasury).balance, 0.93 ether);
+        assertEq(address(rewards).balance, 0.03 ether + 0.04 ether);
+
+        assertEq(MockProtocolRewards(rewards).balanceOf(zoraDAO), 0.03 ether);
+        assertEq(MockProtocolRewards(rewards).balanceOf(referral), 0.04 ether);
+    }
+
+    function test_FounderBuilderAndReferralReward() external {
+        // Setup
+        deployAltMock(founder, 500);
+
+        vm.prank(manager.owner());
+        manager.registerUpgrade(auctionImpl, address(rewardImpl));
+
+        vm.prank(auction.owner());
+        auction.upgradeTo(address(rewardImpl));
+
+        vm.prank(founder);
+        auction.unpause();
+
+        // Check reward values
+
+        vm.prank(bidder1);
+        auction.createBidWithReferral{ value: 1 ether }(2, referral);
+
+        vm.warp(10 minutes + 1 seconds);
+
+        auction.settleCurrentAndCreateNewAuction();
+
+        assertEq(token.ownerOf(2), bidder1);
+        assertEq(token.getVotes(bidder1), 1);
+
+        assertEq(address(treasury).balance, 0.88 ether);
+        assertEq(address(rewards).balance, 0.03 ether + 0.04 ether + 0.05 ether);
+
+        assertEq(MockProtocolRewards(rewards).balanceOf(zoraDAO), 0.03 ether);
+        assertEq(MockProtocolRewards(rewards).balanceOf(referral), 0.04 ether);
+        assertEq(MockProtocolRewards(rewards).balanceOf(founder), 0.05 ether);
     }
 }

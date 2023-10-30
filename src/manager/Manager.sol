@@ -6,7 +6,6 @@ import { Ownable } from "../lib/utils/Ownable.sol";
 import { ERC1967Proxy } from "../lib/proxy/ERC1967Proxy.sol";
 
 import { ManagerStorageV1 } from "./storage/ManagerStorageV1.sol";
-import { ManagerStorageV2 } from "./storage/ManagerStorageV2.sol";
 import { IManager } from "./IManager.sol";
 import { IToken } from "../token/IToken.sol";
 import { IBaseMetadata } from "../token/metadata/interfaces/IBaseMetadata.sol";
@@ -22,14 +21,7 @@ import { IVersionedContract } from "../lib/interfaces/IVersionedContract.sol";
 /// @author Neokry & Rohan Kulkarni
 /// @custom:repo github.com/ourzora/nouns-protocol
 /// @notice The DAO deployer and upgrade manager
-contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1, ManagerStorageV2 {
-    ///                                                          ///
-    ///                          CONSTANTS                       ///
-    ///                                                          ///
-
-    /// @notice The maximum combined BPS for referral and builder rewards
-    uint256 private constant MAX_REWARDS_BPS = 2_000;
-
+contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1 {
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -49,6 +41,9 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
     /// @notice The governor implementation address
     address public immutable governorImpl;
 
+    /// @notice The address to send Builder DAO rewards to
+    address public immutable builderRewardsRecipient;
+
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
@@ -58,13 +53,15 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         address _metadataImpl,
         address _auctionImpl,
         address _treasuryImpl,
-        address _governorImpl
+        address _governorImpl,
+        address _builderRewardsRecipient
     ) payable initializer {
         tokenImpl = _tokenImpl;
         metadataImpl = _metadataImpl;
         auctionImpl = _auctionImpl;
         treasuryImpl = _treasuryImpl;
         governorImpl = _governorImpl;
+        builderRewardsRecipient = _builderRewardsRecipient;
     }
 
     ///                                                          ///
@@ -248,18 +245,6 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         delete isUpgrade[_baseImpl][_upgradeImpl];
 
         emit UpgradeRemoved(_baseImpl, _upgradeImpl);
-    }
-
-    /// @notice Set the global reward configuration
-    /// @param _rewards The reward to be paid to the referrer in BPS
-    function setRewardConfig(RewardConfig calldata _rewards) external onlyOwner {
-        // Ensure the rewards are valid
-        if (_rewards.referralBps + _rewards.builderBps > MAX_REWARDS_BPS) {
-            revert INVALID_REWARDS_CONFIG();
-        }
-
-        // Set the rewards
-        rewards = _rewards;
     }
 
     /// @notice Safely get the contract version of a target contract.

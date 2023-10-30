@@ -3,7 +3,6 @@ pragma solidity 0.8.16;
 
 import { IUUPS } from "../lib/interfaces/IUUPS.sol";
 import { IOwnable } from "../lib/interfaces/IOwnable.sol";
-import { ManagerTypesV2 } from "./types/ManagerTypesV2.sol";
 
 /// @title IManager
 /// @author Rohan Kulkarni
@@ -45,9 +44,6 @@ interface IManager is IUUPS, IOwnable {
 
     /// @dev Reverts if caller is not the token owner
     error ONLY_TOKEN_OWNER();
-
-    /// @dev Reverts if caller is not the token owner
-    error INVALID_REWARDS_CONFIG();
 
     ///                                                          ///
     ///                            STRUCTS                       ///

@@ -11,7 +11,6 @@ import { AuctionStorageV1 } from "./storage/AuctionStorageV1.sol";
 import { Token } from "../token/Token.sol";
 import { AuctionStorageV2 } from "./storage/AuctionStorageV2.sol";
 import { Manager } from "../manager/Manager.sol";
-import { ManagerTypesV2 } from "../manager/types/ManagerTypesV2.sol";
 import { IAuction } from "./IAuction.sol";
 import { IWETH } from "../lib/interfaces/IWETH.sol";
 import { IProtocolRewards } from "../lib/interfaces/IProtocolRewards.sol";
@@ -34,7 +33,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     uint256 private constant BPS_PER_100_PERCENT = 10_000;
 
     /// @notice The maximum rewards percentage
-    uint256 private constant MAX_FOUNDER_REWARDS_BPS = 3_000;
+    uint256 private constant MAX_FOUNDER_REWARD_BPS = 3_000;
 
     ///                                                          ///
     ///                          IMMUTABLES                      ///
@@ -55,6 +54,12 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @notice The rewards manager
     IProtocolRewards private immutable rewardsManager;
 
+    /// @notice The builder reward BPS as a percent of settled auction amount
+    uint16 private immutable builderRewardsBPS;
+
+    /// @notice The referral reward BPS as a percent of settled auction amount
+    uint16 private immutable referralRewardsBPS;
+
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
@@ -65,11 +70,15 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     constructor(
         address _manager,
         address _rewardsManager,
-        address _weth
+        address _weth,
+        uint16 _builderRewardsBPS,
+        uint16 _referralRewardsBPS
     ) payable initializer {
         manager = Manager(_manager);
         rewardsManager = IProtocolRewards(_rewardsManager);
         WETH = _weth;
+        builderRewardsBPS = _builderRewardsBPS;
+        referralRewardsBPS = _referralRewardsBPS;
     }
 
     ///                                                          ///
@@ -97,7 +106,10 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         if (msg.sender != address(manager)) revert ONLY_MANAGER();
 
         // Ensure the founder reward is not more than max
-        if (_founderRewardBps > MAX_FOUNDER_REWARDS_BPS) revert INVALID_REWARDS_CONFIG();
+        if (_founderRewardBps > MAX_FOUNDER_REWARD_BPS) revert INVALID_REWARDS_BPS();
+
+        // Ensure the recipient is set if the reward is greater than 0
+        if (_founderRewardBps > 0 && _founderRewardRecipient == address(0)) revert INVALID_REWARDS_RECIPIENT();
 
         // Initialize the reentrancy guard
         __ReentrancyGuard_init();
@@ -430,8 +442,11 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @notice Updates the founder reward recipent address
     /// @param reward The new founder reward settings
     function setFounderReward(FounderReward calldata reward) external onlyOwner whenPaused {
-        // Ensure the reward is not more than max
-        if (reward.percentBps > MAX_FOUNDER_REWARDS_BPS) revert INVALID_REWARDS_CONFIG();
+        // Ensure the founder reward is not more than max
+        if (reward.percentBps > MAX_FOUNDER_REWARD_BPS) revert INVALID_REWARDS_BPS();
+
+        // Ensure the recipient is set if the reward is greater than 0
+        if (reward.percentBps > 0 && reward.recipient == address(0)) revert INVALID_REWARDS_RECIPIENT();
 
         // Update the founder reward settings
         founderReward = reward;
@@ -452,11 +467,11 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         uint256 _finalBidAmount,
         uint256 _founderRewardBps
     ) internal view returns (RewardSplits memory split) {
-        // Get global reward settings from manager
-        (address builderRecipient, uint256 referralBps, uint256 builderBps) = manager.rewards();
+        // Get global builder recipient from manager
+        address builderRecipient = manager.builderRewardsRecipient();
 
         // Calculate the total rewards percentage
-        uint256 totalBPS = _founderRewardBps + referralBps + builderBps;
+        uint256 totalBPS = _founderRewardBps + referralRewardsBPS + builderRewardsBPS;
 
         // Verify percentage is not more than 100
         if (totalBPS >= BPS_PER_100_PERCENT) {
@@ -475,8 +490,8 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         // Calculate reward splits
         split.amounts = new uint256[](3);
         split.amounts[0] = (_finalBidAmount * _founderRewardBps) / BPS_PER_100_PERCENT;
-        split.amounts[1] = (_finalBidAmount * referralBps) / BPS_PER_100_PERCENT;
-        split.amounts[2] = (_finalBidAmount * builderBps) / BPS_PER_100_PERCENT;
+        split.amounts[1] = (_finalBidAmount * referralRewardsBPS) / BPS_PER_100_PERCENT;
+        split.amounts[2] = (_finalBidAmount * builderRewardsBPS) / BPS_PER_100_PERCENT;
 
         // Leave reasons empty
         split.reasons = new bytes4[](3);

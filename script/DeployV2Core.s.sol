@@ -31,6 +31,9 @@ contract DeployContracts is Script {
 
         address deployerAddress = vm.addr(key);
 
+        uint16 BUILDER_REWARDS = chainID == 1 || chainID == 5 ? 0 : 250;
+        uint16 REFERRAL_REWARDS = chainID == 1 || chainID == 5 ? 0 : 250;
+
         console2.log("~~~~~~~~~~ CHAIN ID ~~~~~~~~~~~");
         console2.log(chainID);
 
@@ -38,13 +41,10 @@ contract DeployContracts is Script {
         console2.log(deployerAddress);
 
         vm.startBroadcast(deployerAddress);
-
         // Deploy root manager implementation + proxy
-        address managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0)));
+        address managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0), address(0)));
 
         Manager manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", deployerAddress))));
-
-        address rewards = _getKey("ProtocolRewards");
 
         // Deploy token implementation
         address tokenImpl = address(new Token(address(manager)));
@@ -53,7 +53,7 @@ contract DeployContracts is Script {
         address metadataRendererImpl = address(new MetadataRenderer(address(manager)));
 
         // Deploy auction house implementation
-        address auctionImpl = address(new Auction(address(manager), address(rewards), weth));
+        address auctionImpl = address(new Auction(address(manager), _getKey("ProtocolRewards"), weth, BUILDER_REWARDS, REFERRAL_REWARDS));
 
         // Deploy treasury implementation
         address treasuryImpl = address(new Treasury(address(manager)));
@@ -61,7 +61,7 @@ contract DeployContracts is Script {
         // Deploy governor implementation
         address governorImpl = address(new Governor(address(manager)));
 
-        address managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
+        address managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl, _getKey("BuilderDAO")));
 
         manager.upgradeTo(managerImpl);
 
