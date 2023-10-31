@@ -55,10 +55,10 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     IProtocolRewards private immutable rewardsManager;
 
     /// @notice The builder reward BPS as a percent of settled auction amount
-    uint16 private immutable builderRewardsBPS;
+    uint16 public immutable builderRewardsBPS;
 
     /// @notice The referral reward BPS as a percent of settled auction amount
-    uint16 private immutable referralRewardsBPS;
+    uint16 public immutable referralRewardsBPS;
 
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
@@ -481,20 +481,30 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         // Calulate total rewards
         split.totalRewards = (_finalBidAmount * totalBPS) / BPS_PER_100_PERCENT;
 
-        // Set the recipients
-        split.recipients = new address[](3);
-        split.recipients[0] = founderReward.recipient;
+        // Check if founder reward is enabled
+        bool hasFounderReward = _founderRewardBps > 0 && founderReward.recipient != address(0);
+
+        // Set array size based on if founder reward is enabled
+        uint256 arraySize = hasFounderReward ? 3 : 2;
+
+        // Initialize arrays
+        split.recipients = new address[](arraySize);
+        split.amounts = new uint256[](arraySize);
+        split.reasons = new bytes4[](arraySize);
+
+        // Set builder reward
+        split.recipients[0] = builderRecipient;
+        split.amounts[0] = (_finalBidAmount * builderRewardsBPS) / BPS_PER_100_PERCENT;
+
+        // Set referral reward
         split.recipients[1] = _currentBidRefferal != address(0) ? _currentBidRefferal : builderRecipient;
-        split.recipients[2] = builderRecipient;
-
-        // Calculate reward splits
-        split.amounts = new uint256[](3);
-        split.amounts[0] = (_finalBidAmount * _founderRewardBps) / BPS_PER_100_PERCENT;
         split.amounts[1] = (_finalBidAmount * referralRewardsBPS) / BPS_PER_100_PERCENT;
-        split.amounts[2] = (_finalBidAmount * builderRewardsBPS) / BPS_PER_100_PERCENT;
 
-        // Leave reasons empty
-        split.reasons = new bytes4[](3);
+        // Set founder reward if enabled
+        if (hasFounderReward) {
+            split.recipients[2] = founderReward.recipient;
+            split.amounts[2] = (_finalBidAmount * _founderRewardBps) / BPS_PER_100_PERCENT;
+        }
     }
 
     ///                                                          ///

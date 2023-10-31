@@ -4,6 +4,10 @@ pragma solidity 0.8.16;
 /// @title ProtocolRewards
 /// @notice Manager of deposits & withdrawals for protocol rewards
 contract MockProtocolRewards {
+    error ADDRESS_ZERO();
+    error ARRAY_LENGTH_MISMATCH();
+    error INVALID_DEPOSIT();
+
     /// @notice An account's balance
     mapping(address => uint256) public balanceOf;
 
@@ -26,10 +30,14 @@ contract MockProtocolRewards {
     function depositBatch(
         address[] calldata recipients,
         uint256[] calldata amounts,
-        bytes4[] calldata,
+        bytes4[] calldata reasons,
         string calldata
     ) external payable {
         uint256 numRecipients = recipients.length;
+
+        if (numRecipients != amounts.length || numRecipients != reasons.length) {
+            revert ARRAY_LENGTH_MISMATCH();
+        }
 
         uint256 expectedTotalValue;
 
@@ -41,12 +49,20 @@ contract MockProtocolRewards {
             }
         }
 
+        if (msg.value != expectedTotalValue) {
+            revert INVALID_DEPOSIT();
+        }
+
         address currentRecipient;
         uint256 currentAmount;
 
         for (uint256 i; i < numRecipients; ) {
             currentRecipient = recipients[i];
             currentAmount = amounts[i];
+
+            if (currentRecipient == address(0)) {
+                revert ADDRESS_ZERO();
+            }
 
             balanceOf[currentRecipient] += currentAmount;
 
