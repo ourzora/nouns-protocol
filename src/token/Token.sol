@@ -481,6 +481,8 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         return minter[_minter];
     }
 
+    /// @notice Set the tokenId that the reserve will end at
+    /// @param newReservedUntilTokenId The tokenId that the reserve will end at
     function setReservedUntilTokenId(uint256 newReservedUntilTokenId) external onlyOwner {
         // Cannot change the reserve after any non reserved tokens have been minted
         // Added to prevent making any tokens inaccessible
@@ -496,6 +498,8 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
 
         // Set the new reserve
         reservedUntilTokenId = newReservedUntilTokenId;
+
+        emit ReservedUntilTokenIDUpdated(newReservedUntilTokenId);
     }
 
     /// @notice Set a new metadata renderer

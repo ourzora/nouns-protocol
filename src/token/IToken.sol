@@ -41,6 +41,8 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
     /// @param renderer new metadata renderer address
     event MetadataRendererUpdated(address renderer);
 
+    event ReservedUntilTokenIDUpdated(uint256 reservedUntilTokenId);
+
     ///                                                          ///
     ///                            ERRORS                        ///
     ///                                                          ///
