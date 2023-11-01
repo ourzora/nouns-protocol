@@ -931,4 +931,77 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
             token.ownerOf(i);
         }
     }
+
+    function test_SetReservedUntilTokenId(uint256 _startingReserve, uint256 _newReserve) public {
+        deployAltMock(_startingReserve);
+
+        vm.prank(founder);
+        token.setReservedUntilTokenId(_newReserve);
+    }
+
+    function test_SetReservedUntilTokenIdAfterMint(uint256 _startingReserve, uint256 _newReserve) public {
+        vm.assume(_startingReserve > 0 && _newReserve > _startingReserve);
+        deployAltMock(_startingReserve);
+
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: founder, allowed: true });
+        minters[0] = p1;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        vm.prank(founder);
+        token.mintFromReserveTo(founder, 0);
+
+        vm.prank(founder);
+        token.setReservedUntilTokenId(_newReserve);
+    }
+
+    function testRevert_CannotSetReserveAfterDAOIsLaunched(uint256 _startingReserve, uint256 _newReserve) public {
+        deployAltMock(_startingReserve);
+
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(token.owner());
+        vm.expectRevert(abi.encodeWithSignature("CANNOT_CHANGE_RESERVE()"));
+        token.setReservedUntilTokenId(_newReserve);
+    }
+
+    function testRevert_CannotSetReserveAfterVestedMint(uint256 _startingReserve, uint256 _newReserve) public {
+        deployAltMock(_startingReserve);
+
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: founder, allowed: true });
+        minters[0] = p1;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        vm.prank(founder);
+        token.mint();
+
+        vm.prank(token.owner());
+        vm.expectRevert(abi.encodeWithSignature("CANNOT_CHANGE_RESERVE()"));
+        token.setReservedUntilTokenId(_newReserve);
+    }
+
+    function testRevert_CannotReduceReserveAfterMint(uint256 _startingReserve, uint256 _newReserve) public {
+        vm.assume(_startingReserve > 0 && _startingReserve > _newReserve);
+        deployAltMock(_startingReserve);
+
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: founder, allowed: true });
+        minters[0] = p1;
+
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        vm.prank(founder);
+        token.mintFromReserveTo(founder, 0);
+
+        vm.prank(token.owner());
+        vm.expectRevert(abi.encodeWithSignature("CANNOT_DECREASE_RESERVE()"));
+        token.setReservedUntilTokenId(_newReserve);
+    }
 }

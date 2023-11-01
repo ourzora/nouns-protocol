@@ -66,6 +66,12 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
     /// @dev Reverts if the token is not reserved
     error TOKEN_NOT_RESERVED();
 
+    /// @dev Reverts if the token reserve is being decreased
+    error CANNOT_DECREASE_RESERVE();
+
+    /// @dev Reverts if the token reserve cannot be changed
+    error CANNOT_CHANGE_RESERVE();
+
     ///                                                          ///
     ///                           FUNCTIONS                      ///
     ///                                                          ///

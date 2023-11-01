@@ -481,6 +481,23 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         return minter[_minter];
     }
 
+    function setReservedUntilTokenId(uint256 newReservedUntilTokenId) external onlyOwner {
+        // Cannot change the reserve after any non reserved tokens have been minted
+        // Added to prevent making any tokens inaccessible
+        if (settings.mintCount > 0) {
+            revert CANNOT_CHANGE_RESERVE();
+        }
+
+        // Cannot decrease the reserve if any tokens have been minted
+        // Added to prevent collisions with tokens being auctioned / vested
+        if (settings.totalSupply > 0 && reservedUntilTokenId > newReservedUntilTokenId) {
+            revert CANNOT_DECREASE_RESERVE();
+        }
+
+        // Set the new reserve
+        reservedUntilTokenId = newReservedUntilTokenId;
+    }
+
     /// @notice Set a new metadata renderer
     /// @param newRenderer new renderer address to use
     function setMetadataRenderer(IBaseMetadata newRenderer) external {
