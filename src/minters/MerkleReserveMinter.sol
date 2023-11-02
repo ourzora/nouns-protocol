@@ -4,7 +4,8 @@ pragma solidity 0.8.16;
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 import { IOwnable } from "../lib/interfaces/IOwnable.sol";
 import { IToken } from "../token/IToken.sol";
-import { IManager } from "../manager/IManager.sol";
+import { Manager } from "../manager/Manager.sol";
+import { IProtocolRewards } from "../lib/interfaces/IProtocolRewards.sol";
 
 /// @title MerkleReserveMinter
 /// @notice A mint strategy that mints reserved tokens based on a merkle tree
@@ -83,10 +84,10 @@ contract MerkleReserveMinter {
     ///                                                          ///
 
     /// @notice Manager contract
-    IManager immutable manager;
+    Manager immutable manager;
 
-    /// @notice Address to send BuilderDAO fees
-    address immutable builderFundsRecipent;
+    /// @notice Protocol rewards contract
+    IProtocolRewards immutable protocolRewards;
 
     ///                                                          ///
     ///                            STORAGE                       ///
@@ -113,9 +114,9 @@ contract MerkleReserveMinter {
     ///                            CONSTRUCTOR                   ///
     ///                                                          ///
 
-    constructor(IManager _manager, address _builderFundsRecipent) {
-        manager = _manager;
-        builderFundsRecipent = _builderFundsRecipent;
+    constructor(address _manager, address _protocolRewards) {
+        manager = Manager(_manager);
+        protocolRewards = IProtocolRewards(_protocolRewards);
     }
 
     ///                                                          ///
@@ -190,21 +191,17 @@ contract MerkleReserveMinter {
         uint256 value = msg.value;
 
         (, , address treasury, ) = manager.getAddresses(tokenContract);
+        address builderRecipient = manager.builderRewardsRecipient();
 
         // Pay out fees to the Builder DAO
-        (bool builderSuccess, ) = builderFundsRecipent.call{ value: builderFee }("");
-
-        // Revert if Builder DAO recipent cannot accept funds
-        if (!builderSuccess) {
-            revert TRANSFER_FAILED();
-        }
+        protocolRewards.deposit{ value: builderFee }(builderRecipient, hex"00", "");
 
         // Pay out remaining funds to the treasury
         if (value > builderFee) {
             (bool treasurySuccess, ) = treasury.call{ value: value - builderFee }("");
 
             // Revert if treasury cannot accept funds
-            if (!builderSuccess || !treasurySuccess) {
+            if (!treasurySuccess) {
                 revert TRANSFER_FAILED();
             }
         }

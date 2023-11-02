@@ -14,7 +14,7 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
     function setUp() public virtual override {
         super.setUp();
 
-        minter = new MerkleReserveMinter(manager, zoraDAO);
+        minter = new MerkleReserveMinter(address(manager), rewards);
         claimer1 = address(0xC1);
         claimer2 = address(0xC2);
     }

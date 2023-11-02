@@ -26,7 +26,7 @@ contract DeployContracts is Script {
 
         address deployerAddress = vm.addr(key);
         address managerAddress = _getKey("Manager");
-        address builderAddress = _getKey("BuilderDAO");
+        address protocolRewards = _getKey("ProtocolRewards");
         address crossDomainMessenger = _getKey("CrossDomainMessenger");
 
         console2.log("~~~~~~~~~~ CHAIN ID ~~~~~~~~~~~");
@@ -38,13 +38,11 @@ contract DeployContracts is Script {
         console2.log("~~~~~~~~~~ MANAGER ~~~~~~~~~~~");
         console2.log(managerAddress);
 
-        Manager manager = Manager(managerAddress);
-
         vm.startBroadcast(deployerAddress);
 
-        address merkleMinter = address(new MerkleReserveMinter(manager, builderAddress));
+        address merkleMinter = address(new MerkleReserveMinter(managerAddress, protocolRewards));
 
-        address migrationDeployer = address(new L2MigrationDeployer(address(manager), merkleMinter, crossDomainMessenger));
+        address migrationDeployer = address(new L2MigrationDeployer(managerAddress, merkleMinter, crossDomainMessenger));
 
         vm.stopBroadcast();
 

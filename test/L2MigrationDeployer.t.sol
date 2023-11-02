@@ -22,7 +22,7 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
     function setUp() public virtual override {
         super.setUp();
 
-        minter = new MerkleReserveMinter(manager, zoraDAO);
+        minter = new MerkleReserveMinter(address(manager), rewards);
         xDomainMessenger = new MockCrossDomainMessenger(founder);
         deployer = new L2MigrationDeployer(address(manager), address(minter), address(xDomainMessenger));
     }
