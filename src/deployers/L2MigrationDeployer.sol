@@ -8,9 +8,11 @@ import { MerkleReserveMinter } from "../minters/MerkleReserveMinter.sol";
 import { TokenTypesV2 } from "../token/types/TokenTypesV2.sol";
 import { Ownable } from "../lib/utils/Ownable.sol";
 import { ICrossDomainMessenger } from "./interfaces/ICrossDomainMessenger.sol";
+import { OPAddressAliasHelper } from "../lib/utils/OPAddressAliasHelper.sol";
 
 /// @title L2MigrationDeployer
 /// @notice A deployer that allows a caller on L1 to deploy and seed a DAO on an OP Stack L2
+/// @dev This contract is designed to be called from the OPStack L1CrossDomainMessenger or OptimismPortal
 /// @author @neokry
 contract L2MigrationDeployer {
     ///                                                          ///
@@ -60,16 +62,6 @@ contract L2MigrationDeployer {
     mapping(address => address) public crossDomainDeployerToToken;
 
     ///                                                          ///
-    ///                            MODIFIERS                     ///
-    ///                                                          ///
-
-    /// @notice Modifier to revert if sender is not cross domain messenger
-    modifier onlyCrossDomainMessenger() {
-        if (msg.sender != address(crossDomainMessenger)) revert NOT_CROSS_DOMAIN_MESSENGER();
-        _;
-    }
-
-    ///                                                          ///
     ///                            CONSTRUCTOR                   ///
     ///                                                          ///
 
@@ -100,7 +92,7 @@ contract L2MigrationDeployer {
         IManager.AuctionParams calldata _auctionParams,
         IManager.GovParams calldata _govParams,
         MerkleReserveMinter.MerkleMinterSettings calldata _minterParams
-    ) external onlyCrossDomainMessenger returns (address token) {
+    ) external returns (address token) {
         if (_getTokenFromSender() != address(0)) {
             revert DAO_ALREADY_DEPLOYED();
         }
@@ -128,7 +120,7 @@ contract L2MigrationDeployer {
     }
 
     ///@notice Resets the stored deployment if L1 DAO wants to redeploy
-    function resetDeployment() external onlyCrossDomainMessenger {
+    function resetDeployment() external {
         _resetTokenDeployer();
     }
 
@@ -136,9 +128,15 @@ contract L2MigrationDeployer {
     ///                            HELPER FUNCTIONS              ///
     ///                                                          ///
 
+    /// @notice Helper method to get the address alias for simulation purposes
+    /// @param l1Address The L1 address to apply the alias to
+    function applyL1ToL2Alias(address l1Address) external pure returns (address) {
+        return OPAddressAliasHelper.applyL1ToL2Alias(l1Address);
+    }
+
     ///@notice Helper method to pass a call along to the deployed metadata renderer
     /// @param _data The names of the properties to add
-    function callMetadataRenderer(bytes memory _data) external onlyCrossDomainMessenger {
+    function callMetadataRenderer(bytes memory _data) external {
         (, address metadata, , , ) = _getDAOAddressesFromSender();
 
         // Call the metadata renderer
@@ -151,7 +149,7 @@ contract L2MigrationDeployer {
     }
 
     ///@notice Helper method to deposit ether from L1 DAO treasury to L2 DAO treasury
-    function depositToTreasury() external payable onlyCrossDomainMessenger {
+    function depositToTreasury() external payable {
         (, , , address treasury, ) = _getDAOAddressesFromSender();
 
         // Transfer ether to treasury
@@ -164,7 +162,7 @@ contract L2MigrationDeployer {
     }
 
     ///@notice Transfers ownership of migrated DAO contracts to treasury
-    function renounceOwnership() external onlyCrossDomainMessenger {
+    function renounceOwnership() external {
         (address token, , address auction, address treasury, ) = _getDAOAddressesFromSender();
 
         // Transfer ownership of token contract
@@ -179,8 +177,11 @@ contract L2MigrationDeployer {
     ///                                                          ///
 
     function _xMsgSender() private view returns (address) {
-        // Return the xDomain message sender from the Optimism cross domain messenger
-        return ICrossDomainMessenger(crossDomainMessenger).xDomainMessageSender();
+        // Return the xDomain message sender
+        return
+            msg.sender == crossDomainMessenger
+                ? ICrossDomainMessenger(crossDomainMessenger).xDomainMessageSender()
+                : OPAddressAliasHelper.undoL1ToL2Alias(msg.sender);
     }
 
     function _setTokenDeployer(address token) private returns (address deployer) {

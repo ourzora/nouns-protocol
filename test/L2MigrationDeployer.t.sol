@@ -167,28 +167,6 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
         assertEq(address(treasury).balance, 0.1 ether);
     }
 
-    function testRevert_OnlyCrossDomainMessenger() external {
-        setAltMockFounderParams();
-
-        setMockTokenParams();
-
-        setMockAuctionParams();
-
-        setMockGovParams();
-
-        vm.expectRevert(abi.encodeWithSignature("NOT_CROSS_DOMAIN_MESSENGER()"));
-        deployer.deploy(foundersArr, tokenParams, auctionParams, govParams, minterParams);
-
-        vm.expectRevert(abi.encodeWithSignature("NOT_CROSS_DOMAIN_MESSENGER()"));
-        addMetadataProperties();
-
-        vm.expectRevert(abi.encodeWithSignature("NOT_CROSS_DOMAIN_MESSENGER()"));
-        deployer.renounceOwnership();
-
-        vm.expectRevert(abi.encodeWithSignature("NOT_CROSS_DOMAIN_MESSENGER()"));
-        deployer.resetDeployment();
-    }
-
     function testRevert_NoDAODeployed() external {
         vm.startPrank(address(xDomainMessenger));
 
