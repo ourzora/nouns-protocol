@@ -22,6 +22,9 @@ contract L2MigrationDeployer {
     /// @notice Deployer has been set
     event DeployerSet(address indexed token, address indexed deployer);
 
+    /// @notice Ownership has been renounced
+    event OwnershipRenounced(address indexed token, address indexed deployer);
+
     ///                                                          ///
     ///                            ERRORS                        ///
     ///                                                          ///
@@ -170,6 +173,9 @@ contract L2MigrationDeployer {
 
         // Transfer ownership of auction contract
         Ownable(auction).transferOwnership(treasury);
+
+        address deployer = _xMsgSender();
+        emit OwnershipRenounced(token, deployer);
     }
 
     ///                                                          ///
