@@ -53,11 +53,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     /// Test that the percentages for founders all ends up as expected
-    function test_FounderShareAllocationFuzz(
-        uint256 f1Percentage,
-        uint256 f2Percentage,
-        uint256 f3Percentage
-    ) public {
+    function test_FounderShareAllocationFuzz(uint256 f1Percentage, uint256 f2Percentage, uint256 f3Percentage) public {
         address f1Wallet = address(0x1);
         address f2Wallet = address(0x2);
         address f3Wallet = address(0x3);
@@ -434,9 +430,18 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function testRevert_OnlyMinterCanMint(address newMinter, address nonMinter) public {
-        vm.assume(newMinter != nonMinter && newMinter != founder && newMinter != address(0) && newMinter != address(auction));
-        vm.assume(nonMinter != founder && nonMinter != address(0) && nonMinter != address(auction));
         deployMock();
+
+        vm.assume(
+            newMinter != nonMinter &&
+                newMinter != founder &&
+                newMinter != address(0) &&
+                newMinter != address(auction) &&
+                nonMinter != founder &&
+                nonMinter != address(0) &&
+                nonMinter != address(auction)
+        );
+        vm.assume(nonMinter != founder && nonMinter != address(0) && nonMinter != address(auction));
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -452,16 +457,12 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.ownerOf(tokenId), newMinter);
     }
 
-    function testRevert_OnlyMinterCanMintToRecipient(
-        address newMinter,
-        address nonMinter,
-        address recipient
-    ) public {
+    function testRevert_OnlyMinterCanMintToRecipient(address newMinter, address nonMinter, address recipient) public {
+        deployMock();
         vm.assume(
             newMinter != nonMinter && newMinter != founder && newMinter != address(0) && newMinter != address(auction) && recipient != address(0)
         );
         vm.assume(nonMinter != founder && nonMinter != address(0) && nonMinter != address(auction));
-        deployMock();
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -477,12 +478,9 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.ownerOf(tokenId), recipient);
     }
 
-    function testRevert_OnlyMinterCanMintBatch(
-        address newMinter,
-        address nonMinter,
-        address recipient,
-        uint256 amount
-    ) public {
+    function testRevert_OnlyMinterCanMintBatch(address newMinter, address nonMinter, address recipient, uint256 amount) public {
+        deployMock();
+
         vm.assume(
             newMinter != nonMinter &&
                 newMinter != founder &&
@@ -493,7 +491,6 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
                 amount < 100
         );
         vm.assume(nonMinter != founder && nonMinter != address(0) && nonMinter != address(auction));
-        deployMock();
 
         TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -652,11 +649,7 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.getFounders().length, 1);
     }
 
-    function test_UpdateFounderShareAllocationFuzz(
-        uint256 f1Percentage,
-        uint256 f2Percentage,
-        uint256 f3Percentage
-    ) public {
+    function test_UpdateFounderShareAllocationFuzz(uint256 f1Percentage, uint256 f2Percentage, uint256 f3Percentage) public {
         deployMock();
 
         address f1Wallet = address(0x1);
@@ -715,11 +708,11 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function test_UpdateMintersOwnerCanAddMinters(address m1, address m2) public {
+        deployMock();
+
         vm.assume(
             m1 != founder && m1 != address(0) && m1 != address(auction) && m2 != founder && m2 != address(0) && m2 != address(auction) && m1 != m2
         );
-
-        deployMock();
 
         TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: m1, allowed: true });
         TokenTypesV2.MinterParams memory p2 = TokenTypesV2.MinterParams({ minter: m2, allowed: true });
@@ -743,9 +736,9 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function test_isMinterReturnsMinterStatus(address _minter) public {
-        vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
-
         deployMock();
+
+        vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
 
         TokenTypesV2.MinterParams memory p = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -762,11 +755,11 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function test_UpdateMintersOwnerCanRemoveMinters(address m1, address m2) public {
+        deployMock();
+
         vm.assume(
             m1 != founder && m1 != address(0) && m1 != address(auction) && m2 != founder && m2 != address(0) && m2 != address(auction) && m1 != m2
         );
-
-        deployMock();
 
         // authorize two minters
         TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: m1, allowed: true });
@@ -816,9 +809,9 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function test_MinterCanBurnTheirOwnToken(address newMinter) public {
-        vm.assume(newMinter != founder && newMinter != address(0) && newMinter != address(auction));
-
         deployMock();
+
+        vm.assume(newMinter != founder && newMinter != address(0) && newMinter != address(auction));
 
         TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: newMinter, allowed: true });
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
@@ -837,14 +830,11 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         token.ownerOf(tokenId);
     }
 
-    function test_MinterCanMintFromReserve(
-        address _minter,
-        uint256 _reservedUntilTokenId,
-        uint256 _tokenId
-    ) public {
+    function test_MinterCanMintFromReserve(address _minter, uint256 _reservedUntilTokenId, uint256 _tokenId) public {
+        deployAltMock(_reservedUntilTokenId);
+
         vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
         vm.assume(_tokenId < _reservedUntilTokenId);
-        deployAltMock(_reservedUntilTokenId);
 
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
         TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
@@ -858,14 +848,11 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         assertEq(token.ownerOf(_tokenId), minters[0].minter);
     }
 
-    function testRevert_MinterCannotMintPastReserve(
-        address _minter,
-        uint256 _reservedUntilTokenId,
-        uint256 _tokenId
-    ) public {
+    function testRevert_MinterCannotMintPastReserve(address _minter, uint256 _reservedUntilTokenId, uint256 _tokenId) public {
+        deployAltMock(_reservedUntilTokenId);
+
         vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
         vm.assume(_tokenId > _reservedUntilTokenId);
-        deployAltMock(_reservedUntilTokenId);
 
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
         TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
@@ -880,9 +867,10 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
     }
 
     function test_SingleMintCannotMintReserves(address _minter, uint256 _reservedUntilTokenId) public {
+        deployAltMock(_reservedUntilTokenId);
+
         vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
         vm.assume(_reservedUntilTokenId > 0 && _reservedUntilTokenId < 4000);
-        deployAltMock(_reservedUntilTokenId);
 
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
         TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
@@ -902,14 +890,11 @@ contract TokenTest is NounsBuilderTest, TokenTypesV1 {
         }
     }
 
-    function test_BatchMintCannotMintReserves(
-        address _minter,
-        uint256 _reservedUntilTokenId,
-        uint256 _amount
-    ) public {
+    function test_BatchMintCannotMintReserves(address _minter, uint256 _reservedUntilTokenId, uint256 _amount) public {
+        deployAltMock(_reservedUntilTokenId);
+
         vm.assume(_minter != founder && _minter != address(0) && _minter != address(auction));
         vm.assume(_reservedUntilTokenId > 0 && _reservedUntilTokenId < 4000 && _amount > 0 && _amount < 20);
-        deployAltMock(_reservedUntilTokenId);
 
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
         TokenTypesV2.MinterParams memory p1 = TokenTypesV2.MinterParams({ minter: _minter, allowed: true });
