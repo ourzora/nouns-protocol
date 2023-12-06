@@ -7,6 +7,7 @@ import { EIP712 } from "../../lib/utils/EIP712.sol";
 import { SafeCast } from "../../lib/utils/SafeCast.sol";
 
 import { GovernorStorageV1 } from "./storage/GovernorStorageV1.sol";
+import { GovernorStorageV2 } from "./storage/GovernorStorageV2.sol";
 import { Token } from "../../token/Token.sol";
 import { Treasury } from "../treasury/Treasury.sol";
 import { IManager } from "../../manager/IManager.sol";
@@ -21,7 +22,7 @@ import { VersionedContract } from "../../VersionedContract.sol";
 /// Modified from:
 /// - OpenZeppelin Contracts v4.7.3 (governance/extensions/GovernorTimelockControl.sol)
 /// - NounsDAOLogicV1.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
-contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, ProposalHasher, GovernorStorageV1 {
+contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, ProposalHasher, GovernorStorageV1, GovernorStorageV2 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
@@ -53,6 +54,9 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
     /// @notice The maximum voting period setting
     uint256 public immutable MAX_VOTING_PERIOD = 24 weeks;
 
+    /// @notice The maximum delayed governance setting
+    uint256 public immutable DELAYED_GOVERNANCE_MAX_DURATION = 30 days;
+
     /// @notice The basis points for 100%
     uint256 private immutable BPS_PER_100_PERCENT = 10_000;
 
@@ -80,6 +84,7 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
     /// @param _votingPeriod The voting period
     /// @param _proposalThresholdBps The proposal threshold basis points
     /// @param _quorumThresholdBps The quorum threshold basis points
+    /// @param _delayedGovernanceExpirationTimestamp The delayed governance expiration timestamp
     function initialize(
         address _treasury,
         address _token,
@@ -87,7 +92,8 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
         uint256 _votingDelay,
         uint256 _votingPeriod,
         uint256 _proposalThresholdBps,
-        uint256 _quorumThresholdBps
+        uint256 _quorumThresholdBps,
+        uint256 _delayedGovernanceExpirationTimestamp
     ) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) revert ONLY_MANAGER();
@@ -106,6 +112,8 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
         if (_proposalThresholdBps >= _quorumThresholdBps) revert INVALID_PROPOSAL_THRESHOLD_BPS();
         if (_votingDelay < MIN_VOTING_DELAY || _votingDelay > MAX_VOTING_DELAY) revert INVALID_VOTING_DELAY();
         if (_votingPeriod < MIN_VOTING_PERIOD || _votingPeriod > MAX_VOTING_PERIOD) revert INVALID_VOTING_PERIOD();
+        if (_delayedGovernanceExpirationTimestamp > block.timestamp + DELAYED_GOVERNANCE_MAX_DURATION)
+            revert INVALID_DELAYED_GOVERNANCE_EXPIRATION_TIMESTAMP();
 
         // Store the governor settings
         settings.treasury = Treasury(payable(_treasury));
@@ -114,6 +122,7 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
         settings.votingPeriod = SafeCast.toUint48(_votingPeriod);
         settings.proposalThresholdBps = SafeCast.toUint16(_proposalThresholdBps);
         settings.quorumThresholdBps = SafeCast.toUint16(_quorumThresholdBps);
+        delayedGovernanceExpirationTimestamp = _delayedGovernanceExpirationTimestamp;
 
         // Initialize EIP-712 support
         __EIP712_init(string.concat(settings.token.symbol(), " GOV"), "1");
@@ -137,6 +146,11 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
         bytes[] memory _calldatas,
         string memory _description
     ) external returns (bytes32) {
+        // Ensure the governor is not delayed
+        if (block.timestamp > delayedGovernanceExpirationTimestamp) {
+            revert WAITING_FOR_EXPIRATION();
+        }
+
         // Get the current proposal threshold
         uint256 currentProposalThreshold = proposalThreshold();
 
@@ -209,11 +223,7 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
     /// @param _proposalId The proposal id
     /// @param _support The support value (0 = Against, 1 = For, 2 = Abstain)
     /// @param _reason The vote reason
-    function castVoteWithReason(
-        bytes32 _proposalId,
-        uint256 _support,
-        string memory _reason
-    ) external returns (uint256) {
+    function castVoteWithReason(bytes32 _proposalId, uint256 _support, string memory _reason) external returns (uint256) {
         return _castVote(_proposalId, msg.sender, _support, _reason);
     }
 
@@ -265,12 +275,7 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
     /// @param _proposalId The proposal id
     /// @param _voter The voter address
     /// @param _support The vote choice
-    function _castVote(
-        bytes32 _proposalId,
-        address _voter,
-        uint256 _support,
-        string memory _reason
-    ) internal returns (uint256) {
+    function _castVote(bytes32 _proposalId, address _voter, uint256 _support, string memory _reason) internal returns (uint256) {
         // Ensure voting is active
         if (state(_proposalId) != ProposalState.Active) revert VOTING_NOT_STARTED();
 
@@ -518,15 +523,7 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
 
     /// @notice The vote counts for a proposal
     /// @param _proposalId The proposal id
-    function proposalVotes(bytes32 _proposalId)
-        external
-        view
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
+    function proposalVotes(bytes32 _proposalId) external view returns (uint256, uint256, uint256) {
         Proposal memory proposal = proposals[_proposalId];
 
         return (proposal.againstVotes, proposal.forVotes, proposal.abstainVotes);

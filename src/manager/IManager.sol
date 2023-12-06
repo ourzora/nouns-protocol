@@ -96,6 +96,7 @@ interface IManager is IUUPS, IOwnable {
     /// @param votingPeriod The time period to vote on a proposal
     /// @param proposalThresholdBps The basis points of the token supply required to create a proposal
     /// @param quorumThresholdBps The basis points of the token supply required to reach quorum
+    /// @param delayedGovernanceExpirationTimestamp The timestamp to delay governance until
     /// @param vetoer The address authorized to veto proposals (address(0) if none desired)
     struct GovParams {
         uint256 timelockDelay;
@@ -103,6 +104,7 @@ interface IManager is IUUPS, IOwnable {
         uint256 votingPeriod;
         uint256 proposalThresholdBps;
         uint256 quorumThresholdBps;
+        uint256 delayedGovernanceExpirationTimestamp;
         address vetoer;
     }
 
@@ -135,26 +137,11 @@ interface IManager is IUUPS, IOwnable {
         TokenParams calldata tokenParams,
         AuctionParams calldata auctionParams,
         GovParams calldata govParams
-    )
-        external
-        returns (
-            address token,
-            address metadataRenderer,
-            address auction,
-            address treasury,
-            address governor
-        );
+    ) external returns (address token, address metadataRenderer, address auction, address treasury, address governor);
 
     /// @notice A DAO's remaining contract addresses from its token address
     /// @param token The ERC-721 token address
-    function getAddresses(address token)
-        external
-        returns (
-            address metadataRenderer,
-            address auction,
-            address treasury,
-            address governor
-        );
+    function getAddresses(address token) external returns (address metadataRenderer, address auction, address treasury, address governor);
 
     /// @notice If an implementation is registered by the Builder DAO as an optional upgrade
     /// @param baseImpl The base implementation address

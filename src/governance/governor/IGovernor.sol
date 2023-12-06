@@ -61,6 +61,8 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
     ///                            ERRORS                        ///
     ///                                                          ///
 
+    error INVALID_DELAYED_GOVERNANCE_EXPIRATION_TIMESTAMP();
+
     error INVALID_PROPOSAL_THRESHOLD_BPS();
 
     error INVALID_QUORUM_THRESHOLD_BPS();
@@ -113,6 +115,9 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
     /// @dev Reverts if the caller was not the contract manager
     error ONLY_MANAGER();
 
+    /// @dev Reverts if delayed governance is not expired
+    error WAITING_FOR_EXPIRATION();
+
     ///                                                          ///
     ///                          FUNCTIONS                       ///
     ///                                                          ///
@@ -125,6 +130,7 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
     /// @param votingPeriod The voting period
     /// @param proposalThresholdBps The proposal threshold basis points
     /// @param quorumThresholdBps The quorum threshold basis points
+    /// @param delayedGovernanceExpirationTimestamp The delayed governance expiration timestamp
     function initialize(
         address treasury,
         address token,
@@ -132,7 +138,8 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
         uint256 votingDelay,
         uint256 votingPeriod,
         uint256 proposalThresholdBps,
-        uint256 quorumThresholdBps
+        uint256 quorumThresholdBps,
+        uint256 delayedGovernanceExpirationTimestamp
     ) external;
 
     /// @notice Creates a proposal
@@ -156,11 +163,7 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
     /// @param proposalId The proposal id
     /// @param support The support value (0 = Against, 1 = For, 2 = Abstain)
     /// @param reason The vote reason
-    function castVoteWithReason(
-        bytes32 proposalId,
-        uint256 support,
-        string memory reason
-    ) external returns (uint256);
+    function castVoteWithReason(bytes32 proposalId, uint256 support, string memory reason) external returns (uint256);
 
     /// @notice Casts a signed vote
     /// @param voter The voter address
@@ -235,14 +238,7 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
 
     /// @notice The vote counts for a proposal
     /// @param proposalId The proposal id
-    function proposalVotes(bytes32 proposalId)
-        external
-        view
-        returns (
-            uint256 againstVotes,
-            uint256 forVotes,
-            uint256 abstainVotes
-        );
+    function proposalVotes(bytes32 proposalId) external view returns (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes);
 
     /// @notice The timestamp valid to execute a proposal
     /// @param proposalId The proposal id

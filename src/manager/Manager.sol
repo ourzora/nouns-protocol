@@ -92,16 +92,7 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         TokenParams calldata _tokenParams,
         AuctionParams calldata _auctionParams,
         GovParams calldata _govParams
-    )
-        external
-        returns (
-            address token,
-            address metadata,
-            address auction,
-            address treasury,
-            address governor
-        )
-    {
+    ) external returns (address token, address metadata, address auction, address treasury, address governor) {
         // Used to store the address of the first (or only) founder
         // This founder is responsible for adding token artwork and launching the first auction -- they're also free to transfer this responsiblity
         address founder;
@@ -156,6 +147,7 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
             votingDelay: _govParams.votingDelay,
             votingPeriod: _govParams.votingPeriod,
             proposalThresholdBps: _govParams.proposalThresholdBps,
+            delayedGovernanceExpirationTimestamp: _govParams.delayedGovernanceExpirationTimestamp,
             quorumThresholdBps: _govParams.quorumThresholdBps
         });
 
@@ -169,11 +161,7 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
     /// @notice Set a new metadata renderer
     /// @param _newRendererImpl new renderer address to use
     /// @param _setupRenderer data to setup new renderer with
-    function setMetadataRenderer(
-        address _token,
-        address _newRendererImpl,
-        bytes memory _setupRenderer
-    ) external returns (address metadata) {
+    function setMetadataRenderer(address _token, address _newRendererImpl, bytes memory _setupRenderer) external returns (address metadata) {
         if (msg.sender != IOwnable(_token).owner()) {
             revert ONLY_TOKEN_OWNER();
         }
@@ -200,16 +188,7 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
     /// @return auction Auction deployed address
     /// @return treasury Treasury deployed address
     /// @return governor Governor deployed address
-    function getAddresses(address _token)
-        public
-        view
-        returns (
-            address metadata,
-            address auction,
-            address treasury,
-            address governor
-        )
-    {
+    function getAddresses(address _token) public view returns (address metadata, address auction, address treasury, address governor) {
         DAOAddresses storage addresses = daoAddressesByToken[_token];
 
         metadata = addresses.metadata;
