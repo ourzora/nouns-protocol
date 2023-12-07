@@ -67,13 +67,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @param _manager The contract upgrade manager address
     /// @param _rewardsManager The protocol rewards manager address
     /// @param _weth The address of WETH
-    constructor(
-        address _manager,
-        address _rewardsManager,
-        address _weth,
-        uint16 _builderRewardsBPS,
-        uint16 _referralRewardsBPS
-    ) payable initializer {
+    constructor(address _manager, address _rewardsManager, address _weth, uint16 _builderRewardsBPS, uint16 _referralRewardsBPS) payable initializer {
         manager = Manager(_manager);
         rewardsManager = IProtocolRewards(_rewardsManager);
         WETH = _weth;
@@ -478,9 +472,6 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
             revert INVALID_REWARD_TOTAL();
         }
 
-        // Calulate total rewards
-        split.totalRewards = (_finalBidAmount * totalBPS) / BPS_PER_100_PERCENT;
-
         // Check if founder reward is enabled
         bool hasFounderReward = _founderRewardBps > 0 && founderReward.recipient != address(0);
 
@@ -493,17 +484,23 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         split.reasons = new bytes4[](arraySize);
 
         // Set builder reward
+        uint256 builderAmount = (_finalBidAmount * builderRewardsBPS) / BPS_PER_100_PERCENT;
         split.recipients[0] = builderRecipient;
-        split.amounts[0] = (_finalBidAmount * builderRewardsBPS) / BPS_PER_100_PERCENT;
+        split.amounts[0] = builderAmount;
+        split.totalRewards += builderAmount;
 
         // Set referral reward
+        uint256 referralAmount = (_finalBidAmount * referralRewardsBPS) / BPS_PER_100_PERCENT;
         split.recipients[1] = _currentBidRefferal != address(0) ? _currentBidRefferal : builderRecipient;
-        split.amounts[1] = (_finalBidAmount * referralRewardsBPS) / BPS_PER_100_PERCENT;
+        split.amounts[1] = referralAmount;
+        split.totalRewards += referralAmount;
 
         // Set founder reward if enabled
         if (hasFounderReward) {
+            uint256 founderAmount = (_finalBidAmount * _founderRewardBps) / BPS_PER_100_PERCENT;
             split.recipients[2] = founderReward.recipient;
-            split.amounts[2] = (_finalBidAmount * _founderRewardBps) / BPS_PER_100_PERCENT;
+            split.amounts[2] = founderAmount;
+            split.totalRewards += founderAmount;
         }
     }
 
