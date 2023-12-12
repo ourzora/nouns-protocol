@@ -7,6 +7,7 @@ import { EIP712 } from "../../lib/utils/EIP712.sol";
 import { SafeCast } from "../../lib/utils/SafeCast.sol";
 
 import { GovernorStorageV1 } from "./storage/GovernorStorageV1.sol";
+import { GovernorStorageV2 } from "./storage/GovernorStorageV2.sol";
 import { Token } from "../../token/Token.sol";
 import { Treasury } from "../treasury/Treasury.sol";
 import { IManager } from "../../manager/IManager.sol";
@@ -21,7 +22,7 @@ import { VersionedContract } from "../../VersionedContract.sol";
 /// Modified from:
 /// - OpenZeppelin Contracts v4.7.3 (governance/extensions/GovernorTimelockControl.sol)
 /// - NounsDAOLogicV1.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
-contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, ProposalHasher, GovernorStorageV1 {
+contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, ProposalHasher, GovernorStorageV1, GovernorStorageV2 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
@@ -52,6 +53,9 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
 
     /// @notice The maximum voting period setting
     uint256 public immutable MAX_VOTING_PERIOD = 24 weeks;
+
+    /// @notice The maximum delayed governance expiration setting
+    uint256 public immutable MAX_DELAYED_GOVERNANCE_EXPIRATION = 30 days;
 
     /// @notice The basis points for 100%
     uint256 private immutable BPS_PER_100_PERCENT = 10_000;
@@ -137,6 +141,11 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
         bytes[] memory _calldatas,
         string memory _description
     ) external returns (bytes32) {
+        // Ensure governance is not delayed or all reserved tokens have been minted
+        if (block.timestamp < delayedGovernanceExpirationTimestamp && settings.token.remainingTokensInReserve() > 0) {
+            revert WAITING_FOR_TOKENS_TO_CLAIM_OR_EXPIRATION();
+        }
+
         // Get the current proposal threshold
         uint256 currentProposalThreshold = proposalThreshold();
 
@@ -209,11 +218,7 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
     /// @param _proposalId The proposal id
     /// @param _support The support value (0 = Against, 1 = For, 2 = Abstain)
     /// @param _reason The vote reason
-    function castVoteWithReason(
-        bytes32 _proposalId,
-        uint256 _support,
-        string memory _reason
-    ) external returns (uint256) {
+    function castVoteWithReason(bytes32 _proposalId, uint256 _support, string memory _reason) external returns (uint256) {
         return _castVote(_proposalId, msg.sender, _support, _reason);
     }
 
@@ -265,12 +270,7 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
     /// @param _proposalId The proposal id
     /// @param _voter The voter address
     /// @param _support The vote choice
-    function _castVote(
-        bytes32 _proposalId,
-        address _voter,
-        uint256 _support,
-        string memory _reason
-    ) internal returns (uint256) {
+    function _castVote(bytes32 _proposalId, address _voter, uint256 _support, string memory _reason) internal returns (uint256) {
         // Ensure voting is active
         if (state(_proposalId) != ProposalState.Active) revert VOTING_NOT_STARTED();
 
@@ -518,15 +518,7 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
 
     /// @notice The vote counts for a proposal
     /// @param _proposalId The proposal id
-    function proposalVotes(bytes32 _proposalId)
-        external
-        view
-        returns (
-            uint256,
-            uint256,
-            uint256
-        )
-    {
+    function proposalVotes(bytes32 _proposalId) external view returns (uint256, uint256, uint256) {
         Proposal memory proposal = proposals[_proposalId];
 
         return (proposal.againstVotes, proposal.forVotes, proposal.abstainVotes);
@@ -627,6 +619,30 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
         emit QuorumVotesBpsUpdated(settings.quorumThresholdBps, _newQuorumVotesBps);
 
         settings.quorumThresholdBps = uint16(_newQuorumVotesBps);
+    }
+
+    /// @notice Updates the delayed governance expiration timestamp
+    /// @param _newDelayedTimestamp The new delayed governance expiration timestamp
+    function updateDelayedGovernanceExpirationTimestamp(uint256 _newDelayedTimestamp) external {
+        // We want the founder to be able to set a governance delay if they are using a minter contract like MerkleReserveMinter
+        if (msg.sender != settings.token.owner()) {
+            revert ONLY_TOKEN_OWNER();
+        }
+
+        // Ensure the new timestamp is not too far in the future
+        if (_newDelayedTimestamp > block.timestamp + MAX_DELAYED_GOVERNANCE_EXPIRATION) {
+            revert INVALID_DELAYED_GOVERNANCE_EXPIRATION();
+        }
+
+        // Delay should only be set if no tokens have been minted to prevent active DAOs from accidentally or malicously enabling this funcationality
+        // Delay is only availible for DAOs that have reserved tokens
+        if (settings.token.totalSupply() > 0 || settings.token.reservedUntilTokenId() == 0) {
+            revert CANNOT_DELAY_GOVERNANCE();
+        }
+
+        emit DelayedGovernanceExpirationTimestampUpdated(delayedGovernanceExpirationTimestamp, _newDelayedTimestamp);
+
+        delayedGovernanceExpirationTimestamp = _newDelayedTimestamp;
     }
 
     /// @notice Updates the vetoer

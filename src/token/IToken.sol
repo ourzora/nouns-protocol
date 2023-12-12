@@ -136,6 +136,9 @@ interface IToken is IUUPS, IERC721Votes, TokenTypesV1, TokenTypesV2 {
     /// @param tokenId The ERC-721 token id
     function getScheduledRecipient(uint256 tokenId) external view returns (Founder memory);
 
+    /// @notice The total number of tokens that can be claimed from the reserve
+    function remainingTokensInReserve() external view returns (uint256);
+
     /// @notice The total supply of tokens
     function totalSupply() external view returns (uint256);
 
