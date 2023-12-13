@@ -1161,6 +1161,14 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         mock1155.mintBatch(address(governor), _tokenIds, _amounts);
     }
 
+    function testRevert_GovernorOnlyDAOWithReserveCanAddDelay() public {
+        deployMock();
+
+        vm.prank(founder);
+        vm.expectRevert(abi.encodeWithSignature("CANNOT_DELAY_GOVERNANCE()"));
+        governor.updateDelayedGovernanceExpirationTimestamp(1 days);
+    }
+
     function testRevert_GovernorOnlyTokenOwnerCanSetDelay() public {
         deployMock();
 
@@ -1179,6 +1187,9 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
     function testRevert_GovernorCannotSetDelayAfterTokensAreMinted() public {
         deployMock();
+
+        vm.prank(founder);
+        token.setReservedUntilTokenId(4);
 
         vm.prank(founder);
         auction.unpause();
