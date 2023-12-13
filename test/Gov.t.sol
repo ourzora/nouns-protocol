@@ -1161,8 +1161,31 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         mock1155.mintBatch(address(governor), _tokenIds, _amounts);
     }
 
-    function testFail_GovernorCannotSetDelayPastMax() public {
-        deployMockWithDelay(block.timestamp + 31 days);
+    function testRevert_GovernorOnlyTokenOwnerCanSetDelay() public {
+        deployMock();
+
+        vm.prank(voter1);
+        vm.expectRevert(abi.encodeWithSignature("ONLY_TOKEN_OWNER()"));
+        governor.updateDelayedGovernanceExpirationTimestamp(1 days);
+    }
+
+    function testRevert_GovernorCannotSetDelayPastMax() public {
+        deployMock();
+
+        vm.prank(founder);
+        vm.expectRevert(abi.encodeWithSignature("INVALID_DELAYED_GOVERNANCE_EXPIRATION()"));
+        governor.updateDelayedGovernanceExpirationTimestamp(31 days);
+    }
+
+    function testRevert_GovernorCannotSetDelayAfterTokensAreMinted() public {
+        deployMock();
+
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(address(treasury));
+        vm.expectRevert(abi.encodeWithSignature("CANNOT_DELAY_GOVERNANCE()"));
+        governor.updateDelayedGovernanceExpirationTimestamp(1 days);
     }
 
     function testRevert_GovernorCannotProposeInDelayPeriod() public {
