@@ -150,7 +150,12 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         vm.warp(block.timestamp + 20);
     }
 
-    function castVotes(bytes32 _proposalId, uint256 _numAgainst, uint256 _numFor, uint256 _numAbstain) internal {
+    function castVotes(
+        bytes32 _proposalId,
+        uint256 _numAgainst,
+        uint256 _numFor,
+        uint256 _numAbstain
+    ) internal {
         uint256 currentVoterIndex;
 
         for (uint256 i = 0; i < _numAgainst; ++i) {
@@ -175,7 +180,15 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         }
     }
 
-    function mockProposal() internal view returns (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) {
+    function mockProposal()
+        internal
+        view
+        returns (
+            address[] memory targets,
+            uint256[] memory values,
+            bytes[] memory calldatas
+        )
+    {
         targets = new address[](1);
         values = new uint256[](1);
         calldatas = new bytes[](1);
@@ -201,7 +214,12 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         proposalId = governor.propose(targets, values, calldatas, "");
     }
 
-    function createProposal(address _proposer, address _target, uint256 _value, bytes memory _calldata) internal returns (bytes32 proposalId) {
+    function createProposal(
+        address _proposer,
+        address _target,
+        uint256 _value,
+        bytes memory _calldata
+    ) internal returns (bytes32 proposalId) {
         deployMock();
 
         address[] memory targets = new address[](1);

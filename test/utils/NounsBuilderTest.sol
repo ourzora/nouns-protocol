@@ -102,7 +102,11 @@ contract NounsBuilderTest is Test {
         setFounderParams(wallets, percents, vestingEnds);
     }
 
-    function setFounderParams(address[] memory _wallets, uint256[] memory _percents, uint256[] memory _vestingEnds) internal virtual {
+    function setFounderParams(
+        address[] memory _wallets,
+        uint256[] memory _percents,
+        uint256[] memory _vestingEnds
+    ) internal virtual {
         uint256 numFounders = _wallets.length;
 
         require(numFounders == _percents.length && numFounders == _vestingEnds.length);
@@ -178,7 +182,12 @@ contract NounsBuilderTest is Test {
         setAuctionParams(0.01 ether, 10 minutes, address(0), 0);
     }
 
-    function setAuctionParams(uint256 _reservePrice, uint256 _duration, address _founderRewardRecipent, uint16 _founderRewardBps) internal virtual {
+    function setAuctionParams(
+        uint256 _reservePrice,
+        uint256 _duration,
+        address _founderRewardRecipent,
+        uint16 _founderRewardBps
+    ) internal virtual {
         auctionParams = IManager.AuctionParams({
             reservePrice: _reservePrice,
             duration: _duration,
@@ -247,7 +256,11 @@ contract NounsBuilderTest is Test {
         setMockMetadata();
     }
 
-    function deployWithCustomFounders(address[] memory _wallets, uint256[] memory _percents, uint256[] memory _vestExpirys) internal virtual {
+    function deployWithCustomFounders(
+        address[] memory _wallets,
+        uint256[] memory _percents,
+        uint256[] memory _vestExpirys
+    ) internal virtual {
         setFounderParams(_wallets, _percents, _vestExpirys);
 
         setMockTokenParams();
