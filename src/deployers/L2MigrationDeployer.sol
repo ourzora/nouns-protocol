@@ -69,7 +69,11 @@ contract L2MigrationDeployer {
     ///                            CONSTRUCTOR                   ///
     ///                                                          ///
 
-    constructor(address _manager, address _merkleMinter, address _crossDomainMessenger) {
+    constructor(
+        address _manager,
+        address _merkleMinter,
+        address _crossDomainMessenger
+    ) {
         manager = _manager;
         merkleMinter = _merkleMinter;
         crossDomainMessenger = _crossDomainMessenger;
@@ -210,7 +214,16 @@ contract L2MigrationDeployer {
         return crossDomainDeployerToToken[_xMsgSender()];
     }
 
-    function _getDAOAddressesFromSender() private returns (address token, address metadata, address auction, address treasury, address governor) {
+    function _getDAOAddressesFromSender()
+        private
+        returns (
+            address token,
+            address metadata,
+            address auction,
+            address treasury,
+            address governor
+        )
+    {
         address _token = _getTokenFromSender();
 
         // Revert if no token has been deployed
