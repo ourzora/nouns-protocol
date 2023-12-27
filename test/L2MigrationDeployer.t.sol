@@ -38,11 +38,41 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
 
         vm.startPrank(address(xDomainMessenger));
 
-        address _token = deployer.deploy(foundersArr, tokenParams, auctionParams, govParams, minterParams);
+        address _token = deployer.deploy(foundersArr, tokenParams, auctionParams, govParams, minterParams, 1);
 
         addMetadataProperties();
 
         deployer.renounceOwnership();
+
+        vm.stopPrank();
+
+        (address _metadata, address _auction, address _treasury, address _governor) = manager.getAddresses(_token);
+
+        token = Token(_token);
+        metadataRenderer = MetadataRenderer(_metadata);
+        auction = Auction(_auction);
+        treasury = Treasury(payable(_treasury));
+        governor = Governor(_governor);
+
+        vm.label(address(token), "TOKEN");
+        vm.label(address(metadataRenderer), "METADATA_RENDERER");
+        vm.label(address(auction), "AUCTION");
+        vm.label(address(treasury), "TREASURY");
+        vm.label(address(governor), "GOVERNOR");
+    }
+
+    function deployAlt() internal {
+        setAltMockFounderParams();
+
+        setMockTokenParams();
+
+        setMockAuctionParams();
+
+        setMockGovParams();
+
+        vm.startPrank(address(xDomainMessenger));
+
+        address _token = deployer.deploy(foundersArr, tokenParams, auctionParams, govParams, minterParams, 1);
 
         vm.stopPrank();
 
@@ -107,6 +137,14 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
         deploy();
     }
 
+    function testRevert_DeployNoMetadata() external {
+        deployAlt();
+
+        vm.prank(address(xDomainMessenger));
+        vm.expectRevert(abi.encodeWithSignature("METADATA_CALLS_NOT_EXECUTED()"));
+        deployer.renounceOwnership();
+    }
+
     function test_MinterIsSet() external {
         deploy();
 
@@ -148,12 +186,16 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
     function test_ResetDeployment() external {
         deploy();
 
-        assertEq(deployer.crossDomainDeployerToToken(xDomainMessenger.xDomainMessageSender()), address(token));
+        (address token, , ) = deployer.crossDomainDeployerToMigration(xDomainMessenger.xDomainMessageSender());
+
+        assertEq(token, address(token));
 
         vm.prank(address(xDomainMessenger));
         deployer.resetDeployment();
 
-        assertEq(deployer.crossDomainDeployerToToken(xDomainMessenger.xDomainMessageSender()), address(0));
+        (address newToken, , ) = deployer.crossDomainDeployerToMigration(xDomainMessenger.xDomainMessageSender());
+
+        assertEq(newToken, address(0));
     }
 
     function test_DepositToTreasury() external {
@@ -184,6 +226,6 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
 
         vm.prank(address(xDomainMessenger));
         vm.expectRevert(abi.encodeWithSignature("DAO_ALREADY_DEPLOYED()"));
-        deployer.deploy(foundersArr, tokenParams, auctionParams, govParams, minterParams);
+        deployer.deploy(foundersArr, tokenParams, auctionParams, govParams, minterParams, 1);
     }
 }
