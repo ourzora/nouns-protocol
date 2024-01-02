@@ -89,7 +89,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         __Ownable_init(_initialOwner);
 
         // Store the founders and compute their allocations
-        _addFounders(_founders, _reservedUntilTokenId);
+        _addFounders(_founders);
 
         // Decode the token name and symbol
         (string memory _name, string memory _symbol, , , , ) = abi.decode(_initStrings, (string, string, string, string, string, string));
@@ -117,7 +117,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     /// @notice Called upon initialization to add founders and compute their vesting allocations
     /// @dev We do this by reserving an mapping of [0-100] token indices, such that if a new token mint ID % 100 is reserved, it's sent to the appropriate founder.
     /// @param _founders The list of DAO founders
-    function _addFounders(IManager.FounderParams[] calldata _founders, uint256 reservedUntilTokenId) internal {
+    function _addFounders(IManager.FounderParams[] calldata _founders) internal {
         // Used to store the total percent ownership among the founders
         uint256 totalOwnership;
 
@@ -158,7 +158,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
                 uint256 schedule = 100 / founderPct;
 
                 // Used to store the base token id the founder will recieve
-                uint256 baseTokenId = reservedUntilTokenId;
+                uint256 baseTokenId = 0;
 
                 // For each token to vest:
                 for (uint256 j; j < founderPct; ++j) {
@@ -433,7 +433,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         settings.totalOwnership = 0;
         emit FounderAllocationsCleared(newFounders);
 
-        _addFounders(newFounders, reservedUntilTokenId);
+        _addFounders(newFounders);
     }
 
     ///                                                          ///
