@@ -360,4 +360,45 @@ contract MerkleReserveMinterTest is NounsBuilderTest {
         assertEq(pricePerToken, 0);
         assertEq(merkleRoot, bytes32(0));
     }
+
+    function testRevert_CannotReuseClaim() public {
+        deployAltMock(20);
+
+        bytes32 root = bytes32(0x5e0da80989496579de029b8ad2f9c234e8de75f5487035210bfb7676e386af8b);
+
+        MerkleReserveMinter.MerkleMinterSettings memory settings = MerkleReserveMinter.MerkleMinterSettings({
+            mintStart: 0,
+            mintEnd: uint64(block.timestamp + 1000),
+            pricePerToken: 0 ether,
+            merkleRoot: root
+        });
+
+        vm.prank(address(founder));
+        minter.setMintSettings(address(token), settings);
+
+        (uint64 mintStart, uint64 mintEnd, uint64 pricePerToken, bytes32 merkleRoot) = minter.allowedMerkles(address(token));
+        assertEq(mintStart, settings.mintStart);
+        assertEq(mintEnd, settings.mintEnd);
+        assertEq(pricePerToken, settings.pricePerToken);
+        assertEq(merkleRoot, settings.merkleRoot);
+
+        TokenTypesV2.MinterParams memory params = TokenTypesV2.MinterParams({ minter: address(minter), allowed: true });
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        minters[0] = params;
+        vm.prank(address(founder));
+        token.updateMinters(minters);
+
+        bytes32[] memory proof = new bytes32[](1);
+        proof[0] = bytes32(0xd77d6d8eeae66a03ce8ecdba82c6a0ce9cff76f7a4a6bc2bdc670680d3714273);
+
+        MerkleReserveMinter.MerkleClaim[] memory claims = new MerkleReserveMinter.MerkleClaim[](1);
+        claims[0] = MerkleReserveMinter.MerkleClaim({ mintTo: claimer1, tokenId: 5, merkleProof: proof });
+
+        minter.mintFromReserve(address(token), claims);
+
+        assertEq(token.ownerOf(5), claimer1);
+
+        vm.expectRevert(abi.encodeWithSignature("CLAIM_ALREADY_USED()"));
+        minter.mintFromReserve(address(token), claims);
+    }
 }

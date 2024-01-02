@@ -46,6 +46,9 @@ contract MerkleReserveMinter {
     /// @param merkleRoot Merkle root for collection
     error INVALID_MERKLE_PROOF(address mintTo, bytes32[] merkleProof, bytes32 merkleRoot);
 
+    /// @dev Claim has already been used
+    error CLAIM_ALREADY_USED();
+
     ///                                                          ///
     ///                            STRUCTS                       ///
     ///                                                          ///
@@ -95,6 +98,9 @@ contract MerkleReserveMinter {
 
     /// @notice Mapping of DAO token contract to merkle settings
     mapping(address => MerkleMinterSettings) public allowedMerkles;
+
+    /// @notice Mapping of token contract to used claims
+    mapping(address => mapping(uint256 => bool)) public usedClaims;
 
     ///                                                          ///
     ///                            MODIFIERS                     ///
@@ -160,6 +166,14 @@ contract MerkleReserveMinter {
                 if (!MerkleProof.verify(claim.merkleProof, settings.merkleRoot, keccak256(abi.encode(claim.mintTo, claim.tokenId)))) {
                     revert INVALID_MERKLE_PROOF(claim.mintTo, claim.merkleProof, settings.merkleRoot);
                 }
+
+                // Check if claim has already been used
+                if (usedClaims[tokenContract][claim.tokenId]) {
+                    revert CLAIM_ALREADY_USED();
+                }
+
+                // Mark claim as used
+                usedClaims[tokenContract][claim.tokenId] = true;
 
                 // Only allowing reserved tokens to be minted for this strategy
                 IToken(tokenContract).mintFromReserveTo(claim.mintTo, claim.tokenId);
