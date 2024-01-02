@@ -321,10 +321,16 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
 
             emit AuctionCreated(tokenId, startTime, endTime);
             return true;
-        } catch {
-            // Pause the contract if token minting failed
-            _pause();
-            return false;
+        } catch (bytes memory err) {
+            //keccak256(err) != keccak256(new bytes(0)))
+            if ((keccak256(err) != bytes32(0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470))) {
+                // Pause the contract if token minting failed with an error
+                _pause();
+                return false;
+            } else {
+                // Assume an out of gas error has occurred and DONT pause the contract
+                revert CANNOT_CREATE_AUCTION();
+            }
         }
     }
 

@@ -103,6 +103,9 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @dev Thrown if the rewards total is greater than 100%
     error INVALID_REWARD_TOTAL();
 
+    /// @dev Thrown if a new auction cannot be created
+    error CANNOT_CREATE_AUCTION();
+
     ///                                                          ///
     ///                          STRUCTS                         ///
     ///                                                          ///
