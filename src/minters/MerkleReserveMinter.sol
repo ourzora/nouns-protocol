@@ -40,6 +40,12 @@ contract MerkleReserveMinter {
     /// @dev Invalid amount of tokens to claim
     error INVALID_CLAIM_COUNT();
 
+    /// @dev Could not mint token
+    error ERROR_MINTING_TOKEN(uint256 tokenId);
+
+    /// @dev No tokens could be minted
+    error NO_TOKENS_MINTED();
+
     /// @dev Merkle proof for claim is invalid
     /// @param mintTo Address to mint to
     /// @param merkleProof Merkle proof for token
@@ -151,10 +157,12 @@ contract MerkleReserveMinter {
             revert MINT_NOT_STARTED();
         }
 
-        // Check value sent
-        if (msg.value < _getTotalFeesForMint(settings.pricePerToken, claimCount)) {
+        // Ensure value sent matches total fees
+        if (msg.value != _getTotalFeesForMint(settings.pricePerToken, claimCount)) {
             revert INVALID_VALUE();
         }
+
+        uint256 mintCount;
 
         // Mint tokens
         unchecked {
@@ -176,8 +184,22 @@ contract MerkleReserveMinter {
                 usedClaims[tokenContract][claim.tokenId] = true;
 
                 // Only allowing reserved tokens to be minted for this strategy
-                IToken(tokenContract).mintFromReserveTo(claim.mintTo, claim.tokenId);
+                try IToken(tokenContract).mintFromReserveTo(claim.mintTo, claim.tokenId) {
+                    // Track mint count to ensure at least one token is minted
+                    mintCount++;
+                } catch {
+                    // we don't want to handle refunds so revert if user is paying for tokens and a token is already minted
+                    // if a user is not paying for tokens ignore the error and allow them to continue minting
+                    if (settings.pricePerToken > 0) {
+                        revert ERROR_MINTING_TOKEN(claim.tokenId);
+                    }
+                }
             }
+        }
+
+        // Revert if no tokens were minted
+        if (mintCount == 0) {
+            revert NO_TOKENS_MINTED();
         }
 
         // Distribute fees if minting fees for this collection are set (Builder DAO fee does not apply to free mints)
