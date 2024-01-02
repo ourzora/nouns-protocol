@@ -761,4 +761,37 @@ contract AuctionTest is NounsBuilderTest {
         assertEq(MockProtocolRewards(rewards).balanceOf(referral), 0.04 ether);
         assertEq(MockProtocolRewards(rewards).balanceOf(founder), 0.05 ether);
     }
+
+    function test_FounderBuilderAndReferralRewardWithSmallAmount() external {
+        // Setup
+        deployAltMock(founder, 500);
+
+        vm.prank(manager.owner());
+        manager.registerUpgrade(auctionImpl, address(rewardImpl));
+
+        vm.prank(auction.owner());
+        auction.upgradeTo(address(rewardImpl));
+
+        vm.prank(founder);
+        auction.unpause();
+
+        // Check reward values
+
+        vm.prank(bidder1);
+        auction.createBidWithReferral{ value: 1 ether + 19 }(2, referral);
+
+        vm.warp(10 minutes + 1 seconds);
+
+        auction.settleCurrentAndCreateNewAuction();
+
+        assertEq(token.ownerOf(2), bidder1);
+        assertEq(token.getVotes(bidder1), 1);
+
+        assertEq(address(treasury).balance, 0.88 ether + 19);
+        assertEq(address(rewards).balance, 0.03 ether + 0.04 ether + 0.05 ether);
+
+        assertEq(MockProtocolRewards(rewards).balanceOf(zoraDAO), 0.03 ether);
+        assertEq(MockProtocolRewards(rewards).balanceOf(referral), 0.04 ether);
+        assertEq(MockProtocolRewards(rewards).balanceOf(founder), 0.05 ether);
+    }
 }
