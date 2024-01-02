@@ -17,6 +17,20 @@ import { OPAddressAliasHelper } from "../lib/utils/OPAddressAliasHelper.sol";
 /// @author @neokry
 contract L2MigrationDeployer {
     ///                                                          ///
+    ///                            STRUCTS                       ///
+    ///                                                          ///
+
+    /// @notice The migration configuration for a deployment
+    /// @param tokenAddress The address of the deployed token
+    /// @param minimumMetadataCalls The minimum number of metadata calls expected to be made
+    /// @param executedMetadataCalls The number of metadata calls that have been executed
+    struct MigrationConfig {
+        address tokenAddress;
+        uint256 minimumMetadataCalls;
+        uint256 executedMetadataCalls;
+    }
+
+    ///                                                          ///
     ///                            EVENTS                        ///
     ///                                                          ///
 
@@ -45,6 +59,9 @@ contract L2MigrationDeployer {
     /// @dev Metadata call failed
     error METADATA_CALL_FAILED();
 
+    /// @dev Metadata calls not executed
+    error METADATA_CALLS_NOT_EXECUTED();
+
     ///                                                          ///
     ///                            IMMUTABLES                    ///
     ///                                                          ///
@@ -62,8 +79,8 @@ contract L2MigrationDeployer {
     ///                            STORAGE                       ///
     ///                                                          ///
 
-    /// @notice Mapping of L1 deployer => L2 deployed token
-    mapping(address => address) public crossDomainDeployerToToken;
+    /// @notice Mapping of L1 deployer => L2 migration config
+    mapping(address => MigrationConfig) public crossDomainDeployerToMigration;
 
     ///                                                          ///
     ///                            CONSTRUCTOR                   ///
@@ -97,7 +114,8 @@ contract L2MigrationDeployer {
         IManager.AuctionParams calldata _auctionParams,
         IManager.GovParams calldata _govParams,
         MerkleReserveMinter.MerkleMinterSettings calldata _minterParams,
-        uint256 _delayedGovernanceAmount
+        uint256 _delayedGovernanceAmount,
+        uint256 _minimumMetadataCalls
     ) external returns (address token) {
         if (_getTokenFromSender() != address(0)) {
             revert DAO_ALREADY_DEPLOYED();
@@ -119,8 +137,8 @@ contract L2MigrationDeployer {
         // Initilize minter with given params
         MerkleReserveMinter(merkleMinter).setMintSettings(_token, _minterParams);
 
-        // Set the deployer
-        address deployer = _setTokenDeployer(_token);
+        // Set the migration config
+        address deployer = _setMigrationConfig(_token, _minimumMetadataCalls);
 
         // Emit deployer set event
         emit DeployerSet(_token, deployer);
@@ -130,7 +148,7 @@ contract L2MigrationDeployer {
 
     ///@notice Resets the stored deployment if L1 DAO wants to redeploy
     function resetDeployment() external {
-        _resetTokenDeployer();
+        _resetMigrationConfig();
     }
 
     ///                                                          ///
@@ -147,6 +165,9 @@ contract L2MigrationDeployer {
     /// @param _data The names of the properties to add
     function callMetadataRenderer(bytes memory _data) external {
         (, address metadata, , , ) = _getDAOAddressesFromSender();
+
+        // Increment the number of metadata calls
+        crossDomainDeployerToMigration[_xMsgSender()].executedMetadataCalls++;
 
         // Call the metadata renderer
         (bool success, ) = metadata.call(_data);
@@ -174,6 +195,13 @@ contract L2MigrationDeployer {
     function renounceOwnership() external {
         (address token, , address auction, address treasury, ) = _getDAOAddressesFromSender();
 
+        MigrationConfig storage migration = crossDomainDeployerToMigration[_xMsgSender()];
+
+        // Revert if the minimum amount of metadata calls have not been executed
+        if (migration.executedMetadataCalls < migration.minimumMetadataCalls) {
+            revert METADATA_CALLS_NOT_EXECUTED();
+        }
+
         // Transfer ownership of token contract
         Ownable(token).transferOwnership(treasury);
 
@@ -196,22 +224,22 @@ contract L2MigrationDeployer {
                 : OPAddressAliasHelper.undoL1ToL2Alias(msg.sender);
     }
 
-    function _setTokenDeployer(address token) private returns (address deployer) {
+    function _setMigrationConfig(address token, uint256 minimumMetadataCalls) private returns (address deployer) {
         deployer = _xMsgSender();
 
-        // Set the deployer state so the xDomain caller can easily access in future calls
-        // Also prevents accidental re-deployment
-        crossDomainDeployerToToken[deployer] = token;
+        crossDomainDeployerToMigration[deployer].tokenAddress = token;
+        crossDomainDeployerToMigration[deployer].minimumMetadataCalls = minimumMetadataCalls;
+        crossDomainDeployerToMigration[deployer].executedMetadataCalls = 0;
     }
 
-    function _resetTokenDeployer() private {
+    function _resetMigrationConfig() private {
         // Reset the deployer state so the xDomain caller can redeploy
-        delete crossDomainDeployerToToken[_xMsgSender()];
+        delete crossDomainDeployerToMigration[_xMsgSender()];
     }
 
     function _getTokenFromSender() private view returns (address) {
         // Return the token address if it has been deployed by the xDomain caller
-        return crossDomainDeployerToToken[_xMsgSender()];
+        return crossDomainDeployerToMigration[_xMsgSender()].tokenAddress;
     }
 
     function _getDAOAddressesFromSender()
