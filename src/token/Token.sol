@@ -445,6 +445,15 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         return settings.totalSupply;
     }
 
+    /// @notice The total number of tokens that can be claimed from the reserve
+    function remainingTokensInReserve() external view returns (uint256) {
+        // total supply - total minted from auctions and airdrops
+        uint256 totalMintedFromReserve = settings.totalSupply - settings.mintCount;
+
+        // reservedUntilTokenId is also the total number of tokens in the reserve since tokens 0 -> reservedUntilTokenId - 1 are reserved
+        return reservedUntilTokenId - totalMintedFromReserve;
+    }
+
     /// @notice The address of the auction house
     function auction() external view returns (address) {
         return settings.auction;

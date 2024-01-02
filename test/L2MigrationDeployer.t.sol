@@ -18,6 +18,7 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
     MerkleReserveMinter minter;
     L2MigrationDeployer deployer;
     MerkleReserveMinter.MerkleMinterSettings minterParams;
+    uint256 governanceDelay;
 
     function setUp() public virtual override {
         super.setUp();
@@ -25,12 +26,13 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
         minter = new MerkleReserveMinter(address(manager), rewards);
         xDomainMessenger = new MockCrossDomainMessenger(founder);
         deployer = new L2MigrationDeployer(address(manager), address(minter), address(xDomainMessenger));
+        governanceDelay = 7 days;
     }
 
     function deploy() internal {
         setAltMockFounderParams();
 
-        setMockTokenParams();
+        setMockTokenParamsWithReserve(5);
 
         setMockAuctionParams();
 
@@ -38,7 +40,7 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
 
         vm.startPrank(address(xDomainMessenger));
 
-        address _token = deployer.deploy(foundersArr, tokenParams, auctionParams, govParams, minterParams);
+        address _token = deployer.deploy(foundersArr, tokenParams, auctionParams, govParams, minterParams, governanceDelay);
 
         addMetadataProperties();
 
@@ -128,6 +130,12 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
         assertGt(metadataRenderer.ipfsDataCount(), 0);
     }
 
+    function test_GovernanceDelayIsSet() external {
+        deploy();
+
+        assertGt(governor.delayedGovernanceExpirationTimestamp(), governanceDelay);
+    }
+
     function test_FounderAreSet() external {
         deploy();
 
@@ -184,6 +192,6 @@ contract L2MigrationDeployerTest is NounsBuilderTest {
 
         vm.prank(address(xDomainMessenger));
         vm.expectRevert(abi.encodeWithSignature("DAO_ALREADY_DEPLOYED()"));
-        deployer.deploy(foundersArr, tokenParams, auctionParams, govParams, minterParams);
+        deployer.deploy(foundersArr, tokenParams, auctionParams, govParams, minterParams, 0);
     }
 }

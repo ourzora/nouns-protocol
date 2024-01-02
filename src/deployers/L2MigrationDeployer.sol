@@ -3,6 +3,7 @@ pragma solidity 0.8.16;
 
 import { IManager } from "../manager/IManager.sol";
 import { IToken } from "../token/IToken.sol";
+import { IGovernor } from "../governance/governor/IGovernor.sol";
 import { IPropertyIPFSMetadataRenderer } from "../token/metadata/interfaces/IPropertyIPFSMetadataRenderer.sol";
 import { MerkleReserveMinter } from "../minters/MerkleReserveMinter.sol";
 import { TokenTypesV2 } from "../token/types/TokenTypesV2.sol";
@@ -89,19 +90,24 @@ contract L2MigrationDeployer {
     /// @param _auctionParams The auction settings
     /// @param _govParams The governance settings
     /// @param _minterParams The minter settings
+    /// @param _delayedGovernanceAmount The amount of time to delay governance by
     function deploy(
         IManager.FounderParams[] calldata _founderParams,
         IManager.TokenParams calldata _tokenParams,
         IManager.AuctionParams calldata _auctionParams,
         IManager.GovParams calldata _govParams,
-        MerkleReserveMinter.MerkleMinterSettings calldata _minterParams
+        MerkleReserveMinter.MerkleMinterSettings calldata _minterParams,
+        uint256 _delayedGovernanceAmount
     ) external returns (address token) {
         if (_getTokenFromSender() != address(0)) {
             revert DAO_ALREADY_DEPLOYED();
         }
 
         // Deploy the DAO
-        (address _token, , , , ) = IManager(manager).deploy(_founderParams, _tokenParams, _auctionParams, _govParams);
+        (address _token, , , , address _governor) = IManager(manager).deploy(_founderParams, _tokenParams, _auctionParams, _govParams);
+
+        // Set the governance expiration
+        IGovernor(_governor).updateDelayedGovernanceExpirationTimestamp(block.timestamp + _delayedGovernanceAmount);
 
         // Setup minter settings to use the redeem minter
         TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
