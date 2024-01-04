@@ -3,13 +3,13 @@
   "WETH": "0x4200000000000000000000000000000000000006",
   "CrossDomainMessenger": "0x4200000000000000000000000000000000000007",
   "ProtocolRewards": "0x7777777F279eba3d3Ad8F4E708545291A6fDBA8B",
-  "Manager": "0x43aa19d53764c7c3154ee14d887f9e955745b104",
-  "ManagerImpl": "0xb3345f12e49ad4ca3827652609b7e3fdc133f578",
-  "Auction": "0x09f7ac2f154a878b2d914b7cf5db8cc085d4870b",
-  "Token": "0x3ee0a240860d767abce5a0e6cd92f1b81ee39428",
-  "MetadataRenderer": "0xc960cbb6108677cae50692c1b0b2a1c2c945f66e",
-  "Treasury": "0xb4cae287ca424171a7493e60af2983cb3b2a5a4a",
-  "Governor": "0xafb5069b56e66b579fda30551936bfd6c5d3221a",
-  "MerkleReserveMinter": "0xcb7442f81ebed5d525d2e97f8410751a08a7cd1d",
-  "MigrationDeployer": "0xf698fc9a4158d50ac7a16a546deee90f2166d7f7"
+  "Manager": "0xcce64c2b4c51c2894fe5df0dda3e34e4d850b699",
+  "ManagerImpl": "0x2474f9cbaf0d44192eeb28bd2f0646832f69b3e9",
+  "Auction": "0x4220f838ff74091c89118e815675116a0b9c3bb1",
+  "Token": "0xea48534d98dbf46cee0456f14f6bc4ac3bb8c101",
+  "MetadataRenderer": "0xf81bbb4d924496c4976f745fc758cf54d0496777",
+  "Treasury": "0x76aa112e12d6ad7cbc7cf40be254f279b73abfae",
+  "Governor": "0xe6eed6d0cad0af9e611c026c32b38c177db28f61",
+  "MerkleReserveMinter": "0xa2d7e55f87f1913d5da10807cf695dc35bc29b12",
+  "MigrationDeployer": "0xed98171590dba48f6596f4743c2b7300a7091f9e"
 }
