@@ -60,7 +60,7 @@ contract DeployContracts is Script {
         address managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
 
         // vm.prank(owner);
-        // manager.upgradeTo(managerImpl);
+        manager.upgradeTo(managerImpl);
 
         vm.stopBroadcast();
 
