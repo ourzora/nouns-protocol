@@ -24,15 +24,33 @@ contract DeployContracts is Script {
 
     function run() public {
         uint256 chainID = vm.envUint("CHAIN_ID");
-        uint256 key = vm.envUint("PRIVATE_KEY");
         address weth = vm.envAddress("WETH_ADDRESS");
 
         configFile = vm.readFile(string.concat("./addresses/", Strings.toString(chainID), ".json"));
 
-        address deployerAddress = vm.addr(key);
+        address deployerAddress = vm.addr(vm.envUint("PRIVATE_KEY"));
+        address managerProxy = _getKey("Manager");
+        address protocolRewards = _getKey("ProtocolRewards");
+        address builderDAO = _getKey("BuilderDAO");
+        address treasuryImpl = _getKey("Treasury");
+        address metadataImpl = _getKey("MetadataRenderer");
 
-        uint16 BUILDER_REWARDS = chainID == 1 || chainID == 5 ? 0 : 250;
-        uint16 REFERRAL_REWARDS = chainID == 1 || chainID == 5 ? 0 : 250;
+        _deployUpgrade(deployerAddress, managerProxy, protocolRewards, weth, metadataImpl, treasuryImpl, builderDAO, chainID);
+    }
+
+    // workaround for stack too deep
+    function _deployUpgrade(
+        address deployerAddress,
+        address managerProxy,
+        address protocolRewards,
+        address weth,
+        address metadataImpl,
+        address treasuryImpl,
+        address builderDAO,
+        uint256 chainID
+    ) private {
+        uint16 builderRewardsValue = chainID == 1 || chainID == 5 ? 0 : 250;
+        uint16 referralRewardsValue = chainID == 1 || chainID == 5 ? 0 : 250;
 
         console2.log("~~~~~~~~~~ CHAIN ID ~~~~~~~~~~~");
         console2.log(chainID);
@@ -40,23 +58,41 @@ contract DeployContracts is Script {
         console2.log("~~~~~~~~~~ DEPLOYER ~~~~~~~~~~~");
         console2.log(deployerAddress);
 
+        console2.log("~~~~~~~~~~ MANAGER PROXY ~~~~~~~~~~~");
+        console2.logAddress(managerProxy);
+
+        console2.log("~~~~~~~~~~ METADATA IMPL ~~~~~~~~~~~");
+        console2.logAddress(metadataImpl);
+
+        console2.log("~~~~~~~~~~ TREASURY IMPL ~~~~~~~~~~~");
+        console2.logAddress(treasuryImpl);
+
+        console2.log("~~~~~~~~~~ PROTOCOL REWARDS ~~~~~~~~~~~");
+        console2.logAddress(protocolRewards);
+
+        console2.log("~~~~~~~~~~ BUILDER DAO ~~~~~~~~~~~");
+        console2.logAddress(builderDAO);
+
+        console2.log("~~~~~~~~~~ BUILDER REWARDS VALUE ~~~~~~~~~~~");
+        console2.logUint(builderRewardsValue);
+
+        console2.log("~~~~~~~~~~ REFERRAL REWARDS VALUE ~~~~~~~~~~~");
+        console2.logUint(referralRewardsValue);
+        console2.log("");
+
         vm.startBroadcast(deployerAddress);
 
-        address manager = _getKey("Manager");
-
         // Deploy token implementation
-        address tokenImpl = address(new Token(manager));
+        address tokenImpl = address(new Token(managerProxy));
 
         // Deploy auction house implementation
-        address auctionImpl = address(new Auction(manager, _getKey("ProtocolRewards"), weth, BUILDER_REWARDS, REFERRAL_REWARDS));
+        address auctionImpl = address(new Auction(managerProxy, protocolRewards, weth, builderRewardsValue, referralRewardsValue));
 
         // Deploy governor implementation
-        address governorImpl = address(new Governor(manager));
+        address governorImpl = address(new Governor(managerProxy));
 
         // Deploy v2 manager implementation
-        address managerImpl = address(
-            new Manager(tokenImpl, _getKey("MetadataRenderer"), auctionImpl, _getKey("Treasury"), governorImpl, _getKey("BuilderDAO"))
-        );
+        address managerImpl = address(new Manager(tokenImpl, metadataImpl, auctionImpl, treasuryImpl, governorImpl, builderDAO));
 
         vm.stopBroadcast();
 

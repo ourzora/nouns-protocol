@@ -35,6 +35,8 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @notice The maximum rewards percentage
     uint256 private constant MAX_FOUNDER_REWARD_BPS = 3_000;
 
+    bytes4 public constant REWARDS_REASON = bytes4(0x0B411DE6);
+
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -499,12 +501,14 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         uint256 builderAmount = (_finalBidAmount * builderRewardsBPS) / BPS_PER_100_PERCENT;
         split.recipients[0] = builderRecipient;
         split.amounts[0] = builderAmount;
+        split.reasons[0] = REWARDS_REASON;
         split.totalRewards += builderAmount;
 
         // Set referral reward
         uint256 referralAmount = (_finalBidAmount * referralRewardsBPS) / BPS_PER_100_PERCENT;
         split.recipients[1] = _currentBidRefferal != address(0) ? _currentBidRefferal : builderRecipient;
         split.amounts[1] = referralAmount;
+        split.reasons[1] = REWARDS_REASON;
         split.totalRewards += referralAmount;
 
         // Set founder reward if enabled
@@ -512,6 +516,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
             uint256 founderAmount = (_finalBidAmount * _founderRewardBps) / BPS_PER_100_PERCENT;
             split.recipients[2] = founderReward.recipient;
             split.amounts[2] = founderAmount;
+            split.reasons[2] = REWARDS_REASON;
             split.totalRewards += founderAmount;
         }
     }

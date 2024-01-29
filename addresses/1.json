@@ -1,4 +1,6 @@
 {
+  "BuilderDAO": "0x7498e6e471f31e869f038D8DBffbDFdf650c3F95",
+  "ProtocolRewards": "0x7777777F279eba3d3Ad8F4E708545291A6fDBA8B",
   "Manager": "0xd310a3041dfcf14def5ccbc508668974b5da7174",
   "ManagerImpl": "0x138D8Aef5Cbbbb9Ea8da98CC0847FE0F3b573b40",
   "WETH": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
