@@ -33,7 +33,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     uint256 private constant BPS_PER_100_PERCENT = 10_000;
 
     /// @notice The maximum rewards percentage
-    uint256 private constant MAX_FOUNDER_REWARD_BPS = 3_000;
+    uint256 private constant MAX_FOUNDER_REWARD_BPS = 5_000;
 
     bytes4 public constant REWARDS_REASON = bytes4(0x0B411DE6);
 

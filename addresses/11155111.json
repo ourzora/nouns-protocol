@@ -1,10 +1,13 @@
 {
+  "BuilderDAO": "0x7498e6e471f31e869f038D8DBffbDFdf650c3F95",
+  "CrossDomainMessenger": "0x4200000000000000000000000000000000000007",
+  "ProtocolRewards": "0x7777777F279eba3d3Ad8F4E708545291A6fDBA8B",
   "Manager": "0x0ca90a96ac58f19b1f69f67103245c9263bc4bfc",
-  "ManagerImpl": "0x30bc8ae9bfe8a4132e4bb3393e0cbe439557fd68",
+  "ManagerImpl": "0xABdEdc8730410716DD0a5E54A89C85546A3458bA",
   "WETH": "0x7b79995e5f793a07bc00c21412e50ecae098e7f9",
-  "Auction": "0xee970f19ed4960234e75ee8d3a42c98ca65b5c34",
-  "Token": "0x5652d5fc630d3334a961b0b6be876e9f94899baa",
+  "Auction": "0xca8F9A4805CCFfdCcfc5Bf7973302a0c01f4347b",
+  "Token": "0x44D9FD02e6d8d96ca9c2bBD26C232024977674C5",
   "MetadataRenderer": "0xec23ce6407ef841adf52e7232d3df5a44cb38041",
   "Treasury": "0x5daabe9382158c3f133b360a5f0b46ca5a7f6e86",
-  "Governor": "0xf896daa9e7cdca767202d2f9699e7a30b22f6087"
+  "Governor": "0xaa21AFD73e6Fd5f69C87A6839D0beEDEE075e9a3"
 }

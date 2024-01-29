@@ -1,0 +1,4 @@
+Token implementation: 0xca8f9a4805ccffdccfc5bf7973302a0c01f4347b
+Auction implementation: 0xaa21afd73e6fd5f69c87a6839d0beedee075e9a3
+Governor implementation: 0xabdedc8730410716dd0a5e54a89c85546a3458ba
+Manager implementation: 0x93f9d43a7bd751f8546a54785ae48d049ddd2697
