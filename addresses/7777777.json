@@ -1,10 +1,13 @@
 {
+  "BuilderDAO": "0x7229F0c537e64f3EA9E9b993601578A7B09c402C",
+  "ProtocolRewards": "0x7777777F279eba3d3Ad8F4E708545291A6fDBA8B",
+  "CrossDomainMessenger": "0x4200000000000000000000000000000000000007",
   "Manager": "0x3ac0e64fe2931f8e082c6bb29283540de9b5371c",
-  "ManagerImpl": "0x15567b396077f698fcf211629e650d898e4b4e26",
+  "ManagerImpl": "0x7bf440c100240A6154cDc6013dc6CdA647b994e2",
   "WETH": "0x4200000000000000000000000000000000000006",
-  "Auction": "0x639dc4bdcaa16dd626eaa6a1480a852d5427252c",
-  "Token": "0x127f22a79d123780f7e9ff38578d16a78799c131",
+  "Auction": "0xf958872ceb73ba7d0aca0c7a9905119bcb371dec",
+  "Token": "0xe77e4fa003b2cc07ad10a9d1db216cae5ed14d3f",
   "MetadataRenderer": "0xb4ca85d61f7fcce0d176fdb743860dabf3fc03f9",
   "Treasury": "0xaf75199b91aedbe2b99476899782c5bb507393e0",
-  "Governor": "0x46e4eae74254346867bbf53e7d30baa6f6c8cd5a"
+  "Governor": "0x9af9f31bae469c13528b458e007a7ea965bd14bb"
 }
