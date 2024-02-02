@@ -9,5 +9,7 @@
   "Token": "0xe77e4fa003b2cc07ad10a9d1db216cae5ed14d3f",
   "MetadataRenderer": "0xb4ca85d61f7fcce0d176fdb743860dabf3fc03f9",
   "Treasury": "0xaf75199b91aedbe2b99476899782c5bb507393e0",
-  "Governor": "0x9af9f31bae469c13528b458e007a7ea965bd14bb"
+  "Governor": "0x9af9f31bae469c13528b458e007a7ea965bd14bb",
+  "L2MigrationDeployer": "0x7D8Ea0D056f5B8443cdD8495D4e90FFCf0a8A354.",
+  "MerkleReserveMinter": "0x8DFEd5737cd21e25009A2a2CB56dca8EA618e5D3."
 }
