@@ -660,7 +660,7 @@ contract AuctionTest is NounsBuilderTest {
 
         setMockTokenParams();
 
-        setAuctionParams(0.01 ether, 10 minutes, founder, 4_000);
+        setAuctionParams(0.01 ether, 10 minutes, founder, 6_000);
 
         setMockGovParams();
 
@@ -690,7 +690,7 @@ contract AuctionTest is NounsBuilderTest {
         assertEq(recipient, founder);
         assertEq(percentBps, 500);
 
-        AuctionTypesV2.FounderReward memory newRewards = AuctionTypesV2.FounderReward({ recipient: founder2, percentBps: 4_000 });
+        AuctionTypesV2.FounderReward memory newRewards = AuctionTypesV2.FounderReward({ recipient: founder2, percentBps: 6_000 });
 
         vm.prank(founder);
         vm.expectRevert(abi.encodeWithSignature("INVALID_REWARDS_BPS()"));
