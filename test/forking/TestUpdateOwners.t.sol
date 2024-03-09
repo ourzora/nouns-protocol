@@ -35,19 +35,19 @@ contract PurpleTests is Test {
 
         IManager.FounderParams[] memory newFounderParams = new IManager.FounderParams[](3);
         newFounderParams[0] = IManager.FounderParams({
-          wallet: address(0x06B59d0b6AdCc6A5Dc63553782750dc0b41266a3),
-          ownershipPct: 10,
-          vestExpiry:2556057600
+            wallet: address(0x06B59d0b6AdCc6A5Dc63553782750dc0b41266a3),
+            ownershipPct: 10,
+            vestExpiry: 2556057600
         });
         newFounderParams[1] = IManager.FounderParams({
-          wallet: address(0x349993989b5AC27Fd033AcCb86a84920DEb91ABa),
-          ownershipPct: 10,
-          vestExpiry:2556057600
+            wallet: address(0x349993989b5AC27Fd033AcCb86a84920DEb91ABa),
+            ownershipPct: 10,
+            vestExpiry: 2556057600
         });
         newFounderParams[2] = IManager.FounderParams({
-          wallet: address(0x0BC3807Ec262cB779b38D65b38158acC3bfedE10),
-          ownershipPct: 1,
-          vestExpiry: 2556057600
+            wallet: address(0x0BC3807Ec262cB779b38D65b38158acC3bfedE10),
+            ownershipPct: 1,
+            vestExpiry: 2556057600
         });
 
         targets = new address[](2);
@@ -76,7 +76,5 @@ contract PurpleTests is Test {
 
         vm.warp(block.timestamp + 3 days);
         governor.execute(targets, values, calldatas, keccak256(""), fawkes);
-
-
     }
 }

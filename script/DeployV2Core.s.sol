@@ -6,7 +6,6 @@ import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
 import { IManager, Manager } from "../src/manager/Manager.sol";
 import { IToken, Token } from "../src/token/Token.sol";
-import { MetadataRenderer } from "../src/token/metadata/MetadataRenderer.sol";
 import { IAuction, Auction } from "../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../src/governance/governor/Governor.sol";
 import { ITreasury, Treasury } from "../src/governance/treasury/Treasury.sol";
@@ -17,13 +16,23 @@ import { ERC1967Proxy } from "../src/lib/proxy/ERC1967Proxy.sol";
 contract DeployContracts is Script {
     using Strings for uint256;
 
+    string configFile;
+
+    function _getKey(string memory key) internal view returns (address result) {
+        (result) = abi.decode(vm.parseJson(configFile, string.concat(".", key)), (address));
+    }
+
     function run() public {
         uint256 chainID = vm.envUint("CHAIN_ID");
         uint256 key = vm.envUint("PRIVATE_KEY");
         address weth = vm.envAddress("WETH_ADDRESS");
-        address owner = vm.envAddress("MANAGER_OWNER");
+
+        configFile = vm.readFile(string.concat("./addresses/", Strings.toString(chainID), ".json"));
 
         address deployerAddress = vm.addr(key);
+
+        uint16 BUILDER_REWARDS = chainID == 1 || chainID == 5 ? 0 : 250;
+        uint16 REFERRAL_REWARDS = chainID == 1 || chainID == 5 ? 0 : 250;
 
         console2.log("~~~~~~~~~~ CHAIN ID ~~~~~~~~~~~");
         console2.log(chainID);
@@ -31,16 +40,11 @@ contract DeployContracts is Script {
         console2.log("~~~~~~~~~~ DEPLOYER ~~~~~~~~~~~");
         console2.log(deployerAddress);
 
-        console2.log("~~~~~~~~~~ OWNER ~~~~~~~~~~~");
-        console2.log(owner);
-        console2.log("");
-
         vm.startBroadcast(deployerAddress);
-
         // Deploy root manager implementation + proxy
-        address managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0)));
+        address managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0), address(0)));
 
-        Manager manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", owner))));
+        Manager manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", deployerAddress))));
 
         // Deploy token implementation
         address tokenImpl = address(new Token(address(manager)));
@@ -49,7 +53,7 @@ contract DeployContracts is Script {
         address metadataRendererImpl = address(new MetadataRenderer(address(manager)));
 
         // Deploy auction house implementation
-        address auctionImpl = address(new Auction(address(manager), weth));
+        address auctionImpl = address(new Auction(address(manager), _getKey("ProtocolRewards"), weth, BUILDER_REWARDS, REFERRAL_REWARDS));
 
         // Deploy treasury implementation
         address treasuryImpl = address(new Treasury(address(manager)));
@@ -57,14 +61,13 @@ contract DeployContracts is Script {
         // Deploy governor implementation
         address governorImpl = address(new Governor(address(manager)));
 
-        address managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
+        address managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl, _getKey("BuilderDAO")));
 
-        // vm.prank(owner);
-        // manager.upgradeTo(managerImpl);
+        manager.upgradeTo(managerImpl);
 
         vm.stopBroadcast();
 
-        string memory filePath = string(abi.encodePacked("deploys/", chainID.toString(), ".txt"));
+        string memory filePath = string(abi.encodePacked("deploys/", chainID.toString(), ".version2_core.txt"));
 
         vm.writeFile(filePath, "");
         vm.writeLine(filePath, string(abi.encodePacked("Manager: ", addressToString(address(manager)))));

@@ -9,20 +9,34 @@ import { SafeCast } from "../lib/utils/SafeCast.sol";
 
 import { AuctionStorageV1 } from "./storage/AuctionStorageV1.sol";
 import { Token } from "../token/Token.sol";
-import { IManager } from "../manager/IManager.sol";
+import { AuctionStorageV2 } from "./storage/AuctionStorageV2.sol";
+import { Manager } from "../manager/Manager.sol";
 import { IAuction } from "./IAuction.sol";
 import { IWETH } from "../lib/interfaces/IWETH.sol";
+import { IProtocolRewards } from "../lib/interfaces/IProtocolRewards.sol";
 
 import { VersionedContract } from "../VersionedContract.sol";
 
 /// @title Auction
-/// @author Rohan Kulkarni
+/// @author Rohan Kulkarni & Neokry
 /// @notice A DAO's auction house
-/// @custom:repo github.com/ourzora/nouns-protocol 
+/// @custom:repo github.com/ourzora/nouns-protocol
 /// Modified from:
 /// - NounsAuctionHouse.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
 /// - Zora V3 ReserveAuctionCoreEth module commit 795aeca - licensed under the GPL-3.0 license.
-contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionStorageV1 {
+contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard, Pausable, AuctionStorageV1, AuctionStorageV2 {
+    ///                                                          ///
+    ///                          CONSTANTS                       ///
+    ///                                                          ///
+
+    /// @notice The basis points for 100%
+    uint256 private constant BPS_PER_100_PERCENT = 10_000;
+
+    /// @notice The maximum rewards percentage
+    uint256 private constant MAX_FOUNDER_REWARD_BPS = 5_000;
+
+    bytes4 public constant REWARDS_REASON = bytes4(0x0B411DE6);
+
     ///                                                          ///
     ///                          IMMUTABLES                      ///
     ///                                                          ///
@@ -37,17 +51,36 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     address private immutable WETH;
 
     /// @notice The contract upgrade manager
-    IManager private immutable manager;
+    Manager private immutable manager;
+
+    /// @notice The rewards manager
+    IProtocolRewards private immutable rewardsManager;
+
+    /// @notice The builder reward BPS as a percent of settled auction amount
+    uint16 public immutable builderRewardsBPS;
+
+    /// @notice The referral reward BPS as a percent of settled auction amount
+    uint16 public immutable referralRewardsBPS;
 
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
 
     /// @param _manager The contract upgrade manager address
+    /// @param _rewardsManager The protocol rewards manager address
     /// @param _weth The address of WETH
-    constructor(address _manager, address _weth) payable initializer {
-        manager = IManager(_manager);
+    constructor(
+        address _manager,
+        address _rewardsManager,
+        address _weth,
+        uint16 _builderRewardsBPS,
+        uint16 _referralRewardsBPS
+    ) payable initializer {
+        manager = Manager(_manager);
+        rewardsManager = IProtocolRewards(_rewardsManager);
         WETH = _weth;
+        builderRewardsBPS = _builderRewardsBPS;
+        referralRewardsBPS = _referralRewardsBPS;
     }
 
     ///                                                          ///
@@ -60,15 +93,25 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @param _treasury The treasury address where ETH will be sent
     /// @param _duration The duration of each auction
     /// @param _reservePrice The reserve price of each auction
+    /// @param _founderRewardRecipient The address to recieve founders rewards
+    /// @param _founderRewardBps The percent of rewards a founder receives in BPS for each auction
     function initialize(
         address _token,
         address _founder,
         address _treasury,
         uint256 _duration,
-        uint256 _reservePrice
+        uint256 _reservePrice,
+        address _founderRewardRecipient,
+        uint16 _founderRewardBps
     ) external initializer {
         // Ensure the caller is the contract manager
         if (msg.sender != address(manager)) revert ONLY_MANAGER();
+
+        // Ensure the founder reward is not more than max
+        if (_founderRewardBps > MAX_FOUNDER_REWARD_BPS) revert INVALID_REWARDS_BPS();
+
+        // Ensure the recipient is set if the reward is greater than 0
+        if (_founderRewardBps > 0 && _founderRewardRecipient == address(0)) revert INVALID_REWARDS_RECIPIENT();
 
         // Initialize the reentrancy guard
         __ReentrancyGuard_init();
@@ -88,6 +131,10 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         settings.treasury = _treasury;
         settings.timeBuffer = INITIAL_TIME_BUFFER;
         settings.minBidIncrement = INITIAL_MIN_BID_INCREMENT_PERCENT;
+
+        // Store the founder rewards settings
+        founderReward.recipient = _founderRewardRecipient;
+        founderReward.percentBps = _founderRewardBps;
     }
 
     ///                                                          ///
@@ -96,7 +143,21 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
 
     /// @notice Creates a bid for the current token
     /// @param _tokenId The ERC-721 token id
+    function createBidWithReferral(uint256 _tokenId, address _referral) external payable nonReentrant {
+        currentBidReferral = _referral;
+        _createBid(_tokenId);
+    }
+
+    /// @notice Creates a bid for the current token
+    /// @param _tokenId The ERC-721 token id
     function createBid(uint256 _tokenId) external payable nonReentrant {
+        currentBidReferral = address(0);
+        _createBid(_tokenId);
+    }
+
+    /// @notice Creates a bid for the current token
+    /// @param _tokenId The ERC-721 token id
+    function _createBid(uint256 _tokenId) private {
         // Ensure the bid is for the current token
         if (auction.tokenId != _tokenId) {
             revert INVALID_TOKEN_ID();
@@ -203,8 +264,19 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
             // Cache the amount of the highest bid
             uint256 highestBid = _auction.highestBid;
 
-            // If the highest bid included ETH: Transfer it to the DAO treasury
-            if (highestBid != 0) _handleOutgoingTransfer(settings.treasury, highestBid);
+            // If the highest bid included ETH: Pay rewards and transfer remaining amount to the DAO treasury
+            if (highestBid != 0) {
+                // Calculate rewards
+                RewardSplits memory split = _computeTotalRewards(currentBidReferral, highestBid, founderReward.percentBps);
+
+                if (split.totalRewards != 0) {
+                    // Deposit rewards
+                    rewardsManager.depositBatch{ value: split.totalRewards }(split.recipients, split.amounts, split.reasons, "");
+                }
+
+                // Deposit remaining amount to treasury
+                _handleOutgoingTransfer(settings.treasury, highestBid - split.totalRewards);
+            }
 
             // Transfer the token to the highest bidder
             token.transferFrom(address(this), _auction.highestBidder, _auction.tokenId);
@@ -246,12 +318,21 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
             auction.highestBidder = address(0);
             auction.settled = false;
 
+            // Reset referral from the previous auction
+            currentBidReferral = address(0);
+
             emit AuctionCreated(tokenId, startTime, endTime);
             return true;
-        } catch {
-            // Pause the contract if token minting failed
-            _pause();
-            return false;
+        } catch (bytes memory err) {
+            //keccak256(err) != keccak256(new bytes(0)))
+            if ((keccak256(err) != bytes32(0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470))) {
+                // Pause the contract if token minting failed with an error
+                _pause();
+                return false;
+            } else {
+                // Assume an out of gas error has occurred and DONT pause the contract
+                revert CANNOT_CREATE_AUCTION();
+            }
         }
     }
 
@@ -364,6 +445,80 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
         settings.minBidIncrement = SafeCast.toUint8(_percentage);
 
         emit MinBidIncrementPercentageUpdated(_percentage);
+    }
+
+    /// @notice Updates the founder reward recipent address
+    /// @param reward The new founder reward settings
+    function setFounderReward(FounderReward calldata reward) external onlyOwner whenPaused {
+        // Ensure the founder reward is not more than max
+        if (reward.percentBps > MAX_FOUNDER_REWARD_BPS) revert INVALID_REWARDS_BPS();
+
+        // Ensure the recipient is set if the reward is greater than 0
+        if (reward.percentBps > 0 && reward.recipient == address(0)) revert INVALID_REWARDS_RECIPIENT();
+
+        // Update the founder reward settings
+        founderReward = reward;
+
+        emit FounderRewardUpdated(reward);
+    }
+
+    ///                                                          ///
+    ///                       COMPUTE REWARDS UTIL               ///
+    ///                                                          ///
+
+    /// @notice Computes the total rewards for a bid
+    /// @param _currentBidRefferal The referral for the current bid
+    /// @param _finalBidAmount The final bid amount
+    /// @param _founderRewardBps The reward to be paid to the founder in BPS
+    function _computeTotalRewards(
+        address _currentBidRefferal,
+        uint256 _finalBidAmount,
+        uint256 _founderRewardBps
+    ) internal view returns (RewardSplits memory split) {
+        // Get global builder recipient from manager
+        address builderRecipient = manager.builderRewardsRecipient();
+
+        // Calculate the total rewards percentage
+        uint256 totalBPS = _founderRewardBps + referralRewardsBPS + builderRewardsBPS;
+
+        // Verify percentage is not more than 100
+        if (totalBPS >= BPS_PER_100_PERCENT) {
+            revert INVALID_REWARD_TOTAL();
+        }
+
+        // Check if founder reward is enabled
+        bool hasFounderReward = _founderRewardBps > 0 && founderReward.recipient != address(0);
+
+        // Set array size based on if founder reward is enabled
+        uint256 arraySize = hasFounderReward ? 3 : 2;
+
+        // Initialize arrays
+        split.recipients = new address[](arraySize);
+        split.amounts = new uint256[](arraySize);
+        split.reasons = new bytes4[](arraySize);
+
+        // Set builder reward
+        uint256 builderAmount = (_finalBidAmount * builderRewardsBPS) / BPS_PER_100_PERCENT;
+        split.recipients[0] = builderRecipient;
+        split.amounts[0] = builderAmount;
+        split.reasons[0] = REWARDS_REASON;
+        split.totalRewards += builderAmount;
+
+        // Set referral reward
+        uint256 referralAmount = (_finalBidAmount * referralRewardsBPS) / BPS_PER_100_PERCENT;
+        split.recipients[1] = _currentBidRefferal != address(0) ? _currentBidRefferal : builderRecipient;
+        split.amounts[1] = referralAmount;
+        split.reasons[1] = REWARDS_REASON;
+        split.totalRewards += referralAmount;
+
+        // Set founder reward if enabled
+        if (hasFounderReward) {
+            uint256 founderAmount = (_finalBidAmount * _founderRewardBps) / BPS_PER_100_PERCENT;
+            split.recipients[2] = founderReward.recipient;
+            split.amounts[2] = founderAmount;
+            split.reasons[2] = REWARDS_REASON;
+            split.totalRewards += founderAmount;
+        }
     }
 
     ///                                                          ///

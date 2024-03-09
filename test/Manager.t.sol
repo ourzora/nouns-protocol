@@ -6,16 +6,27 @@ import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 import { IManager, Manager } from "../src/manager/Manager.sol";
 
 import { MockImpl } from "./utils/mocks/MockImpl.sol";
+import { MetadataRenderer } from "../src/token/metadata/MetadataRenderer.sol";
 
 contract ManagerTest is NounsBuilderTest {
     MockImpl internal mockImpl;
-
-    address internal builderDAO;
+    address internal altMetadataImpl;
 
     function setUp() public virtual override {
         super.setUp();
 
         mockImpl = new MockImpl();
+        altMetadataImpl = address(new MetadataRenderer(address(manager)));
+    }
+
+    function setupAltMock() internal virtual {
+        setMockFounderParams();
+
+        setMockTokenParamsWithRenderer(altMetadataImpl);
+
+        setMockAuctionParams();
+
+        setMockGovParams();
     }
 
     function test_GetAddresses() public {
@@ -47,18 +58,6 @@ contract ManagerTest is NounsBuilderTest {
         assertEq(metadataRenderer.owner(), address(founder));
     }
 
-    function test_GetLatestVersions() public {
-        deployMock();
-
-        string memory version = manager.contractVersion();
-        IManager.DAOVersionInfo memory versionInfo = manager.getLatestVersions();
-        assertEq(versionInfo.token, version);
-        assertEq(versionInfo.metadata, version);
-        assertEq(versionInfo.governor, version);
-        assertEq(versionInfo.auction, version);
-        assertEq(versionInfo.treasury, version);
-    }
-
     function test_GetDAOVersions() public {
         deployMock();
 
@@ -83,8 +82,6 @@ contract ManagerTest is NounsBuilderTest {
         assertEq(auction.timeBuffer(), 5 minutes);
         assertEq(auction.minBidIncrement(), 10);
     }
-
-
 
     function test_TreasuryInitialized() public {
         deployMock();
@@ -143,5 +140,20 @@ contract ManagerTest is NounsBuilderTest {
     function testRevert_OnlyOwnerCanRemoveUpgrade() public {
         vm.expectRevert(abi.encodeWithSignature("ONLY_OWNER()"));
         manager.removeUpgrade(address(token), address(mockImpl));
+    }
+
+    function test_DeployWithAltRenderer() public {
+        setupAltMock();
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
+
+        assertEq(metadataRenderer.owner(), address(founder));
+    }
+
+    function test_SetNewRenderer() public {
+        deployMock();
+
+        vm.startPrank(founder);
+        manager.setMetadataRenderer(address(token), metadataRendererImpl, tokenParams.initStrings);
+        vm.stopPrank();
     }
 }

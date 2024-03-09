@@ -4,6 +4,7 @@ pragma solidity 0.8.16;
 import { IUUPS } from "../lib/interfaces/IUUPS.sol";
 import { IOwnable } from "../lib/interfaces/IOwnable.sol";
 import { IPausable } from "../lib/interfaces/IPausable.sol";
+import { AuctionTypesV2 } from "./types/AuctionTypesV2.sol";
 
 /// @title IAuction
 /// @author Rohan Kulkarni
@@ -49,6 +50,10 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @param timeBuffer The new time buffer
     event TimeBufferUpdated(uint256 timeBuffer);
 
+    /// @notice Emitted when the founder reward recipient is updated
+    /// @param reward The new founder reward
+    event FounderRewardUpdated(AuctionTypesV2.FounderReward reward);
+
     ///                                                          ///
     ///                           ERRORS                         ///
     ///                                                          ///
@@ -89,6 +94,33 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @dev Thrown if the auction creation failed
     error AUCTION_CREATE_FAILED_TO_LAUNCH();
 
+    /// @dev Reverts if caller is not the token owner
+    error INVALID_REWARDS_BPS();
+
+    /// @dev Reverts if caller is not the token owner
+    error INVALID_REWARDS_RECIPIENT();
+
+    /// @dev Thrown if the rewards total is greater than 100%
+    error INVALID_REWARD_TOTAL();
+
+    /// @dev Thrown if a new auction cannot be created
+    error CANNOT_CREATE_AUCTION();
+
+    ///                                                          ///
+    ///                          STRUCTS                         ///
+    ///                                                          ///
+
+    struct RewardSplits {
+        //// @notice Total rewards amount
+        uint256 totalRewards;
+        /// @param recipients recipients to send the amount to, array aligns with amounts
+        address[] recipients;
+        /// @param amounts amounts to send to each recipient, array aligns with recipients
+        uint256[] amounts;
+        /// @param reasons optional bytes4 hash for indexing
+        bytes4[] reasons;
+    }
+
     ///                                                          ///
     ///                          FUNCTIONS                       ///
     ///                                                          ///
@@ -104,7 +136,9 @@ interface IAuction is IUUPS, IOwnable, IPausable {
         address founder,
         address treasury,
         uint256 duration,
-        uint256 reservePrice
+        uint256 reservePrice,
+        address founderRewardRecipent,
+        uint16 founderRewardBps
     ) external;
 
     /// @notice Creates a bid for the current token
@@ -150,6 +184,10 @@ interface IAuction is IUUPS, IOwnable, IPausable {
     /// @notice Updates the minimum bid increment of each subsequent bid
     /// @param percentage The new percentage
     function setMinimumBidIncrement(uint256 percentage) external;
+
+    /// @notice Updates the founder reward settings
+    /// @param reward The new founder reward settings
+    function setFounderReward(AuctionTypesV2.FounderReward calldata reward) external;
 
     /// @notice Get the address of the treasury
     function treasury() external returns (address);

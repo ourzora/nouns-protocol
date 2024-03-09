@@ -8,6 +8,7 @@ import { ERC721 } from "../lib/token/ERC721.sol";
 import { Ownable } from "../lib/utils/Ownable.sol";
 import { TokenStorageV1 } from "./storage/TokenStorageV1.sol";
 import { TokenStorageV2 } from "./storage/TokenStorageV2.sol";
+import { TokenStorageV3 } from "./storage/TokenStorageV3.sol";
 import { IBaseMetadata } from "./metadata/interfaces/IBaseMetadata.sol";
 import { IManager } from "../manager/IManager.sol";
 import { IAuction } from "../auction/IAuction.sol";
@@ -15,10 +16,10 @@ import { IToken } from "./IToken.sol";
 import { VersionedContract } from "../VersionedContract.sol";
 
 /// @title Token
-/// @author Rohan Kulkarni
+/// @author Rohan Kulkarni & Neokry
 /// @custom:repo github.com/ourzora/nouns-protocol
 /// @notice A DAO's ERC-721 governance token
-contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1, TokenStorageV2 {
+contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC721Votes, TokenStorageV1, TokenStorageV2, TokenStorageV3 {
     ///                                                          ///
     ///                         IMMUTABLES                       ///
     ///                                                          ///
@@ -29,6 +30,15 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     ///                                                          ///
     ///                          MODIFIERS                       ///
     ///                                                          ///
+
+    /// @notice Reverts if caller is not an authorized minter
+    modifier onlyMinter() {
+        if (!minter[msg.sender]) {
+            revert ONLY_AUCTION_OR_MINTER();
+        }
+
+        _;
+    }
 
     /// @notice Reverts if caller is not an authorized minter
     modifier onlyAuctionOrMinter() {
@@ -52,15 +62,17 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     ///                         INITIALIZER                      ///
     ///                                                          ///
 
-    /// @notice Initializes a DAO's ERC-721 token contract
-    /// @param _founders The DAO founders
+    /// @notice Initializes a DAO's ERC-721 token
+    /// @param _founders The founding members to receive vesting allocations
     /// @param _initStrings The encoded token and metadata initialization strings
+    /// @param _reservedUntilTokenId The tokenId that a DAO's auctions will start at
     /// @param _metadataRenderer The token's metadata renderer
     /// @param _auction The token's auction house
     /// @param _initialOwner The initial owner of the token
     function initialize(
         IManager.FounderParams[] calldata _founders,
         bytes calldata _initStrings,
+        uint256 _reservedUntilTokenId,
         address _metadataRenderer,
         address _auction,
         address _initialOwner
@@ -88,6 +100,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         // Store the metadata renderer and auction house
         settings.metadataRenderer = IBaseMetadata(_metadataRenderer);
         settings.auction = _auction;
+        reservedUntilTokenId = _reservedUntilTokenId;
     }
 
     /// @notice Called by the auction upon the first unpause / token mint to transfer ownership from founder to treasury
@@ -145,7 +158,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
                 uint256 schedule = 100 / founderPct;
 
                 // Used to store the base token id the founder will recieve
-                uint256 baseTokenId;
+                uint256 baseTokenId = 0;
 
                 // For each token to vest:
                 for (uint256 j; j < founderPct; ++j) {
@@ -194,6 +207,15 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         tokenId = _mintWithVesting(recipient);
     }
 
+    /// @notice Mints tokens from the reserve to the recipient
+    function mintFromReserveTo(address recipient, uint256 tokenId) external nonReentrant onlyMinter {
+        // Token must be reserved
+        if (tokenId >= reservedUntilTokenId) revert TOKEN_NOT_RESERVED();
+
+        // Mint the token without vesting (reserved tokens do not count towards founders vesting)
+        _mint(recipient, tokenId);
+    }
+
     /// @notice Mints the specified amount of tokens to the recipient and handles founder vesting
     function mintBatchTo(uint256 amount, address recipient) external nonReentrant onlyAuctionOrMinter returns (uint256[] memory tokenIds) {
         tokenIds = new uint256[](amount);
@@ -210,7 +232,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         unchecked {
             do {
                 // Get the next token to mint
-                tokenId = settings.mintCount++;
+                tokenId = reservedUntilTokenId + settings.mintCount++;
 
                 // Lookup whether the token is for a founder, and mint accordingly if so
             } while (_isForFounder(tokenId));
@@ -269,6 +291,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     /// @notice Burns a token owned by the caller
     /// @param _tokenId The ERC-721 token id
     function burn(uint256 _tokenId) external onlyAuctionOrMinter {
+        // Ensure the caller owns the token
         if (ownerOf(_tokenId) != msg.sender) {
             revert ONLY_TOKEN_OWNER();
         }
@@ -277,8 +300,10 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     }
 
     function _burn(uint256 _tokenId) internal override {
+        // Call the parent burn function
         super._burn(_tokenId);
 
+        // Reduce the total supply
         unchecked {
             --settings.totalSupply;
         }
@@ -403,6 +428,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
             }
         }
 
+        // Clear values from storage before adding new founders
         settings.numFounders = 0;
         settings.totalOwnership = 0;
         emit FounderAllocationsCleared(newFounders);
@@ -419,6 +445,15 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         return settings.totalSupply;
     }
 
+    /// @notice The total number of tokens that can be claimed from the reserve
+    function remainingTokensInReserve() external view returns (uint256) {
+        // total supply - total minted from auctions and airdrops
+        uint256 totalMintedFromReserve = settings.totalSupply - settings.mintCount;
+
+        // reservedUntilTokenId is also the total number of tokens in the reserve since tokens 0 -> reservedUntilTokenId - 1 are reserved
+        return reservedUntilTokenId - totalMintedFromReserve;
+    }
+
     /// @notice The address of the auction house
     function auction() external view returns (address) {
         return settings.auction;
@@ -429,6 +464,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
         return address(settings.metadataRenderer);
     }
 
+    /// @notice The contract owner
     function owner() public view override(IToken, Ownable) returns (address) {
         return super.owner();
     }
@@ -452,6 +488,38 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
     /// @param _minter Address to check
     function isMinter(address _minter) external view returns (bool) {
         return minter[_minter];
+    }
+
+    /// @notice Set the tokenId that the reserve will end at
+    /// @param newReservedUntilTokenId The tokenId that the reserve will end at
+    function setReservedUntilTokenId(uint256 newReservedUntilTokenId) external onlyOwner {
+        // Cannot change the reserve after any non reserved tokens have been minted
+        // Added to prevent making any tokens inaccessible
+        if (settings.mintCount > 0) {
+            revert CANNOT_CHANGE_RESERVE();
+        }
+
+        // Cannot decrease the reserve if any tokens have been minted
+        // Added to prevent collisions with tokens being auctioned / vested
+        if (settings.totalSupply > 0 && reservedUntilTokenId > newReservedUntilTokenId) {
+            revert CANNOT_DECREASE_RESERVE();
+        }
+
+        // Set the new reserve
+        reservedUntilTokenId = newReservedUntilTokenId;
+
+        emit ReservedUntilTokenIDUpdated(newReservedUntilTokenId);
+    }
+
+    /// @notice Set a new metadata renderer
+    /// @param newRenderer new renderer address to use
+    function setMetadataRenderer(IBaseMetadata newRenderer) external {
+        // Ensure the caller is the contract manager
+        if (msg.sender != address(manager)) {
+            revert ONLY_MANAGER();
+        }
+
+        settings.metadataRenderer = newRenderer;
     }
 
     ///                                                          ///

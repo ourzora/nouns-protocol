@@ -5,7 +5,6 @@ import { Test } from "forge-std/Test.sol";
 
 import { IManager, Manager } from "../../src/manager/Manager.sol";
 import { IToken, Token } from "../../src/token/Token.sol";
-import { MetadataRenderer } from "../../src/token/metadata/MetadataRenderer.sol";
 import { IAuction, Auction } from "../../src/auction/Auction.sol";
 import { IGovernor, Governor } from "../../src/governance/governor/Governor.sol";
 import { ITreasury, Treasury } from "../../src/governance/treasury/Treasury.sol";
@@ -16,6 +15,7 @@ import { ERC1967Proxy } from "../../src/lib/proxy/ERC1967Proxy.sol";
 import { MockERC721 } from "../utils/mocks/MockERC721.sol";
 import { MockERC1155 } from "../utils/mocks/MockERC1155.sol";
 import { WETH } from ".././utils/mocks/WETH.sol";
+import { MockProtocolRewards } from ".././utils/mocks/MockProtocolRewards.sol";
 
 contract NounsBuilderTest is Test {
     ///                                                          ///
@@ -23,6 +23,7 @@ contract NounsBuilderTest is Test {
     ///                                                          ///
 
     Manager internal manager;
+    address internal rewards;
 
     address internal managerImpl0;
     address internal managerImpl;
@@ -59,16 +60,17 @@ contract NounsBuilderTest is Test {
         vm.label(founder, "FOUNDER");
         vm.label(founder2, "FOUNDER_2");
 
-        managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0)));
+        managerImpl0 = address(new Manager(address(0), address(0), address(0), address(0), address(0), address(0)));
         manager = Manager(address(new ERC1967Proxy(managerImpl0, abi.encodeWithSignature("initialize(address)", zoraDAO))));
+        rewards = address(new MockProtocolRewards());
 
         tokenImpl = address(new Token(address(manager)));
         metadataRendererImpl = address(new MetadataRenderer(address(manager)));
-        auctionImpl = address(new Auction(address(manager), weth));
+        auctionImpl = address(new Auction(address(manager), address(rewards), weth, 0, 0));
         treasuryImpl = address(new Treasury(address(manager)));
         governorImpl = address(new Governor(address(manager)));
 
-        managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl));
+        managerImpl = address(new Manager(tokenImpl, metadataRendererImpl, auctionImpl, treasuryImpl, governorImpl, zoraDAO));
 
         vm.prank(zoraDAO);
         manager.upgradeTo(managerImpl);
@@ -125,7 +127,35 @@ contract NounsBuilderTest is Test {
             "This is a mock token",
             "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
             "https://nouns.build",
-            "http://localhost:5000/render"
+            "http://localhost:5000/render",
+            0,
+            address(0)
+        );
+    }
+
+    function setMockTokenParamsWithReserve(uint256 _reservedUntilTokenId) internal virtual {
+        setTokenParams(
+            "Mock Token",
+            "MOCK",
+            "This is a mock token",
+            "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
+            "https://nouns.build",
+            "http://localhost:5000/render",
+            _reservedUntilTokenId,
+            address(0)
+        );
+    }
+
+    function setMockTokenParamsWithRenderer(address _metadataRenderer) internal virtual {
+        setTokenParams(
+            "Mock Token",
+            "MOCK",
+            "This is a mock token",
+            "ipfs://Qmew7TdyGnj6YRUjQR68sUJN3239MYXRD8uxowxF6rGK8j",
+            "https://nouns.build",
+            "http://localhost:5000/render",
+            0,
+            _metadataRenderer
         );
     }
 
@@ -135,19 +165,35 @@ contract NounsBuilderTest is Test {
         string memory _description,
         string memory _contractImage,
         string memory _contractURI,
-        string memory _rendererBase
+        string memory _rendererBase,
+        uint256 _reservedUntilTokenId,
+        address _metadataRenderer
     ) internal virtual {
         bytes memory initStrings = abi.encode(_name, _symbol, _description, _contractImage, _contractURI, _rendererBase);
 
-        tokenParams = IManager.TokenParams({ initStrings: initStrings });
+        tokenParams = IManager.TokenParams({
+            initStrings: initStrings,
+            metadataRenderer: _metadataRenderer,
+            reservedUntilTokenId: _reservedUntilTokenId
+        });
     }
 
     function setMockAuctionParams() internal virtual {
-        setAuctionParams(0.01 ether, 10 minutes);
+        setAuctionParams(0.01 ether, 10 minutes, address(0), 0);
     }
 
-    function setAuctionParams(uint256 _reservePrice, uint256 _duration) internal virtual {
-        auctionParams = IManager.AuctionParams({ reservePrice: _reservePrice, duration: _duration });
+    function setAuctionParams(
+        uint256 _reservePrice,
+        uint256 _duration,
+        address _founderRewardRecipent,
+        uint16 _founderRewardBps
+    ) internal virtual {
+        auctionParams = IManager.AuctionParams({
+            reservePrice: _reservePrice,
+            duration: _duration,
+            founderRewardRecipent: _founderRewardRecipent,
+            founderRewardBps: _founderRewardBps
+        });
     }
 
     function setMockGovParams() internal virtual {
@@ -238,7 +284,7 @@ contract NounsBuilderTest is Test {
     ) internal {
         setMockFounderParams();
 
-        setTokenParams(_name, _symbol, _description, _contractImage, _projectURI, _rendererBase);
+        setTokenParams(_name, _symbol, _description, _contractImage, _projectURI, _rendererBase, 0, address(0));
 
         setMockAuctionParams();
 

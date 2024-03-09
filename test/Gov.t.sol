@@ -6,6 +6,7 @@ import { NounsBuilderTest } from "./utils/NounsBuilderTest.sol";
 import { IManager } from "../src/manager/IManager.sol";
 import { IGovernor } from "../src/governance/governor/IGovernor.sol";
 import { GovernorTypesV1 } from "../src/governance/governor/types/GovernorTypesV1.sol";
+import { TokenTypesV2 } from "../src/token/types/TokenTypesV2.sol";
 
 contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     uint256 internal constant AGAINST = 0;
@@ -44,7 +45,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         setMockTokenParams();
 
-        setAuctionParams(0, 1 days);
+        setAuctionParams(0, 1 days, address(0), 0);
 
         setGovParams(2 days, 1 days, 1 weeks, 25, 1000, founder);
 
@@ -71,11 +72,41 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
 
         setMockTokenParams();
 
-        setAuctionParams(0, 1 days);
+        setAuctionParams(0, 1 days, address(0), 0);
 
         setGovParams(2 days, 1 days, 1 weeks, 100, 1000, founder);
 
         deploy(foundersArr, tokenParams, auctionParams, govParams);
+
+        setMockMetadata();
+    }
+
+    function deployMockWithDelay(uint256 delay) internal {
+        address[] memory wallets = new address[](2);
+        uint256[] memory percents = new uint256[](2);
+        uint256[] memory vestingEnd = new uint256[](2);
+
+        wallets[0] = founder;
+        wallets[1] = founder2;
+
+        percents[0] = 1;
+        percents[1] = 1;
+
+        vestingEnd[0] = 4 weeks;
+        vestingEnd[1] = 4 weeks;
+
+        setFounderParams(wallets, percents, vestingEnd);
+
+        setMockTokenParamsWithReserve(2);
+
+        setAuctionParams(0, 1 days, address(0), 0);
+
+        setGovParams(2 days, 1 days, 1 weeks, 25, 1000, founder);
+
+        deploy(foundersArr, tokenParams, auctionParams, govParams);
+
+        vm.prank(founder);
+        governor.updateDelayedGovernanceExpirationTimestamp(block.timestamp + delay);
 
         setMockMetadata();
     }
@@ -98,8 +129,10 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         vm.prank(founder);
         auction.unpause();
 
+        (uint256 tokenId, , , , , ) = auction.auction();
+
         vm.prank(voter1);
-        auction.createBid{ value: 0.420 ether }(2);
+        auction.createBid{ value: 0.420 ether }(tokenId);
 
         vm.warp(block.timestamp + auctionParams.duration + 1 seconds);
         auction.settleCurrentAndCreateNewAuction();
@@ -107,8 +140,10 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     }
 
     function mintVoter2() internal {
+        (uint256 tokenId, , , , , ) = auction.auction();
+
         vm.prank(voter2);
-        auction.createBid{ value: 0.420 ether }(3);
+        auction.createBid{ value: 0.420 ether }(tokenId);
 
         vm.warp(block.timestamp + auctionParams.duration + 1 seconds);
         auction.settleCurrentAndCreateNewAuction();
@@ -286,7 +321,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     function test_VerifySubmittedProposalHash() public {
         deployMock();
 
-        // Mint a token to voter 1 to have quorum       
+        // Mint a token to voter 1 to have quorum
         mintVoter1();
 
         (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
@@ -416,7 +451,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     function test_CastVote() public {
         deployMock();
 
-        // This mints a token to voter1           
+        // This mints a token to voter1
         bytes32 proposalId = createProposal();
 
         uint256 votingDelay = governor.votingDelay();
@@ -455,7 +490,7 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
     function test_CastVoteWithSig() public {
         deployMock();
 
-        // This mints a token to voter1           
+        // This mints a token to voter1
         bytes32 proposalId = createProposal();
 
         uint256 votingDelay = governor.votingDelay();
@@ -1124,5 +1159,100 @@ contract GovTest is NounsBuilderTest, GovernorTypesV1 {
         deployMock();
 
         mock1155.mintBatch(address(governor), _tokenIds, _amounts);
+    }
+
+    function testRevert_GovernorOnlyDAOWithReserveCanAddDelay() public {
+        deployMock();
+
+        vm.prank(founder);
+        vm.expectRevert(abi.encodeWithSignature("CANNOT_DELAY_GOVERNANCE()"));
+        governor.updateDelayedGovernanceExpirationTimestamp(1 days);
+    }
+
+    function testRevert_GovernorOnlyTokenOwnerCanSetDelay() public {
+        deployMock();
+
+        vm.prank(voter1);
+        vm.expectRevert(abi.encodeWithSignature("ONLY_TOKEN_OWNER()"));
+        governor.updateDelayedGovernanceExpirationTimestamp(1 days);
+    }
+
+    function testRevert_GovernorCannotSetDelayPastMax() public {
+        deployMock();
+
+        vm.prank(founder);
+        vm.expectRevert(abi.encodeWithSignature("INVALID_DELAYED_GOVERNANCE_EXPIRATION()"));
+        governor.updateDelayedGovernanceExpirationTimestamp(31 days);
+    }
+
+    function testRevert_GovernorCannotSetDelayAfterTokensAreMinted() public {
+        deployMock();
+
+        vm.prank(founder);
+        token.setReservedUntilTokenId(4);
+
+        vm.prank(founder);
+        auction.unpause();
+
+        vm.prank(address(treasury));
+        vm.expectRevert(abi.encodeWithSignature("CANNOT_DELAY_GOVERNANCE()"));
+        governor.updateDelayedGovernanceExpirationTimestamp(1 days);
+    }
+
+    function testRevert_GovernorCannotProposeInDelayPeriod() public {
+        deployMockWithDelay(block.timestamp + 7 days);
+
+        mintVoter1();
+
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
+
+        vm.warp(block.timestamp + 1 days);
+
+        vm.prank(voter1);
+        vm.expectRevert(abi.encodeWithSignature("WAITING_FOR_TOKENS_TO_CLAIM_OR_EXPIRATION()"));
+        governor.propose(targets, values, calldatas, "test");
+    }
+
+    function test_GovernorCanProposeAfterDelayPeriod() public {
+        deployMockWithDelay(block.timestamp + 7 days);
+
+        mintVoter1();
+
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
+
+        vm.prank(voter1);
+        vm.expectRevert(abi.encodeWithSignature("WAITING_FOR_TOKENS_TO_CLAIM_OR_EXPIRATION()"));
+        governor.propose(targets, values, calldatas, "test");
+
+        vm.warp(block.timestamp + 8 days);
+
+        vm.prank(voter1);
+        governor.propose(targets, values, calldatas, "test");
+    }
+
+    function test_GovernorCanProposeAfterReserveIsMinted() public {
+        deployMockWithDelay(block.timestamp + 7 days);
+
+        mintVoter1();
+
+        (address[] memory targets, uint256[] memory values, bytes[] memory calldatas) = mockProposal();
+
+        vm.prank(voter1);
+        vm.expectRevert(abi.encodeWithSignature("WAITING_FOR_TOKENS_TO_CLAIM_OR_EXPIRATION()"));
+        governor.propose(targets, values, calldatas, "test");
+
+        TokenTypesV2.MinterParams[] memory minters = new TokenTypesV2.MinterParams[](1);
+        minters[0] = TokenTypesV2.MinterParams({ minter: founder, allowed: true });
+
+        vm.prank(token.owner());
+        token.updateMinters(minters);
+
+        vm.startPrank(address(founder));
+        token.mintFromReserveTo(address(founder), 0);
+        token.mintFromReserveTo(address(founder), 1);
+        vm.stopPrank();
+
+        vm.prank(voter1);
+        governor.propose(targets, values, calldatas, "test");
     }
 }

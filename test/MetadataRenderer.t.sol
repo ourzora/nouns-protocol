@@ -8,7 +8,7 @@ import { MetadataRendererTypesV2 } from "../src/token/metadata/types/MetadataRen
 import { Base64URIDecoder } from "./utils/Base64URIDecoder.sol";
 import "forge-std/console2.sol";
 
-contract MetadataRendererTest is NounsBuilderTest, MetadataRendererTypesV1 {
+contract PropertyMetadataTest is NounsBuilderTest, MetadataRendererTypesV1 {
     function setUp() public virtual override {
         super.setUp();
 

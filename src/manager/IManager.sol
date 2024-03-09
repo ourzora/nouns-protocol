@@ -30,12 +30,20 @@ interface IManager is IUUPS, IOwnable {
     /// @param upgradeImpl The upgrade implementation address
     event UpgradeRemoved(address baseImpl, address upgradeImpl);
 
+    /// @notice Event emitted when metadata renderer is updated.
+    /// @param sender address of the updater
+    /// @param renderer new metadata renderer address
+    event MetadataRendererUpdated(address sender, address renderer);
+
     ///                                                          ///
     ///                            ERRORS                        ///
     ///                                                          ///
 
     /// @dev Reverts if at least one founder is not provided upon deploy
     error FOUNDER_REQUIRED();
+
+    /// @dev Reverts if caller is not the token owner
+    error ONLY_TOKEN_OWNER();
 
     ///                                                          ///
     ///                            STRUCTS                       ///
@@ -57,21 +65,29 @@ interface IManager is IUUPS, IOwnable {
         string metadata;
         string auction;
         string treasury;
-        string governor; 
+        string governor;
     }
 
     /// @notice The ERC-721 token parameters
     /// @param initStrings The encoded token name, symbol, collection description, collection image uri, renderer base uri
+    /// @param metadataRenderer The metadata renderer implementation to use
+    /// @param reservedUntilTokenId The tokenId that a DAO's auctions will start at
     struct TokenParams {
         bytes initStrings;
+        address metadataRenderer;
+        uint256 reservedUntilTokenId;
     }
 
     /// @notice The auction parameters
     /// @param reservePrice The reserve price of each auction
     /// @param duration The duration of each auction
+    /// @param founderRewardRecipent The address to send founder rewards to
+    /// @param founderRewardBps Percent of the auction bid in BPS to send to the founder recipent
     struct AuctionParams {
         uint256 reservePrice;
         uint256 duration;
+        address founderRewardRecipent;
+        uint16 founderRewardBps;
     }
 
     /// @notice The governance parameters

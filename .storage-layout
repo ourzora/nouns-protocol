@@ -18,36 +18,39 @@
 ➡ Auction
 =======================
 
-| Name          | Type                           | Slot | Offset | Bytes | Contract                        |
-|---------------|--------------------------------|------|--------|-------|---------------------------------|
-| _initialized  | uint8                          | 0    | 0      | 1     | src/auction/Auction.sol:Auction |
-| _initializing | bool                           | 0    | 1      | 1     | src/auction/Auction.sol:Auction |
-| _owner        | address                        | 0    | 2      | 20    | src/auction/Auction.sol:Auction |
-| _pendingOwner | address                        | 1    | 0      | 20    | src/auction/Auction.sol:Auction |
-| _status       | uint256                        | 2    | 0      | 32    | src/auction/Auction.sol:Auction |
-| _paused       | bool                           | 3    | 0      | 1     | src/auction/Auction.sol:Auction |
-| settings      | struct AuctionTypesV1.Settings | 4    | 0      | 64    | src/auction/Auction.sol:Auction |
-| token         | contract Token                 | 6    | 0      | 20    | src/auction/Auction.sol:Auction |
-| auction       | struct AuctionTypesV1.Auction  | 7    | 0      | 96    | src/auction/Auction.sol:Auction |
+| Name               | Type                                | Slot | Offset | Bytes | Contract                        |
+|--------------------|-------------------------------------|------|--------|-------|---------------------------------|
+| _initialized       | uint8                               | 0    | 0      | 1     | src/auction/Auction.sol:Auction |
+| _initializing      | bool                                | 0    | 1      | 1     | src/auction/Auction.sol:Auction |
+| _owner             | address                             | 0    | 2      | 20    | src/auction/Auction.sol:Auction |
+| _pendingOwner      | address                             | 1    | 0      | 20    | src/auction/Auction.sol:Auction |
+| _status            | uint256                             | 2    | 0      | 32    | src/auction/Auction.sol:Auction |
+| _paused            | bool                                | 3    | 0      | 1     | src/auction/Auction.sol:Auction |
+| settings           | struct AuctionTypesV1.Settings      | 4    | 0      | 64    | src/auction/Auction.sol:Auction |
+| token              | contract Token                      | 6    | 0      | 20    | src/auction/Auction.sol:Auction |
+| auction            | struct AuctionTypesV1.Auction       | 7    | 0      | 96    | src/auction/Auction.sol:Auction |
+| currentBidReferral | address                             | 10   | 0      | 20    | src/auction/Auction.sol:Auction |
+| founderReward      | struct AuctionTypesV2.FounderReward | 11   | 0      | 32    | src/auction/Auction.sol:Auction |
 
 =======================
 ➡ Governor
 =======================
 
-| Name                     | Type                                                | Slot | Offset | Bytes | Contract                                      |
-|--------------------------|-----------------------------------------------------|------|--------|-------|-----------------------------------------------|
-| _initialized             | uint8                                               | 0    | 0      | 1     | src/governance/governor/Governor.sol:Governor |
-| _initializing            | bool                                                | 0    | 1      | 1     | src/governance/governor/Governor.sol:Governor |
-| _owner                   | address                                             | 0    | 2      | 20    | src/governance/governor/Governor.sol:Governor |
-| _pendingOwner            | address                                             | 1    | 0      | 20    | src/governance/governor/Governor.sol:Governor |
-| HASHED_NAME              | bytes32                                             | 2    | 0      | 32    | src/governance/governor/Governor.sol:Governor |
-| HASHED_VERSION           | bytes32                                             | 3    | 0      | 32    | src/governance/governor/Governor.sol:Governor |
-| INITIAL_DOMAIN_SEPARATOR | bytes32                                             | 4    | 0      | 32    | src/governance/governor/Governor.sol:Governor |
-| INITIAL_CHAIN_ID         | uint256                                             | 5    | 0      | 32    | src/governance/governor/Governor.sol:Governor |
-| nonces                   | mapping(address => uint256)                         | 6    | 0      | 32    | src/governance/governor/Governor.sol:Governor |
-| settings                 | struct GovernorTypesV1.Settings                     | 7    | 0      | 96    | src/governance/governor/Governor.sol:Governor |
-| proposals                | mapping(bytes32 => struct GovernorTypesV1.Proposal) | 10   | 0      | 32    | src/governance/governor/Governor.sol:Governor |
-| hasVoted                 | mapping(bytes32 => mapping(address => bool))        | 11   | 0      | 32    | src/governance/governor/Governor.sol:Governor |
+| Name                                 | Type                                                | Slot | Offset | Bytes | Contract                                      |
+|--------------------------------------|-----------------------------------------------------|------|--------|-------|-----------------------------------------------|
+| _initialized                         | uint8                                               | 0    | 0      | 1     | src/governance/governor/Governor.sol:Governor |
+| _initializing                        | bool                                                | 0    | 1      | 1     | src/governance/governor/Governor.sol:Governor |
+| _owner                               | address                                             | 0    | 2      | 20    | src/governance/governor/Governor.sol:Governor |
+| _pendingOwner                        | address                                             | 1    | 0      | 20    | src/governance/governor/Governor.sol:Governor |
+| HASHED_NAME                          | bytes32                                             | 2    | 0      | 32    | src/governance/governor/Governor.sol:Governor |
+| HASHED_VERSION                       | bytes32                                             | 3    | 0      | 32    | src/governance/governor/Governor.sol:Governor |
+| INITIAL_DOMAIN_SEPARATOR             | bytes32                                             | 4    | 0      | 32    | src/governance/governor/Governor.sol:Governor |
+| INITIAL_CHAIN_ID                     | uint256                                             | 5    | 0      | 32    | src/governance/governor/Governor.sol:Governor |
+| nonces                               | mapping(address => uint256)                         | 6    | 0      | 32    | src/governance/governor/Governor.sol:Governor |
+| settings                             | struct GovernorTypesV1.Settings                     | 7    | 0      | 96    | src/governance/governor/Governor.sol:Governor |
+| proposals                            | mapping(bytes32 => struct GovernorTypesV1.Proposal) | 10   | 0      | 32    | src/governance/governor/Governor.sol:Governor |
+| hasVoted                             | mapping(bytes32 => mapping(address => bool))        | 11   | 0      | 32    | src/governance/governor/Governor.sol:Governor |
+| delayedGovernanceExpirationTimestamp | uint256                                             | 12   | 0      | 32    | src/governance/governor/Governor.sol:Governor |
 
 =======================
 ➡ Treasury
@@ -91,3 +94,4 @@
 | founder                  | mapping(uint256 => struct TokenTypesV1.Founder)                        | 19   | 0      | 32    | src/token/Token.sol:Token |
 | tokenRecipient           | mapping(uint256 => struct TokenTypesV1.Founder)                        | 20   | 0      | 32    | src/token/Token.sol:Token |
 | minter                   | mapping(address => bool)                                               | 21   | 0      | 32    | src/token/Token.sol:Token |
+| reservedUntilTokenId     | uint256                                                                | 22   | 0      | 32    | src/token/Token.sol:Token |

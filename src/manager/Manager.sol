@@ -12,13 +12,14 @@ import { IBaseMetadata } from "../token/metadata/interfaces/IBaseMetadata.sol";
 import { IAuction } from "../auction/IAuction.sol";
 import { ITreasury } from "../governance/treasury/ITreasury.sol";
 import { IGovernor } from "../governance/governor/IGovernor.sol";
+import { IOwnable } from "../lib/interfaces/IOwnable.sol";
 
 import { VersionedContract } from "../VersionedContract.sol";
 import { IVersionedContract } from "../lib/interfaces/IVersionedContract.sol";
 
 /// @title Manager
-/// @author Rohan Kulkarni
-/// @custom:repo github.com/ourzora/nouns-protocol 
+/// @author Neokry & Rohan Kulkarni
+/// @custom:repo github.com/ourzora/nouns-protocol
 /// @notice The DAO deployer and upgrade manager
 contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1 {
     ///                                                          ///
@@ -40,6 +41,9 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
     /// @notice The governor implementation address
     address public immutable governorImpl;
 
+    /// @notice The address to send Builder DAO rewards to
+    address public immutable builderRewardsRecipient;
+
     ///                                                          ///
     ///                          CONSTRUCTOR                     ///
     ///                                                          ///
@@ -49,13 +53,15 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         address _metadataImpl,
         address _auctionImpl,
         address _treasuryImpl,
-        address _governorImpl
+        address _governorImpl,
+        address _builderRewardsRecipient
     ) payable initializer {
         tokenImpl = _tokenImpl;
         metadataImpl = _metadataImpl;
         auctionImpl = _auctionImpl;
         treasuryImpl = _treasuryImpl;
         governorImpl = _governorImpl;
+        builderRewardsRecipient = _builderRewardsRecipient;
     }
 
     ///                                                          ///
@@ -103,24 +109,31 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         // Ensure at least one founder is provided
         if ((founder = _founderParams[0].wallet) == address(0)) revert FOUNDER_REQUIRED();
 
-        // Deploy the DAO's ERC-721 governance token
-        token = address(new ERC1967Proxy(tokenImpl, ""));
+        // Create new local context to fix for stack too deep error
+        {
+            // Deploy the DAO's ERC-721 governance token
+            token = address(new ERC1967Proxy(tokenImpl, ""));
 
-        // Use the token address to precompute the DAO's remaining addresses
-        bytes32 salt = bytes32(uint256(uint160(token)) << 96);
+            // Use the token address to precompute the DAO's remaining addresses
+            bytes32 salt = bytes32(uint256(uint160(token)) << 96);
 
-        // Deploy the remaining DAO contracts
-        metadata = address(new ERC1967Proxy{ salt: salt }(metadataImpl, ""));
-        auction = address(new ERC1967Proxy{ salt: salt }(auctionImpl, ""));
-        treasury = address(new ERC1967Proxy{ salt: salt }(treasuryImpl, ""));
-        governor = address(new ERC1967Proxy{ salt: salt }(governorImpl, ""));
+            // Check if the deployer is using an alternate metadata renderer. If not default to the standard one
+            address metadataImplToUse = _tokenParams.metadataRenderer != address(0) ? _tokenParams.metadataRenderer : metadataImpl;
 
-        daoAddressesByToken[token] = DAOAddresses({ metadata: metadata, auction: auction, treasury: treasury, governor: governor });
+            // Deploy the remaining DAO contracts
+            metadata = address(new ERC1967Proxy{ salt: salt }(metadataImplToUse, ""));
+            auction = address(new ERC1967Proxy{ salt: salt }(auctionImpl, ""));
+            treasury = address(new ERC1967Proxy{ salt: salt }(treasuryImpl, ""));
+            governor = address(new ERC1967Proxy{ salt: salt }(governorImpl, ""));
+
+            daoAddressesByToken[token] = DAOAddresses({ metadata: metadata, auction: auction, treasury: treasury, governor: governor });
+        }
 
         // Initialize each instance with the provided settings
         IToken(token).initialize({
             founders: _founderParams,
             initStrings: _tokenParams.initStrings,
+            reservedUntilTokenId: _tokenParams.reservedUntilTokenId,
             metadataRenderer: metadata,
             auction: auction,
             initialOwner: founder
@@ -131,7 +144,9 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
             founder: founder,
             treasury: treasury,
             duration: _auctionParams.duration,
-            reservePrice: _auctionParams.reservePrice
+            reservePrice: _auctionParams.reservePrice,
+            founderRewardRecipent: _auctionParams.founderRewardRecipent,
+            founderRewardBps: _auctionParams.founderRewardBps
         });
         ITreasury(treasury).initialize({ governor: governor, timelockDelay: _govParams.timelockDelay });
         IGovernor(governor).initialize({
@@ -145,6 +160,34 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
         });
 
         emit DAODeployed({ token: token, metadata: metadata, auction: auction, treasury: treasury, governor: governor });
+    }
+
+    ///                                                          ///
+    ///                          SET METADATA                    ///
+    ///                                                          ///
+
+    /// @notice Set a new metadata renderer
+    /// @param _newRendererImpl new renderer address to use
+    /// @param _setupRenderer data to setup new renderer with
+    function setMetadataRenderer(
+        address _token,
+        address _newRendererImpl,
+        bytes memory _setupRenderer
+    ) external returns (address metadata) {
+        if (msg.sender != IOwnable(_token).owner()) {
+            revert ONLY_TOKEN_OWNER();
+        }
+
+        metadata = address(new ERC1967Proxy(_newRendererImpl, ""));
+        daoAddressesByToken[_token].metadata = metadata;
+
+        if (_setupRenderer.length > 0) {
+            IBaseMetadata(metadata).initialize(_setupRenderer, _token);
+        }
+
+        IToken(_token).setMetadataRenderer(IBaseMetadata(metadata));
+
+        emit MetadataRendererUpdated({ sender: msg.sender, renderer: metadata });
     }
 
     ///                                                          ///
@@ -205,36 +248,41 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
     }
 
     /// @notice Safely get the contract version of a target contract.
+    /// @param target The ERC-721 token address
     /// @dev Assume `target` is a contract
     /// @return Contract version if found, empty string if not.
-    function _safeGetVersion(address target) internal view returns (string memory) {
+    function _safeGetVersion(address target) internal pure returns (string memory) {
         try IVersionedContract(target).contractVersion() returns (string memory version) {
             return version;
         } catch {
-            return '';
+            return "";
         }
     }
-    
 
+    /// @notice Safely get the contract version of all DAO contracts given a token address.
+    /// @param token The ERC-721 token address
+    /// @return Contract versions if found, empty string if not.
     function getDAOVersions(address token) external view returns (DAOVersionInfo memory) {
         (address metadata, address auction, address treasury, address governor) = getAddresses(token);
-        return DAOVersionInfo({
-            token: _safeGetVersion(token),
-            metadata: _safeGetVersion(metadata),
-            auction: _safeGetVersion(auction),
-            treasury: _safeGetVersion(treasury),
-            governor: _safeGetVersion(governor)
-        });
+        return
+            DAOVersionInfo({
+                token: _safeGetVersion(token),
+                metadata: _safeGetVersion(metadata),
+                auction: _safeGetVersion(auction),
+                treasury: _safeGetVersion(treasury),
+                governor: _safeGetVersion(governor)
+            });
     }
 
     function getLatestVersions() external view returns (DAOVersionInfo memory) {
-        return DAOVersionInfo({
-            token: _safeGetVersion(tokenImpl),
-            metadata: _safeGetVersion(metadataImpl),
-            auction: _safeGetVersion(auctionImpl),
-            treasury: _safeGetVersion(treasuryImpl),
-            governor: _safeGetVersion(governorImpl)
-        });
+        return
+            DAOVersionInfo({
+                token: _safeGetVersion(tokenImpl),
+                metadata: _safeGetVersion(metadataImpl),
+                auction: _safeGetVersion(auctionImpl),
+                treasury: _safeGetVersion(treasuryImpl),
+                governor: _safeGetVersion(governorImpl)
+            });
     }
 
     ///                                                          ///

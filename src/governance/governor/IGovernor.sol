@@ -57,6 +57,9 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
     //// @notice Emitted when the governor's vetoer is updated
     event VetoerUpdated(address prevVetoer, address newVetoer);
 
+    /// @notice Emitted when the governor's delay is updated
+    event DelayedGovernanceExpirationTimestampUpdated(uint256 prevTimestamp, uint256 newTimestamp);
+
     ///                                                          ///
     ///                            ERRORS                        ///
     ///                                                          ///
@@ -68,6 +71,8 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
     error INVALID_VOTING_DELAY();
 
     error INVALID_VOTING_PERIOD();
+
+    error INVALID_DELAYED_GOVERNANCE_EXPIRATION();
 
     /// @dev Reverts if a proposal already exists
     /// @param proposalId The proposal id
@@ -109,6 +114,15 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
 
     /// @dev Reverts if a vote was attempted to be casted incorrectly
     error INVALID_VOTE();
+
+    /// @dev Reverts if a proposal was attempted to be created before expiration or all tokens have been claimed
+    error WAITING_FOR_TOKENS_TO_CLAIM_OR_EXPIRATION();
+
+    /// @dev Reverts if governance cannot be delayed
+    error CANNOT_DELAY_GOVERNANCE();
+
+    /// @dev Reverts if the caller was not the token owner
+    error ONLY_TOKEN_OWNER();
 
     /// @dev Reverts if the caller was not the contract manager
     error ONLY_MANAGER();
@@ -284,6 +298,10 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
     /// @notice Updates the minimum quorum threshold
     /// @param newQuorumVotesBps The new quorum votes basis points
     function updateQuorumThresholdBps(uint256 newQuorumVotesBps) external;
+
+    /// @notice Updates the delayed governance expiration timestamp
+    /// @param _newDelayedTimestamp The new delayed governance expiration timestamp
+    function updateDelayedGovernanceExpirationTimestamp(uint256 _newDelayedTimestamp) external;
 
     /// @notice Updates the vetoer
     /// @param newVetoer The new vetoer addresss
