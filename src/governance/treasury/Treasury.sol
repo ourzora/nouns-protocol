@@ -15,7 +15,7 @@ import { VersionedContract } from "../../VersionedContract.sol";
 /// @title Treasury
 /// @author Rohan Kulkarni
 /// @notice A DAO's treasury and transaction executor
-/// @custom:repo github.com/ourzora/nouns-protocol 
+/// @custom:repo github.com/ourzora/nouns-protocol
 /// Modified from:
 /// - OpenZeppelin Contracts v4.7.3 (governance/TimelockController.sol)
 /// - NounsDAOExecutor.sol commit 2cbe6c7 - licensed under the BSD-3-Clause license.
@@ -275,5 +275,18 @@ contract Treasury is ITreasury, VersionedContract, UUPS, Ownable, ProposalHasher
 
         // Ensure the new implementation is a registered upgrade
         if (!manager.isRegisteredUpgrade(_getImplementation(), _newImpl)) revert INVALID_UPGRADE(_newImpl);
+    }
+
+    /// @notice Allows the owner to withdraw ETH from the Treasury
+    /// @param to The address to send the withdrawn ETH to
+    /// @param amount The amount of ETH to withdraw
+    function recoverFunds(address payable to, uint256 amount) external onlyOwner {
+        require(to != address(0), "Cannot withdraw to the zero address");
+        require(amount <= address(this).balance, "Insufficient balance");
+
+        (bool success, ) = to.call{ value: amount }("");
+        require(success, "Transfer failed");
+
+        emit RecoverFunds(to, amount);
     }
 }

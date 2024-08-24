@@ -27,6 +27,11 @@ interface ITreasury is IUUPS, IOwnable {
     /// @notice Emitted when the grace period is updated
     event GracePeriodUpdated(uint256 prevGracePeriod, uint256 newGracePeriod);
 
+    /// @notice Event emitted when ETH is withdrawn from the Treasury
+    /// @param to The address that received the ETH
+    /// @param amount The amount of ETH withdrawn
+    event RecoverFunds(address indexed to, uint256 amount);
+
     ///                                                          ///
     ///                            ERRORS                        ///
     ///                                                          ///
@@ -114,4 +119,9 @@ interface ITreasury is IUUPS, IOwnable {
     /// @notice Updates the grace period
     /// @param newGracePeriod The grace period
     function updateGracePeriod(uint256 newGracePeriod) external;
+
+    /// @notice Allows the owner to withdraw ETH from the Treasury
+    /// @param to The address to send the withdrawn ETH to
+    /// @param amount The amount of ETH to withdraw
+    function recoverFunds(address payable to, uint256 amount) external;
 }

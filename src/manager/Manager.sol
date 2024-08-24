@@ -293,4 +293,39 @@ contract Manager is IManager, VersionedContract, UUPS, Ownable, ManagerStorageV1
     /// @dev This function is called in `upgradeTo` & `upgradeToAndCall`
     /// @param _newImpl The new implementation address
     function _authorizeUpgrade(address _newImpl) internal override onlyOwner {}
+
+
+
+    /// @notice Deploy a Treasury contract using CREATE2 at a predetermined address and initialize it
+    /// @param salt The salt used for CREATE2 deployment
+    /// @param bytecode The bytecode of the Treasury contract
+    /// @param governor The EOA to be set as the governor of the Treasury
+    /// @param timelockDelay The timelock delay to be set in the Treasury
+    function deployAndInitializeTreasury(
+        bytes32 salt,
+        bytes memory bytecode,
+        address governor,
+        uint256 timelockDelay
+    ) external onlyOwner returns (address treasury) {
+        // Compute the address where the contract will be deployed
+        address predictedAddress = address(uint160(uint256(keccak256(abi.encodePacked(
+            bytes1(0xff),
+            address(this),
+            salt,
+            keccak256(bytecode)
+        )))));
+
+        // Deploy the Treasury contract using CREATE2
+        assembly {
+            treasury := create2(0, add(bytecode, 0x20), mload(bytecode), salt)
+            if iszero(extcodesize(treasury)) {
+                revert(0, 0)
+            }
+        }
+
+        require(treasury == predictedAddress, "Unexpected deployed address");
+
+        // Initialize the Treasury
+        ITreasury(treasury).initialize(governor, timelockDelay);
+    }
 }

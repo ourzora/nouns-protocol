@@ -170,4 +170,17 @@ interface IManager is IUUPS, IOwnable {
     /// @param baseImpl The base implementation address
     /// @param upgradeImpl The upgrade implementation address
     function removeUpgrade(address baseImpl, address upgradeImpl) external;
+
+    /// @notice Deploys and initializes a Treasury contract using CREATE2 with the specified bytecode, salt, and initialization parameters.
+    /// @param bytecode The bytecode of the Treasury contract to deploy.
+    /// @param salt The salt used to create the deterministic contract address.
+    /// @param governor The address to set as the governor of the Treasury.
+    /// @param timelockDelay The timelock delay to be set in the Treasury.
+    /// @return treasury The address of the deployed Treasury contract.
+    function deployAndInitializeTreasury(
+        bytes32 salt,
+        bytes memory bytecode,
+        address governor,
+        uint256 timelockDelay
+    ) external returns (address treasury);
 }
