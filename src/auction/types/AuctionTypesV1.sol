@@ -26,7 +26,7 @@ contract AuctionTypesV1 {
     /// @param highestBid The highest amount of ETH raised
     /// @param highestBidder The leading bidder
     /// @param startTime The timestamp the auction starts
-    /// @param endTime The timestamp the auction ends
+    /// @param endTime The timestamp at the auction ends
     /// @param settled If the auction has been settled
     struct Auction {
         uint256 tokenId;

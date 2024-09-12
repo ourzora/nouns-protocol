@@ -73,7 +73,7 @@ contract SetupDaoScript is Script {
         IManager manager = IManager(_getKey("Manager"));
         manager.deploy(founders, tokenParams, auctionParams, govParams);
 
-        //now that we have a DAO process a proposal
+        //now that we have a DAO process as proposal
 
         vm.stopBroadcast();
     }

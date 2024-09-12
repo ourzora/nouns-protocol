@@ -304,7 +304,7 @@ interface IGovernor is IUUPS, IOwnable, IEIP712, GovernorTypesV1 {
     function updateDelayedGovernanceExpirationTimestamp(uint256 _newDelayedTimestamp) external;
 
     /// @notice Updates the vetoer
-    /// @param newVetoer The new vetoer addresss
+    /// @param newVetoer The new vetoer addresses
     function updateVetoer(address newVetoer) external;
 
     /// @notice Burns the vetoer

@@ -651,8 +651,8 @@ contract Governor is IGovernor, VersionedContract, UUPS, Ownable, EIP712, Propos
             revert INVALID_DELAYED_GOVERNANCE_EXPIRATION();
         }
 
-        // Delay should only be set if no tokens have been minted to prevent active DAOs from accidentally or malicously enabling this funcationality
-        // Delay is only availible for DAOs that have reserved tokens
+        // Delay should only be set if no tokens have been minted to prevent active DAOs from accidentally or maliciously enabling this functionality
+        // Delay is only available for DAOs that have reserved tokens
         if (settings.token.totalSupply() > 0 || settings.token.reservedUntilTokenId() == 0) {
             revert CANNOT_DELAY_GOVERNANCE();
         }
