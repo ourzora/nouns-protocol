@@ -157,7 +157,7 @@ contract Token is IToken, VersionedContract, UUPS, Ownable, ReentrancyGuard, ERC
                 // Compute the vesting schedule
                 uint256 schedule = 100 / founderPct;
 
-                // Used to store the base token id the founder will recieve
+                // Used to store the base token id the founder will receive
                 uint256 baseTokenId = 0;
 
                 // For each token to vest:

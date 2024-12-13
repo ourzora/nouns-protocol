@@ -93,7 +93,7 @@ contract Auction is IAuction, VersionedContract, UUPS, Ownable, ReentrancyGuard,
     /// @param _treasury The treasury address where ETH will be sent
     /// @param _duration The duration of each auction
     /// @param _reservePrice The reserve price of each auction
-    /// @param _founderRewardRecipient The address to recieve founders rewards
+    /// @param _founderRewardRecipient The address to receive founders rewards
     /// @param _founderRewardBps The percent of rewards a founder receives in BPS for each auction
     function initialize(
         address _token,
