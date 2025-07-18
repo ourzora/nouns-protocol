@@ -1,10 +1,10 @@
 {
-  "name": "@zoralabs/nouns-protocol",
-  "version": "1.2.0",
+  "name": "@buildeross/nouns-protocol",
+  "version": "2.0.0",
   "private": false,
   "repository": {
     "type": "git",
-    "url": "https://github.com/ourzora/nouns-protocol.git"
+    "url": "https://github.com/dan13ram/nouns-protocol.git"
   },
   "files": [
     "dist/**/*",
