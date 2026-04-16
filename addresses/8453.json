@@ -12,5 +12,6 @@
   "Governor": "0x9Af9f31BAE469c13528B458E007A7EA965BD14bB",
   "L2MigrationDeployer": "0x8ef7b563Ff9F4A1f2d294845000cDf782d9afd7c",
   "MerkleReserveMinter": "0x7D8Ea0D056f5B8443cdD8495D4e90FFCf0a8A354",
-  "ERC721RedeemMinter": "0x57b9f2c192bbfa5cabc79a683435990fea665861"
+  "ERC721RedeemMinter": "0x57b9f2c192bbfa5cabc79a683435990fea665861",
+  "ManagerOwner": "0x0358962c89f33840fc67cDb2767dcC5f784AD7Bf"
 }

@@ -53,6 +53,8 @@ This deploys:
 
 Outputs are written to `deploys/1.version2_upgrade.txt`.
 
+Note: deployment scripts in this repo do not auto-write contract address fields to `addresses/1.json`; update those fields manually from `deploys/1.version2_upgrade.txt`.
+
 ## Phase 2: Update Manager (Root Upgrade Policy)
 
 Manager owner must execute these actions:
