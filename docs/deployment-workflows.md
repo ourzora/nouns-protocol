@@ -22,7 +22,6 @@ Deprecated networks `4` and `5` are removed.
 Minimum env for deploy commands:
 
 - `NETWORK` (must match one alias above)
-- `CHAIN_ID`
 - `PRIVATE_KEY`
 
 RPC aliases and explorer settings are configured in `foundry.toml` using:
@@ -49,26 +48,27 @@ Common env variables used by those sections:
 - `yarn deploy:v2-core`
 
   - Deploy a full fresh v2 core stack (manager proxy + all impls).
-  - Output file: `deploys/<CHAIN_ID>.version2_core.txt`.
+  - Output file: `deploys/<chainid>.version2_core.txt` (from `block.chainid`).
   - Use for new environments, not mainnet upgrade migration.
 
 - `yarn deploy:v2-upgrade`
 
   - Deploy only new v2 upgrade impls for existing manager deployments.
   - Deploys: Token, Auction, Governor, Manager impl.
-  - Reuses Metadata/Treasury impl addresses from `addresses/<CHAIN_ID>.json`.
-  - Output file: `deploys/<CHAIN_ID>.version2_upgrade.txt`.
+  - Auction implementation is configured with `builderRewardsBPS=250` and `referralRewardsBPS=250`.
+  - Reuses Metadata/Treasury/WETH addresses from `addresses/<chainid>.json`.
+  - Output file: `deploys/<chainid>.version2_upgrade.txt`.
 
 - `yarn deploy:v2-new`
 
   - Deploys MerkleReserveMinter plus L2MigrationDeployer.
-  - Requires `CrossDomainMessenger` in `addresses/<CHAIN_ID>.json`.
-  - Output file: `deploys/<CHAIN_ID>.version2_new.txt`.
+  - Requires `CrossDomainMessenger` in `addresses/<chainid>.json`.
+  - Output file: `deploys/<chainid>.version2_new.txt`.
 
 - `yarn deploy:erc721-redeem-minter`
 
   - Deploys ERC721 redeem minter only.
-  - Output file: `deploys/<CHAIN_ID>.erc721_redeem_minter.txt`.
+  - Output file: `deploys/<chainid>.erc721_redeem_minter.txt`.
 
 - `yarn deploy:dao`
 
@@ -100,15 +100,16 @@ source .env && node script/updateManagerOwner.mjs --write --chain-ids 1,8453
 
 Current policy in this repo:
 
-- Deploy scripts write deployment outputs to `deploys/<CHAIN_ID>.*.txt`.
-- Deploy scripts do not auto-write new contract addresses into `addresses/<CHAIN_ID>.json`.
-- `addresses/<CHAIN_ID>.json` updates for deployed contract fields remain manual.
+- Deploy scripts write deployment outputs to `deploys/<chainid>.*.txt`.
+- Deploy scripts use `block.chainid` to resolve `addresses/<chainid>.json` and output file names.
+- Deploy scripts do not auto-write new contract addresses into `addresses/<chainid>.json`.
+- `addresses/<chainid>.json` updates for deployed contract fields remain manual.
 - `ManagerOwner` is the only field currently synced automatically via `script/updateManagerOwner.mjs`.
 
 Recommended post-deploy sequence:
 
 1. Run deploy command and capture generated `deploys/*.txt` output.
-2. Manually update `addresses/<CHAIN_ID>.json` contract address fields.
+2. Manually update `addresses/<chainid>.json` contract address fields.
 3. Run `yarn addresses:sync-manager-owner` to refresh `ManagerOwner`.
 4. Commit `deploys/*` and `addresses/*` changes together.
 
@@ -117,7 +118,6 @@ Recommended post-deploy sequence:
 ```bash
 source .env
 export NETWORK=mainnet
-export CHAIN_ID=1
 yarn deploy:v2-upgrade
 yarn addresses:sync-manager-owner
 ```

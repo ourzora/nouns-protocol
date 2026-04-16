@@ -26,12 +26,11 @@ This runbook covers:
 2. Export env vars:
 
 ```bash
-export CHAIN_ID=1
-export RPC_URL=<mainnet_rpc>
+export NETWORK=mainnet
 export PRIVATE_KEY=<deployer_private_key>
-export ETHERSCAN_API_KEY=<etherscan_api_key>
-export WETH_ADDRESS=0xC02aaA39b223FE8D0A0E5C4F27eAD9083C756Cc2
 ```
+
+RPC and verification keys are resolved from `foundry.toml` aliases and `.env` endpoint vars.
 
 3. Confirm deployment script target: `script/DeployV2Upgrade.s.sol`.
 4. Optional: run dry-run without broadcast first.
@@ -51,9 +50,14 @@ This deploys:
 - `NEW_GOVERNOR_IMPL`
 - `NEW_MANAGER_IMPL`
 
+Auction reward policy in this rollout:
+
+- `builderRewardsBPS = 250` (2.5%)
+- `referralRewardsBPS = 250` (2.5%)
+
 Outputs are written to `deploys/1.version2_upgrade.txt`.
 
-Note: deployment scripts in this repo do not auto-write contract address fields to `addresses/1.json`; update those fields manually from `deploys/1.version2_upgrade.txt`.
+Note: deployment scripts in this repo do not auto-write contract address fields to `addresses/1.json`; update those fields manually from `deploys/1.version2_upgrade.txt`. WETH is read from `addresses/1.json`.
 
 ## Phase 2: Update Manager (Root Upgrade Policy)
 
@@ -86,6 +90,12 @@ Use your manager owner path:
 
 - If owner is DAO treasury: submit one governance proposal containing all calls above.
 - If owner is multisig: execute the same calls from multisig in that order.
+
+## Governance Note (Economic Change)
+
+Suggested proposal note for v2 rollout:
+
+"This upgrade includes a change to Auction rewards policy. The new Auction implementation sets `builderRewardsBPS=250` and `referralRewardsBPS=250` (2.5% each). For upgraded DAOs, settled auction proceeds will allocate these reward splits through protocol rewards before the remainder is transferred to treasury. MetadataRenderer and Treasury implementations remain unchanged in this release."
 
 ## Phase 3: Existing DAO Upgrades
 

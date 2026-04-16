@@ -21,7 +21,7 @@ contract SetupDaoScript is Script {
     }
 
     function run() public {
-        uint256 chainID = vm.envUint("CHAIN_ID");
+        uint256 chainID = block.chainid;
         uint256 key = vm.envUint("PRIVATE_KEY");
 
         configFile = vm.readFile(string.concat("./addresses/", Strings.toString(chainID), ".json"));

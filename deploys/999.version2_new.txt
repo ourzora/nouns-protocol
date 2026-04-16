@@ -1,2 +1,0 @@
-Merkle Reserve Minter: 0x7a1857b438a05f08aed1dbe8138bb02bb1f01c4d
-Migration Deployer: 0x76253481603b3411f94217fd086b0b5cc70da522

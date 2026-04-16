@@ -23,16 +23,16 @@ contract DeployContracts is Script {
     }
 
     function run() public {
-        uint256 chainID = vm.envUint("CHAIN_ID");
+        uint256 chainID = block.chainid;
         uint256 key = vm.envUint("PRIVATE_KEY");
-        address weth = vm.envAddress("WETH_ADDRESS");
 
         configFile = vm.readFile(string.concat("./addresses/", Strings.toString(chainID), ".json"));
+        address weth = _getKey("WETH");
 
         address deployerAddress = vm.addr(key);
 
-        uint16 BUILDER_REWARDS = chainID == 1 || chainID == 5 ? 0 : 250;
-        uint16 REFERRAL_REWARDS = chainID == 1 || chainID == 5 ? 0 : 250;
+        uint16 BUILDER_REWARDS = 250;
+        uint16 REFERRAL_REWARDS = 250;
 
         console2.log("~~~~~~~~~~ CHAIN ID ~~~~~~~~~~~");
         console2.log(chainID);
